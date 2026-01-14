@@ -1,0 +1,145 @@
+'use client';
+
+/**
+ * Pagina de chamada - registra presencas dos alunos.
+ */
+
+import { useState, useEffect } from 'react';
+import { Box, Typography, CircularProgress, Alert } from '@mui/material';
+import { Person } from '@mui/icons-material';
+import MainLayout from '@/components/layout/MainLayout';
+import { useFilterStore } from '@/store/filterStore';
+import { useUIStore } from '@/store/uiStore';
+import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
+import { useChamadaData } from './hooks';
+import { ChamadaFilters, ChamadaList, ConteudoModal } from './components';
+
+export default function ChamadaPage() {
+  const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
+  const { addToast } = useUIStore();
+
+  // Firebase data hooks
+  const { turmas, loading: loadingTurmas } = useTurmas(ano);
+  const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
+  const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
+
+  // Filter disciplinas by selected turma
+  const disciplinas = serieId
+    ? todasDisciplinas.filter(d => d.turmaIds?.includes(serieId))
+    : [];
+
+  // Local state for date and modal
+  const [dataChamada, setDataChamada] = useState(new Date().toISOString().split('T')[0]);
+  const [conteudoModalOpen, setConteudoModalOpen] = useState(false);
+  const [dataConteudo, setDataConteudo] = useState(new Date().toISOString().split('T')[0]);
+
+  // Chamada data hook
+  const {
+    presencas,
+    conteudo,
+    setConteudo,
+    loading: loadingChamada,
+    saving,
+    totalPresentes,
+    totalAusentes,
+    handlePresencaChange,
+    handleMarcarTodos,
+    handleSaveChamada,
+  } = useChamadaData({
+    serieId,
+    disciplinaId,
+    dataChamada,
+    alunos,
+  });
+
+  // Clear disciplinaId when turma changes and current disciplina is not linked
+  useEffect(() => {
+    if (serieId && disciplinaId) {
+      const disciplinaValida = todasDisciplinas.find(
+        d => d.id === disciplinaId && d.turmaIds?.includes(serieId)
+      );
+      if (!disciplinaValida) {
+        setDisciplinaId('');
+      }
+    }
+  }, [serieId, todasDisciplinas, disciplinaId, setDisciplinaId]);
+
+  const handleSaveConteudo = () => {
+    addToast('Conteudo sera salvo junto com a chamada', 'info');
+    setConteudoModalOpen(false);
+  };
+
+  const isLoading = loadingTurmas || loadingDisciplinas || loadingAlunos || loadingChamada;
+
+  return (
+    <MainLayout title="Chamada" showSidebar>
+      <Box sx={{ display: 'flex', gap: { xs: 0, md: 3 }, flexDirection: { xs: 'column', md: 'row' } }}>
+        {/* Filters Section */}
+        <ChamadaFilters
+          ano={ano}
+          setAno={setAno}
+          serieId={serieId}
+          setSerieId={setSerieId}
+          disciplinaId={disciplinaId}
+          setDisciplinaId={setDisciplinaId}
+          dataChamada={dataChamada}
+          setDataChamada={setDataChamada}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          loadingTurmas={loadingTurmas}
+          loadingDisciplinas={loadingDisciplinas}
+        />
+
+        {/* Main Content - Student List */}
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          {!serieId || !disciplinaId ? (
+            <Box
+              sx={{
+                p: 6,
+                textAlign: 'center',
+                bgcolor: 'background.paper',
+                borderRadius: 2,
+              }}
+            >
+              <Person sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+              <Typography variant="h6" color="text.secondary">
+                Selecione a turma e disciplina para iniciar a chamada
+              </Typography>
+            </Box>
+          ) : isLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : alunos.length === 0 ? (
+            <Alert severity="info">
+              Nenhum aluno encontrado nesta turma. Cadastre alunos primeiro.
+            </Alert>
+          ) : (
+            <ChamadaList
+              alunos={alunos}
+              presencas={presencas}
+              totalPresentes={totalPresentes}
+              totalAusentes={totalAusentes}
+              saving={saving}
+              onPresencaChange={handlePresencaChange}
+              onMarcarTodos={handleMarcarTodos}
+              onSave={handleSaveChamada}
+              onOpenConteudo={() => setConteudoModalOpen(true)}
+            />
+          )}
+        </Box>
+      </Box>
+
+      {/* Conteudo Modal */}
+      <ConteudoModal
+        open={conteudoModalOpen}
+        dataConteudo={dataConteudo}
+        conteudo={conteudo}
+        onClose={() => setConteudoModalOpen(false)}
+        onDataChange={setDataConteudo}
+        onConteudoChange={setConteudo}
+        onSave={handleSaveConteudo}
+      />
+    </MainLayout>
+  );
+}

@@ -1,0 +1,282 @@
+import { Timestamp } from 'firebase/firestore';
+
+// Enums
+export const Meses = [
+  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+] as const;
+
+export const MesesAbrev = [
+  'JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN',
+  'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'
+] as const;
+
+export const Turnos = ['Matutino', 'Vespertino', 'Noturno'] as const;
+
+export const Series = [
+  '6o Ano - Ensino Fundamental II',
+  '7o Ano - Ensino Fundamental II',
+  '8o Ano - Ensino Fundamental II',
+  '9o Ano - Ensino Fundamental II',
+  '1a Série - Ensino Médio',
+  '2a Série - Ensino Médio',
+  '3a Série - Ensino Médio',
+] as const;
+
+export type Mes = typeof Meses[number];
+export type MesAbrev = typeof MesesAbrev[number];
+export type Turno = typeof Turnos[number];
+export type Serie = typeof Series[number];
+
+// Role hierarchy (higher number = more permissions)
+export const RoleHierarchy = {
+  professor: 1,
+  coordenador: 2,
+  administrador: 3,
+} as const;
+
+export type UserRole = keyof typeof RoleHierarchy;
+
+// User / Professor
+export interface Usuario {
+  id: string;
+  nome: string;
+  cpf: string;
+  email: string;
+  telefone?: string;
+  tipo: UserRole;
+  // For professors - which disciplines they teach
+  disciplinaIds?: string[];
+  // For professors - which classes they teach
+  turmaIds?: string[];
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface Professor {
+  id: string;
+  nome: string;
+  cpf: string;
+  telefone?: string;
+  email?: string;
+  coordenador: boolean;
+  disciplinas: string[];
+  turmas: string[];
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Turma
+export interface Turma {
+  id: string;
+  nome: string;
+  serie: string;
+  turno: Turno;
+  ano: number;
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Aluno
+export interface Aluno {
+  id: string;
+  nome: string;
+  cpf?: string;
+  dataNascimento?: Date;
+  turmaId: string;
+  turma?: string;
+  serie?: string;
+  turno?: Turno;
+  matricula?: string;
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Disciplina
+export interface Disciplina {
+  id: string;
+  nome: string;
+  codigo?: string;
+  turmaIds: string[];
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Chamada (Presença)
+export interface Chamada {
+  id: string;
+  turmaId: string;
+  disciplinaId: string;
+  professorId: string;
+  data: Date;
+  tempo: 1 | 2;
+  presencas: PresencaAluno[];
+  conteudo?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PresencaAluno {
+  alunoId: string;
+  alunoNome: string;
+  presente: boolean;
+  justificativa?: string;
+}
+
+// Componente de composição de nota
+export interface NotaComposicao {
+  id: string;
+  nome: string;
+  porcentagem: number;
+  valor: number | null;
+}
+
+// Notas
+export interface Nota {
+  id: string;
+  alunoId: string;
+  turmaId: string;
+  disciplinaId: string;
+  professorId: string;
+  bimestre: 1 | 2 | 3 | 4;
+  tipo: 'AV1' | 'AV2' | 'AV3' | 'REC' | 'MEDIA';
+  valor: number;
+  ano: number;
+  // Composição da nota (opcional - quando calculada por componentes)
+  composicao?: NotaComposicao[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Conceitos
+export interface Conceito {
+  id: string;
+  alunoId: string;
+  turmaId: string;
+  disciplinaId: string;
+  professorId: string;
+  mes: Mes;
+  ano: number;
+  conceito: 'A' | 'B' | 'C' | 'D' | 'E';
+  observacao?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Nivel de Rubrica
+export type NivelRubrica = 'A' | 'B' | 'C' | 'D' | 'E';
+
+export interface DescricaoNivel {
+  nivel: NivelRubrica;
+  descricao: string;
+}
+
+// Rubrica (criterio de avaliacao)
+export interface Rubrica {
+  id: string;
+  nome: string;
+  descricao?: string;
+  niveis: DescricaoNivel[];
+  ativo: boolean;
+  ordem: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Avaliacao de Rubrica (avaliacao do aluno em uma rubrica)
+export interface AvaliacaoRubrica {
+  id: string;
+  alunoId: string;
+  turmaId: string;
+  disciplinaId: string;
+  rubricaId: string;
+  professorId: string;
+  bimestre: number;
+  ano: number;
+  nivel: NivelRubrica;
+  observacao?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Ocorrência
+export interface Ocorrencia {
+  id: string;
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;
+  serie: string;
+  motivo: string;
+  descricao?: string;
+  usuarioId: string;
+  usuarioNome: string;
+  data: Date;
+  status: 'pendente' | 'aprovada' | 'cancelada';
+  aprovadaPor?: string;
+  aprovadaEm?: Date;
+  canceladaPor?: string;
+  canceladaEm?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Aniversariantes
+export interface Aniversariante {
+  id: string;
+  nome: string;
+  dataNascimento: Date;
+  idade: number;
+  serie: string;
+  turma: string;
+  turno: Turno;
+}
+
+// Filtros comuns
+export interface FiltroBase {
+  ano: number;
+  mes?: Mes;
+}
+
+export interface FiltroChamada extends FiltroBase {
+  serieId?: string;
+  disciplinaId?: string;
+}
+
+export interface FiltroNotas extends FiltroBase {
+  serieId?: string;
+  disciplinaId?: string;
+  bimestre?: 1 | 2 | 3 | 4;
+}
+
+// API Response types
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
+// Auth types
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  photoURL: string | null;
+}
+
+export interface LoginCredentials {
+  cpf: string;
+  senha: string;
+}
+
+export interface AlterarSenha {
+  cpf: string;
+  senhaAtual: string;
+  novaSenha: string;
+  confirmarSenha: string;
+}
