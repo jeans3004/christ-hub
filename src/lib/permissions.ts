@@ -79,6 +79,19 @@ export function isProfessor(usuario: Usuario | null): boolean {
 }
 
 /**
+ * Domínio permitido para login com Google.
+ */
+export const ALLOWED_DOMAIN = 'christmaster.com.br';
+
+/**
+ * Verifica se o email pertence ao domínio permitido.
+ */
+export function isAllowedDomain(email: string | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`);
+}
+
+/**
  * Verifica se o email e de um administrador.
  */
 export function isAdminEmail(email: string | null): boolean {

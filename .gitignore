@@ -54,3 +54,4 @@ ui-debug.log
 
 # Sistema documentado (referência apenas)
 sistema_documentado/
+.env.vercel

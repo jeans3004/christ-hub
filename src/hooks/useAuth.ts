@@ -16,7 +16,7 @@ import { auth, db } from '@/lib/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Usuario, UserRole } from '@/types';
-import { isAdminEmail, getRoleForEmail } from '@/lib/permissions';
+import { isAdminEmail, getRoleForEmail, isAllowedDomain, ALLOWED_DOMAIN } from '@/lib/permissions';
 
 const googleProvider = new GoogleAuthProvider();
 
@@ -53,8 +53,14 @@ export function useAuth() {
 
     // Handle redirect result (for Google Sign-In via redirect)
     getRedirectResult(auth)
-      .then((result) => {
+      .then(async (result) => {
         if (result?.user) {
+          // Verificar domínio permitido
+          if (!isAllowedDomain(result.user.email)) {
+            await signOut(auth);
+            addToast(`Acesso negado. Apenas emails @${ALLOWED_DOMAIN} são permitidos.`, 'error');
+            return;
+          }
           console.log('Redirect login successful:', result.user.displayName);
           addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
         }
@@ -67,6 +73,17 @@ export function useAuth() {
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Verificar domínio permitido
+        if (!isAllowedDomain(firebaseUser.email)) {
+          console.warn(`Acesso negado para email: ${firebaseUser.email}`);
+          await signOut(auth);
+          setUser(null);
+          setUsuario(null);
+          setLoading(false);
+          addToast(`Acesso negado. Apenas emails @${ALLOWED_DOMAIN} são permitidos.`, 'error');
+          return;
+        }
+
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -178,6 +195,14 @@ export function useAuth() {
 
       // Try popup first
       const result = await signInWithPopup(auth, googleProvider);
+
+      // Verificar domínio permitido
+      if (!isAllowedDomain(result.user.email)) {
+        await signOut(auth);
+        const message = `Acesso negado. Apenas emails @${ALLOWED_DOMAIN} são permitidos.`;
+        addToast(message, 'error');
+        return { success: false, error: message };
+      }
 
       // User profile will be created/fetched in onAuthStateChanged
       addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
