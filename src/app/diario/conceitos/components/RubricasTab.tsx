@@ -77,6 +77,7 @@ export function RubricasTab({ rubricas, loading, onRefresh }: RubricasTabProps) 
           niveis: rubrica.niveis,
           ativo: true,
           ordem: i + 1,
+          tipo: 'geral',
         });
       }
       addToast('Rubricas padrão criadas com sucesso!', 'success');

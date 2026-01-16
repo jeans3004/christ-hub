@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, browserSessionPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
@@ -18,6 +18,11 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Set auth persistence to session (works better with tracking prevention)
+if (typeof window !== 'undefined') {
+  setPersistence(auth, browserSessionPersistence).catch(console.error);
+}
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {

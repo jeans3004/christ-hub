@@ -1,5 +1,6 @@
 /**
  * Modal para criar/editar rubricas.
+ * Permite definir se a rubrica é Geral/Colegiado ou do Professor.
  */
 
 import { useState, useEffect } from 'react';
@@ -16,11 +17,14 @@ import {
   Switch,
   FormControlLabel,
   CircularProgress,
+  ToggleButtonGroup,
+  ToggleButton,
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
-import { Rubrica, NivelRubrica, DescricaoNivel } from '@/types';
+import { Close, School, Person } from '@mui/icons-material';
+import { Rubrica, NivelRubrica, DescricaoNivel, TipoRubrica } from '@/types';
 import { rubricaService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
+import { useAuth } from '@/hooks/useAuth';
 import { NIVEIS, NIVEL_COLORS, NIVEL_LABELS } from '../types';
 
 interface RubricaModalProps {
@@ -36,10 +40,12 @@ const createEmptyNiveis = (): DescricaoNivel[] =>
 
 export function RubricaModal({ open, rubrica, existingOrder, onClose, onSave }: RubricaModalProps) {
   const { addToast } = useUIStore();
+  const { usuario } = useAuth();
   const [saving, setSaving] = useState(false);
   const [nome, setNome] = useState('');
   const [descricao, setDescricao] = useState('');
   const [ativo, setAtivo] = useState(true);
+  const [tipo, setTipo] = useState<TipoRubrica>('professor');
   const [niveis, setNiveis] = useState<DescricaoNivel[]>(createEmptyNiveis());
 
   useEffect(() => {
@@ -47,11 +53,13 @@ export function RubricaModal({ open, rubrica, existingOrder, onClose, onSave }: 
       setNome(rubrica.nome);
       setDescricao(rubrica.descricao || '');
       setAtivo(rubrica.ativo);
+      setTipo(rubrica.tipo || 'geral');
       setNiveis(rubrica.niveis.length > 0 ? rubrica.niveis : createEmptyNiveis());
     } else {
       setNome('');
       setDescricao('');
       setAtivo(true);
+      setTipo('professor'); // Default para professor ao criar nova
       setNiveis(createEmptyNiveis());
     }
   }, [rubrica, open]);
@@ -76,20 +84,30 @@ export function RubricaModal({ open, rubrica, existingOrder, onClose, onSave }: 
 
     setSaving(true);
     try {
-      const data = {
+      const data: Partial<Rubrica> = {
         nome: nome.trim(),
         descricao: descricao.trim() || undefined,
         niveis: niveis.filter((n) => n.descricao.trim()),
         ativo,
         ordem: rubrica?.ordem ?? existingOrder + 1,
-        tipo: rubrica?.tipo ?? 'geral' as const,
+        tipo,
       };
+
+      // Se for rubrica de professor, adicionar criador
+      if (tipo === 'professor' && usuario) {
+        data.criadorId = usuario.id;
+        data.criadorNome = usuario.nome;
+      } else {
+        // Se for geral, limpar dados do criador
+        data.criadorId = undefined;
+        data.criadorNome = undefined;
+      }
 
       if (rubrica) {
         await rubricaService.update(rubrica.id, data);
         addToast('Rubrica atualizada com sucesso!', 'success');
       } else {
-        await rubricaService.create(data);
+        await rubricaService.create(data as Parameters<typeof rubricaService.create>[0]);
         addToast('Rubrica criada com sucesso!', 'success');
       }
 
@@ -116,6 +134,33 @@ export function RubricaModal({ open, rubrica, existingOrder, onClose, onSave }: 
 
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, mt: 1 }}>
+          {/* Tipo de Rubrica */}
+          <Box>
+            <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
+              Tipo de Rubrica
+            </Typography>
+            <ToggleButtonGroup
+              value={tipo}
+              exclusive
+              onChange={(_, newTipo) => newTipo && setTipo(newTipo)}
+              fullWidth
+            >
+              <ToggleButton value="geral" sx={{ py: 1.5 }}>
+                <School sx={{ mr: 1 }} />
+                Geral/Colegiado
+              </ToggleButton>
+              <ToggleButton value="professor" sx={{ py: 1.5 }}>
+                <Person sx={{ mr: 1 }} />
+                Minha Rubrica
+              </ToggleButton>
+            </ToggleButtonGroup>
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+              {tipo === 'geral'
+                ? 'Rubricas Gerais são visíveis para todos os usuários do sistema'
+                : `Esta rubrica será exibida no grupo "${usuario?.nome || 'Professor'}"`}
+            </Typography>
+          </Box>
+
           {/* Dados básicos */}
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField

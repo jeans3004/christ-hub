@@ -1,11 +1,11 @@
 /**
- * Modal para insercao de notas por composicao.
+ * Modal para exibição de notas por composição.
+ * As notas são calculadas automaticamente baseadas nas avaliações de rubricas.
  */
 
 import {
   Box,
   Typography,
-  TextField,
   Button,
   IconButton,
   Dialog,
@@ -13,9 +13,10 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
+  Chip,
 } from '@mui/material';
-import { Close } from '@mui/icons-material';
-import { NotaComposicao } from '@/types';
+import { Close, CheckCircle, Warning } from '@mui/icons-material';
+import { NotaComposicao, NivelRubrica } from '@/types';
 
 // Constante da media de referencia
 const MEDIA_REFERENCIA = 6.0;
@@ -39,16 +40,44 @@ const NOTA_COLORS = {
   },
 };
 
+// Cores para cada nivel de rubrica
+const NIVEL_COLORS: Record<NivelRubrica, { bg: string; text: string; border: string }> = {
+  A: { bg: 'rgba(76, 175, 80, 0.15)', text: '#2E7D32', border: '#4CAF50' },
+  B: { bg: 'rgba(33, 150, 243, 0.15)', text: '#1565C0', border: '#2196F3' },
+  C: { bg: 'rgba(255, 193, 7, 0.15)', text: '#F57F17', border: '#FFC107' },
+  D: { bg: 'rgba(255, 152, 0, 0.15)', text: '#E65100', border: '#FF9800' },
+  E: { bg: 'rgba(244, 67, 54, 0.15)', text: '#C62828', border: '#F44336' },
+};
+
+// Porcentagens para exibição
+const NIVEL_PERCENTUAL: Record<NivelRubrica, number> = {
+  A: 100,
+  B: 80,
+  C: 60,
+  D: 40,
+  E: 20,
+};
+
 // Helper para determinar cor
 const getNotaColorKey = (nota: number | null): 'success' | 'error' | 'neutral' => {
   if (nota === null) return 'neutral';
   return nota >= MEDIA_REFERENCIA ? 'success' : 'error';
 };
 
+interface RubricaDetalhe {
+  rubricaId: string;
+  rubricaNome: string;
+  nivel: NivelRubrica | null;
+  valorMaximo: number;
+  valorCalculado: number | null;
+}
+
 interface ComponenteFormula {
   nome: string;
   notaMaxima: number;
   nota: number | null;
+  rubricas: RubricaDetalhe[];
+  todasRubricasAvaliadas: boolean;
 }
 
 interface FormulaDetalhada {
@@ -76,18 +105,28 @@ export function ComposicaoModal({
   saving,
   onClose,
   onSave,
-  onValorChange,
   getTotalValoresMax,
   calcularNotaComposicao,
   gerarFormulaDetalhada,
 }: ComposicaoModalProps) {
   const notaCalculada = calcularNotaComposicao();
+  const formulaDetalhada = gerarFormulaDetalhada();
+
+  // Verificar se todas as rubricas estão configuradas
+  const todasRubricasConfiguradas = formulaDetalhada?.componentes.every(
+    c => c.rubricas.length > 0
+  ) ?? false;
+
+  // Verificar se todas as avaliações foram preenchidas
+  const todasAvaliacoesPreenchidas = formulaDetalhada?.componentes.every(
+    c => c.todasRubricasAvaliadas
+  ) ?? false;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Box component="span" sx={{ fontWeight: 600 }}>
-          Inserir Notas por Composição
+          Notas por Composição (Calculadas por Rubricas)
         </Box>
         <IconButton onClick={onClose} size="small">
           <Close />
@@ -95,49 +134,136 @@ export function ComposicaoModal({
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Insira a nota de cada componente. A nota final será a soma de todas as notas.
+          As notas são calculadas automaticamente baseadas nas avaliações de rubricas.
+          Avalie os alunos na aba "Avaliação por Rubricas" para calcular as notas.
         </Typography>
 
-        {/* Lista de Componentes com campos de nota */}
+        {/* Lista de Componentes com detalhes das rubricas */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 3 }}>
-          {subNotas.map((subNota) => (
-            <Box
-              key={subNota.id}
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 2,
-                p: 2,
-                bgcolor: 'grey.50',
-                borderRadius: 2,
-              }}
-            >
-              <Typography sx={{ flex: 1, fontWeight: 500 }}>
-                {subNota.nome}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ minWidth: 80, textAlign: 'center' }}>
-                máx: {subNota.porcentagem}
-              </Typography>
-              <TextField
-                size="small"
-                label="Nota"
-                value={subNota.valor ?? ''}
-                onChange={(e) => onValorChange(subNota.id, e.target.value)}
-                inputProps={{
-                  style: { textAlign: 'center' },
-                  min: 0,
-                  max: subNota.porcentagem,
-                  step: 0.1,
+          {subNotas.map((subNota) => {
+            const componenteFormula = formulaDetalhada?.componentes.find(
+              c => c.nome === subNota.nome
+            );
+            const rubricas = componenteFormula?.rubricas || [];
+            const temRubricas = rubricas.length > 0;
+            const todasAvaliadas = componenteFormula?.todasRubricasAvaliadas ?? false;
+
+            return (
+              <Box
+                key={subNota.id}
+                sx={{
+                  p: 2,
+                  bgcolor: 'grey.50',
+                  borderRadius: 2,
+                  border: '1px solid',
+                  borderColor: todasAvaliadas ? 'success.main' : temRubricas ? 'warning.main' : 'grey.300',
                 }}
-                placeholder={`0-${subNota.porcentagem}`}
-                sx={{ width: 80 }}
-              />
-            </Box>
-          ))}
+              >
+                {/* Cabeçalho do componente */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: temRubricas ? 2 : 0 }}>
+                  <Typography sx={{ flex: 1, fontWeight: 600 }}>
+                    {subNota.nome}
+                  </Typography>
+                  <Chip
+                    label={`máx: ${subNota.porcentagem}`}
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                  />
+                  {todasAvaliadas ? (
+                    <Chip
+                      icon={<CheckCircle />}
+                      label={subNota.valor ?? '-'}
+                      size="small"
+                      color="success"
+                    />
+                  ) : (
+                    <Chip
+                      icon={<Warning />}
+                      label="Pendente"
+                      size="small"
+                      color="warning"
+                    />
+                  )}
+                </Box>
+
+                {/* Detalhes das rubricas */}
+                {temRubricas ? (
+                  <Box sx={{ pl: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {rubricas.map((rubrica) => {
+                      const nivelColors = rubrica.nivel ? NIVEL_COLORS[rubrica.nivel] : null;
+                      return (
+                        <Box
+                          key={rubrica.rubricaId}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                            p: 1,
+                            bgcolor: 'white',
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'grey.200',
+                          }}
+                        >
+                          <Typography variant="body2" sx={{ flex: 1 }}>
+                            {rubrica.rubricaNome}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            máx: {rubrica.valorMaximo.toFixed(2)}
+                          </Typography>
+                          {rubrica.nivel ? (
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                px: 1,
+                                py: 0.5,
+                                borderRadius: 1,
+                                bgcolor: nivelColors?.bg,
+                                border: '1px solid',
+                                borderColor: nivelColors?.border,
+                              }}
+                            >
+                              <Typography
+                                variant="body2"
+                                fontWeight={700}
+                                sx={{ color: nivelColors?.text }}
+                              >
+                                {rubrica.nivel}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: nivelColors?.text }}>
+                                ({NIVEL_PERCENTUAL[rubrica.nivel]}%)
+                              </Typography>
+                              <Typography variant="body2" fontWeight={600}>
+                                = {rubrica.valorCalculado?.toFixed(2)}
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Chip
+                              label="Não avaliada"
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                            />
+                          )}
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="warning.main" sx={{ pl: 2, fontStyle: 'italic' }}>
+                    Nenhuma rubrica configurada. Configure na aba "Avaliação por Rubricas".
+                  </Typography>
+                )}
+              </Box>
+            );
+          })}
         </Box>
 
         {/* Fórmula Detalhada do Cálculo */}
-        {subNotas.length > 0 && (
+        {subNotas.length > 0 && todasRubricasConfiguradas && (
           <FormulaDisplay gerarFormulaDetalhada={gerarFormulaDetalhada} />
         )}
 
@@ -188,6 +314,15 @@ export function ComposicaoModal({
             </Box>
           );
         })()}
+
+        {/* Aviso se faltam avaliações */}
+        {!todasAvaliacoesPreenchidas && todasRubricasConfiguradas && (
+          <Box sx={{ mt: 2, p: 2, bgcolor: 'warning.light', borderRadius: 2 }}>
+            <Typography variant="body2" color="warning.dark">
+              Algumas rubricas ainda não foram avaliadas. Avalie os alunos na aba "Avaliação por Rubricas".
+            </Typography>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions sx={{ p: 2, pt: 0 }}>
         <Button onClick={onClose} disabled={saving} sx={{ textTransform: 'none' }}>

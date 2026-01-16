@@ -12,6 +12,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { Add, Delete, Close } from '@mui/icons-material';
 import { NotaComposicao } from '@/types';
@@ -20,13 +24,14 @@ interface TemplateModalProps {
   open: boolean;
   editingAv: 'av1' | 'av2' | null;
   templateSubNotas: NotaComposicao[];
-  novaSubNota: { nome: string; porcentagem: number };
-  setNovaSubNota: React.Dispatch<React.SetStateAction<{ nome: string; porcentagem: number }>>;
+  novaSubNota: { nome: string; porcentagem: number; quantidadeRubricas: 1 | 2 | 3 };
+  setNovaSubNota: React.Dispatch<React.SetStateAction<{ nome: string; porcentagem: number; quantidadeRubricas: 1 | 2 | 3 }>>;
   onClose: () => void;
   onSave: () => void;
   onAddSubNota: () => void;
   onRemoveSubNota: (id: string) => void;
   onPorcentagemChange: (id: string, value: string) => void;
+  onRubricasChange: (id: string, value: 1 | 2 | 3) => void;
 }
 
 export function TemplateModal({
@@ -40,6 +45,7 @@ export function TemplateModal({
   onAddSubNota,
   onRemoveSubNota,
   onPorcentagemChange,
+  onRubricasChange,
 }: TemplateModalProps) {
   const soma = templateSubNotas.reduce((acc, s) => acc + s.porcentagem, 0);
   const somaCorreta = soma === 10;
@@ -85,6 +91,18 @@ export function TemplateModal({
                 inputProps={{ min: 0.5, max: 10, step: 0.5, style: { textAlign: 'center' } }}
                 sx={{ width: 100 }}
               />
+              <FormControl size="small" sx={{ width: 100 }}>
+                <InputLabel>Rubricas</InputLabel>
+                <Select
+                  value={subNota.quantidadeRubricas}
+                  label="Rubricas"
+                  onChange={(e) => onRubricasChange(subNota.id, e.target.value as 1 | 2 | 3)}
+                >
+                  <MenuItem value={1}>1</MenuItem>
+                  <MenuItem value={2}>2</MenuItem>
+                  <MenuItem value={3}>3</MenuItem>
+                </Select>
+              </FormControl>
               <IconButton size="small" color="error" onClick={() => onRemoveSubNota(subNota.id)}>
                 <Delete fontSize="small" />
               </IconButton>
@@ -93,14 +111,14 @@ export function TemplateModal({
         </Box>
 
         {/* Adicionar Novo Componente */}
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3, flexWrap: 'wrap' }}>
           <TextField
             size="small"
             label="Nome do componente"
             placeholder="Ex: Seminario"
             value={novaSubNota.nome}
             onChange={(e) => setNovaSubNota(prev => ({ ...prev, nome: e.target.value }))}
-            sx={{ flex: 1 }}
+            sx={{ flex: 1, minWidth: 150 }}
           />
           <TextField
             size="small"
@@ -111,6 +129,18 @@ export function TemplateModal({
             inputProps={{ min: 0.5, max: 10, step: 0.5, style: { textAlign: 'center' } }}
             sx={{ width: 100 }}
           />
+          <FormControl size="small" sx={{ width: 100 }}>
+            <InputLabel>Rubricas</InputLabel>
+            <Select
+              value={novaSubNota.quantidadeRubricas}
+              label="Rubricas"
+              onChange={(e) => setNovaSubNota(prev => ({ ...prev, quantidadeRubricas: e.target.value as 1 | 2 | 3 }))}
+            >
+              <MenuItem value={1}>1</MenuItem>
+              <MenuItem value={2}>2</MenuItem>
+              <MenuItem value={3}>3</MenuItem>
+            </Select>
+          </FormControl>
           <Button
             variant="outlined"
             startIcon={<Add />}

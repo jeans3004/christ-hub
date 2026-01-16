@@ -132,8 +132,23 @@ export interface PresencaAluno {
 export interface NotaComposicao {
   id: string;
   nome: string;
-  porcentagem: number;
+  porcentagem: number; // Valor máximo do componente
   valor: number | null;
+  quantidadeRubricas: 1 | 2 | 3; // Quantidade de rubricas para avaliar (1-3)
+  rubricaIds?: string[]; // IDs das rubricas selecionadas para este componente
+}
+
+// Template de composição de nota (persistido no Firestore)
+export interface TemplateComposicao {
+  id: string;
+  turmaId: string;
+  disciplinaId: string;
+  bimestre: 1 | 2 | 3 | 4;
+  av: 'av1' | 'av2';
+  ano: number;
+  componentes: NotaComposicao[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Notas
@@ -176,6 +191,9 @@ export interface DescricaoNivel {
   descricao: string;
 }
 
+// Tipo de Rubrica
+export type TipoRubrica = 'geral' | 'professor';
+
 // Rubrica (criterio de avaliacao)
 export interface Rubrica {
   id: string;
@@ -184,17 +202,22 @@ export interface Rubrica {
   niveis: DescricaoNivel[];
   ativo: boolean;
   ordem: number;
+  tipo: TipoRubrica; // 'geral' = Geral/Colegiado, 'professor' = criada por professor
+  criadorId?: string; // ID do professor que criou (se tipo = 'professor')
+  criadorNome?: string; // Nome do professor para exibição
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Avaliacao de Rubrica (avaliacao do aluno em uma rubrica)
+// Avaliacao de Rubrica (avaliacao do aluno em uma rubrica por componente)
 export interface AvaliacaoRubrica {
   id: string;
   alunoId: string;
   turmaId: string;
   disciplinaId: string;
   rubricaId: string;
+  componenteId: string; // ID do componente da composição (Prova, Trabalho, etc.)
+  av: 'av1' | 'av2'; // Qual AV este componente pertence
   professorId: string;
   bimestre: number;
   ano: number;

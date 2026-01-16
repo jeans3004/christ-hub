@@ -6,6 +6,8 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   signOut,
 } from 'firebase/auth';
@@ -48,6 +50,20 @@ export function useAuth() {
       setLoading(false);
       return;
     }
+
+    // Handle redirect result (for Google Sign-In via redirect)
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) {
+          console.log('Redirect login successful:', result.user.displayName);
+          addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
+        }
+      })
+      .catch((error) => {
+        if (error.code !== 'auth/popup-closed-by-user') {
+          console.error('Redirect result error:', error);
+        }
+      });
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -145,7 +161,7 @@ export function useAuth() {
   };
 
   // Login with Google
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (useRedirect = false) => {
     if (DEMO_MODE) {
       addToast('Login realizado com sucesso! (Modo Demo)', 'success');
       return { success: true };
@@ -153,6 +169,14 @@ export function useAuth() {
 
     try {
       setLoading(true);
+
+      if (useRedirect) {
+        // Use redirect method (more compatible but requires page reload)
+        await signInWithRedirect(auth, googleProvider);
+        return { success: true };
+      }
+
+      // Try popup first
       const result = await signInWithPopup(auth, googleProvider);
 
       // User profile will be created/fetched in onAuthStateChanged
@@ -161,10 +185,25 @@ export function useAuth() {
     } catch (error: any) {
       console.error('Google login error:', error);
       let message = 'Erro ao fazer login com Google';
+
+      // If popup fails, try redirect as fallback
+      if (error.code === 'auth/popup-blocked' ||
+          error.code === 'auth/network-request-failed' ||
+          error.code === 'auth/popup-closed-by-user') {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return { success: true };
+        } catch (redirectError: any) {
+          console.error('Redirect also failed:', redirectError);
+        }
+      }
+
       if (error.code === 'auth/popup-closed-by-user') {
         message = 'Login cancelado';
       } else if (error.code === 'auth/popup-blocked') {
-        message = 'Popup bloqueado pelo navegador';
+        message = 'Popup bloqueado, tentando redirect...';
+      } else if (error.code === 'auth/network-request-failed') {
+        message = 'Erro de rede. Verifique sua conexão.';
       }
       addToast(message, 'error');
       return { success: false, error: message };

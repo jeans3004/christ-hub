@@ -199,14 +199,16 @@ export function getSituacaoAluno(
  *
  * @param nome - Nome do componente
  * @param notaMaxima - Nota maxima do componente
+ * @param quantidadeRubricas - Quantidade de rubricas para avaliar (1-3)
  * @returns Novo componente
  */
-export function criarComponente(nome: string, notaMaxima: number): NotaComposicao {
+export function criarComponente(nome: string, notaMaxima: number, quantidadeRubricas: 1 | 2 | 3 = 1): NotaComposicao {
   return {
     id: Date.now().toString(),
     nome,
     porcentagem: notaMaxima,
     valor: null,
+    quantidadeRubricas,
   };
 }
 
@@ -215,7 +217,7 @@ export function criarComponente(nome: string, notaMaxima: number): NotaComposica
  * Soma das notas maximas = 10
  */
 export const TEMPLATE_PADRAO: NotaComposicao[] = [
-  { id: '1', nome: 'Prova', porcentagem: 5, valor: null },
-  { id: '2', nome: 'Trabalho', porcentagem: 3, valor: null },
-  { id: '3', nome: 'Participacao', porcentagem: 2, valor: null },
+  { id: '1', nome: 'Prova', porcentagem: 5, valor: null, quantidadeRubricas: 1 },
+  { id: '2', nome: 'Trabalho', porcentagem: 3, valor: null, quantidadeRubricas: 1 },
+  { id: '3', nome: 'Participacao', porcentagem: 2, valor: null, quantidadeRubricas: 1 },
 ];

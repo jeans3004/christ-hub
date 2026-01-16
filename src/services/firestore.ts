@@ -27,6 +27,8 @@ import {
   Usuario,
   Rubrica,
   AvaliacaoRubrica,
+  TemplateComposicao,
+  NotaComposicao,
 } from '@/types';
 
 // Helper function to convert Firestore timestamps
@@ -257,6 +259,13 @@ export const avaliacaoRubricaService = {
       where('bimestre', '==', bimestre),
       where('ano', '==', ano),
     ]),
+  getByTurmaBimestreAv: (turmaId: string, bimestre: number, ano: number, av: 'av1' | 'av2') =>
+    getDocuments<AvaliacaoRubrica>('avaliacoesRubricas', [
+      where('turmaId', '==', turmaId),
+      where('bimestre', '==', bimestre),
+      where('ano', '==', ano),
+      where('av', '==', av),
+    ]),
   getByAluno: (alunoId: string, ano: number) =>
     getDocuments<AvaliacaoRubrica>('avaliacoesRubricas', [
       where('alunoId', '==', alunoId),
@@ -313,4 +322,80 @@ export const ocorrenciaService = {
       canceladaPor,
       canceladaEm: new Date(),
     }),
+};
+
+// TemplateComposicao Service
+export const templateComposicaoService = {
+  get: (id: string) => getDocument<TemplateComposicao>('templatesComposicao', id),
+
+  getByTurmaDisciplinaBimestreAv: async (
+    turmaId: string,
+    disciplinaId: string,
+    bimestre: number,
+    av: 'av1' | 'av2',
+    ano: number
+  ): Promise<TemplateComposicao | null> => {
+    const docs = await getDocuments<TemplateComposicao>('templatesComposicao', [
+      where('turmaId', '==', turmaId),
+      where('disciplinaId', '==', disciplinaId),
+      where('bimestre', '==', bimestre),
+      where('av', '==', av),
+      where('ano', '==', ano),
+    ]);
+    return docs.length > 0 ? docs[0] : null;
+  },
+
+  getByTurmaDisciplinaBimestre: async (
+    turmaId: string,
+    disciplinaId: string,
+    bimestre: number,
+    ano: number
+  ): Promise<{ av1: TemplateComposicao | null; av2: TemplateComposicao | null }> => {
+    const docs = await getDocuments<TemplateComposicao>('templatesComposicao', [
+      where('turmaId', '==', turmaId),
+      where('disciplinaId', '==', disciplinaId),
+      where('bimestre', '==', bimestre),
+      where('ano', '==', ano),
+    ]);
+    return {
+      av1: docs.find(d => d.av === 'av1') || null,
+      av2: docs.find(d => d.av === 'av2') || null,
+    };
+  },
+
+  save: async (
+    turmaId: string,
+    disciplinaId: string,
+    bimestre: number,
+    av: 'av1' | 'av2',
+    ano: number,
+    componentes: NotaComposicao[]
+  ): Promise<string> => {
+    // Check if template already exists
+    const existing = await templateComposicaoService.getByTurmaDisciplinaBimestreAv(
+      turmaId,
+      disciplinaId,
+      bimestre,
+      av,
+      ano
+    );
+
+    if (existing) {
+      // Update existing
+      await updateDocument('templatesComposicao', existing.id, { componentes });
+      return existing.id;
+    } else {
+      // Create new
+      return createDocument('templatesComposicao', {
+        turmaId,
+        disciplinaId,
+        bimestre,
+        av,
+        ano,
+        componentes,
+      });
+    }
+  },
+
+  delete: (id: string) => deleteDocument('templatesComposicao', id),
 };

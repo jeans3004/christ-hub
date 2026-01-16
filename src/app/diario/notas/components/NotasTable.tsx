@@ -245,7 +245,7 @@ export function NotasTable({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr repeat(4, 70px) 50px', sm: '1fr repeat(4, 90px) 60px' },
+          gridTemplateColumns: { xs: '35px 1fr repeat(4, 70px) 50px', sm: '40px 1fr repeat(4, 90px) 60px' },
           gap: { xs: 0.5, sm: 1 },
           px: { xs: 1, sm: 2 },
           py: 1.5,
@@ -256,6 +256,9 @@ export function NotasTable({
           alignItems: 'center',
         }}
       >
+        <Typography variant="subtitle2" fontWeight={600} color="text.secondary" textAlign="center">
+          Nº
+        </Typography>
         <Typography variant="subtitle2" fontWeight={600} color="text.secondary">
           Nome
         </Typography>
@@ -297,7 +300,7 @@ export function NotasTable({
             key={aluno.id}
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: '1fr repeat(4, 70px) 50px', sm: '1fr repeat(4, 90px) 60px' },
+              gridTemplateColumns: { xs: '35px 1fr repeat(4, 70px) 50px', sm: '40px 1fr repeat(4, 90px) 60px' },
               gap: { xs: 0.5, sm: 1 },
               alignItems: 'center',
               px: { xs: 1, sm: 2 },
@@ -306,6 +309,9 @@ export function NotasTable({
               borderColor: 'divider',
             }}
           >
+            <Typography sx={{ fontWeight: 500, fontSize: { xs: '0.85rem', sm: '0.95rem' }, textAlign: 'center', color: 'text.secondary' }}>
+              {index + 1}
+            </Typography>
             <Typography sx={{ fontWeight: 500, fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
               {aluno.nome}
             </Typography>
