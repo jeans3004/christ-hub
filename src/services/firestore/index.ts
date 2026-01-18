@@ -1,0 +1,22 @@
+/**
+ * Exports de todos os servicos do Firestore.
+ */
+
+export { usuarioService } from './usuarioService';
+export { professorService } from './professorService';
+export { alunoService } from './alunoService';
+export { turmaService } from './turmaService';
+export { disciplinaService } from './disciplinaService';
+export { chamadaService } from './chamadaService';
+export { notaService } from './notaService';
+export { conceitoService } from './conceitoService';
+export { rubricaService } from './rubricaService';
+export { avaliacaoRubricaService } from './avaliacaoRubricaService';
+export { ocorrenciaService } from './ocorrenciaService';
+export { templateComposicaoService } from './templateComposicaoService';
+export { mapeamentoSalaService } from './mapeamentoSalaService';
+
+// Re-export base utilities for advanced usage
+export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';
+export { where, orderBy, limit, Timestamp } from './base';
+export type { QueryConstraint } from './base';
