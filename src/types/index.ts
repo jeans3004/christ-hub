@@ -91,6 +91,7 @@ export interface Aluno {
   serie?: string;
   turno?: Turno;
   matricula?: string;
+  fotoUrl?: string;
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +103,9 @@ export interface Disciplina {
   nome: string;
   codigo?: string;
   turmaIds: string[];
+  parentId?: string | null;  // Referencia ao pai (hierarquia)
+  ordem: number;             // Ordenacao dentro do nivel
+  isGroup?: boolean;         // true = grupo organizacional, nao selecionavel
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -302,4 +306,31 @@ export interface AlterarSenha {
   senhaAtual: string;
   novaSenha: string;
   confirmarSenha: string;
+}
+
+// Mapeamento de Sala
+export type TipoAssento = 'mesa' | 'vazio' | 'professor';
+
+export interface Assento {
+  row: number;
+  column: number;
+  alunoId: string | null;
+  tipo: TipoAssento;
+}
+
+export interface LayoutSala {
+  rows: number;
+  columns: number;
+}
+
+export interface MapeamentoSala {
+  id: string;
+  turmaId: string;
+  professorId: string;
+  ano: number;
+  nome?: string;
+  layout: LayoutSala;
+  assentos: Assento[];
+  createdAt: Date;
+  updatedAt: Date;
 }
