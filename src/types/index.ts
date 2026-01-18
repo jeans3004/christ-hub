@@ -37,6 +37,9 @@ export const RoleHierarchy = {
 
 export type UserRole = keyof typeof RoleHierarchy;
 
+// Status de vinculacao com Google Auth
+export type AuthStatus = 'pending' | 'linked';
+
 // User / Professor
 export interface Usuario {
   id: string;
@@ -50,6 +53,14 @@ export interface Usuario {
   // For professors - which classes they teach
   turmaIds?: string[];
   ativo: boolean;
+
+  // Integracao Google Auth
+  googleUid?: string | null;         // UID do Firebase Auth (null se pre-cadastro)
+  googleEmail?: string;              // E-mail do Google
+  authStatus?: AuthStatus;           // Status de vinculacao
+  firstLoginAt?: Date | null;        // Data do primeiro login
+  createdBy?: string;                // ID do admin que cadastrou
+
   createdAt: Date;
   updatedAt: Date;
 }

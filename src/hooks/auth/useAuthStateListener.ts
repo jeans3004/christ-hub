@@ -2,6 +2,7 @@
 
 /**
  * Hook para gerenciar o listener de estado de autenticacao.
+ * Inclui logica de linking automatico de UID para pre-cadastros.
  */
 
 import { useEffect } from 'react';
@@ -12,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { Usuario, UserRole } from '@/types';
 import { getRoleForEmail, isAllowedDomain, ALLOWED_DOMAIN } from '@/lib/permissions';
+import { usuarioService } from '@/services/firestore';
 import { DEMO_MODE } from './authConstants';
 
 export function useAuthStateListener() {
@@ -79,17 +81,46 @@ export function useAuthStateListener() {
         });
 
         try {
+          // Primeiro, verifica se existe um usuario com este UID
           const userDoc = await getDoc(doc(db, 'usuarios', firebaseUser.uid));
+
           if (userDoc.exists()) {
             const userData = { id: userDoc.id, ...userDoc.data() } as Usuario;
             setUsuario(userData);
           } else {
+            // Usuario nao existe pelo UID - verificar se existe pre-cadastro pelo e-mail
+            const email = firebaseUser.email;
+            if (email) {
+              const preCadastro = await usuarioService.getByGoogleEmail(email);
+
+              if (preCadastro && preCadastro.authStatus === 'pending') {
+                // Pre-cadastro encontrado! Vincular UID
+                const linked = await usuarioService.linkUidToEmail(email, firebaseUser.uid);
+                if (linked) {
+                  console.log('UID vinculado automaticamente ao pre-cadastro:', email);
+                  addToast('Bem-vindo! Seu acesso foi ativado automaticamente.', 'success');
+
+                  // Buscar usuario atualizado
+                  const updatedUser = await usuarioService.getByGoogleEmail(email);
+                  if (updatedUser) {
+                    setUsuario(updatedUser);
+                    setLoading(false);
+                    return;
+                  }
+                }
+              }
+            }
+
+            // Nenhum pre-cadastro - criar novo usuario
             const userRole: UserRole = getRoleForEmail(firebaseUser.email, 'professor');
             const newUser: Usuario = {
               id: firebaseUser.uid,
               nome: firebaseUser.displayName || 'Usuario',
               cpf: '',
               email: firebaseUser.email || '',
+              googleEmail: firebaseUser.email || '',
+              googleUid: firebaseUser.uid,
+              authStatus: 'linked',
               tipo: userRole,
               ativo: true,
               createdAt: new Date(),
@@ -106,6 +137,9 @@ export function useAuthStateListener() {
             nome: firebaseUser.displayName || 'Usuario',
             cpf: '',
             email: firebaseUser.email || '',
+            googleEmail: firebaseUser.email || '',
+            googleUid: firebaseUser.uid,
+            authStatus: 'linked',
             tipo: userRole,
             ativo: true,
             createdAt: new Date(),
