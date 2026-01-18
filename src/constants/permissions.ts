@@ -91,6 +91,7 @@ const PROFESSOR_PERMISSIONS: Permission[] = [
   'notas:create',
   'notas:edit',
   'agenda:view',
+  'alunos:view',
   'conceitos:view',
   'conceitos:create',
   'conceitos:edit',

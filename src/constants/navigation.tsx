@@ -15,6 +15,8 @@ import {
   MenuBook,
   PersonAdd,
   Class,
+  Folder,
+  GridView,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -69,6 +71,7 @@ export const NAVIGATION: NavSection[] = [
           { label: 'Chamada', icon: <FormatListNumbered />, href: '/diario/chamada', permission: 'chamada:view' },
           { label: 'Notas', icon: <Grade />, href: '/diario/notas', permission: 'notas:view' },
           { label: 'Conceitos', icon: <School />, href: '/diario/conceitos', permission: 'conceitos:view' },
+          { label: 'Dossie do Aluno', icon: <Folder />, href: '/diario/dossie', permission: 'alunos:view' },
           { label: 'Graficos', icon: <BarChart />, href: '/diario/graficos', permission: 'graficos:view', minRole: 'coordenador' },
         ],
       },
@@ -88,6 +91,7 @@ export const NAVIGATION: NavSection[] = [
     title: 'SALA DE AULA',
     items: [
       { label: 'Calendario', icon: <CalendarMonth />, href: '/diario/agenda', permission: 'agenda:view' },
+      { label: 'Mapeamento', icon: <GridView />, href: '/diario/mapeamento', permission: 'chamada:view' },
       { label: 'Aniversariantes', icon: <Cake />, href: '/diario/aniversariantes', permission: 'aniversariantes:view', minRole: 'coordenador' },
     ],
   },
@@ -131,6 +135,8 @@ export const ROUTES = {
   NOTAS: '/diario/notas',
   CONCEITOS: '/diario/conceitos',
   GRAFICOS: '/diario/graficos',
+  DOSSIE: '/diario/dossie',
+  MAPEAMENTO: '/diario/mapeamento',
   PROFESSORES: '/diario/professores',
   OCORRENCIAS: '/diario/ocorrencias',
   FAMILIA: '/diario/familia',
