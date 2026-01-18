@@ -1,0 +1,1 @@
+export { useAlunosPage } from './useAlunosPage';

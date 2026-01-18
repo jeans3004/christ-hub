@@ -1,0 +1,1 @@
+export { useProfessoresPage } from './useProfessoresPage';

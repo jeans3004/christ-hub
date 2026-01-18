@@ -1,0 +1,1 @@
+export { useTurmasPage } from './useTurmasPage';
