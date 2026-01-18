@@ -9,3 +9,5 @@ export { ComposicaoModal } from './ComposicaoModal';
 export { AvaliacaoRubricasTab } from './AvaliacaoRubricasTab';
 export { RubricasTab } from './RubricasTab';
 export { RubricaModal } from './RubricaModal';
+export { TabPanel } from './TabPanel';
+export { NotasEmptyState } from './NotasEmptyState';
