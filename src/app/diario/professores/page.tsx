@@ -1,110 +1,204 @@
 'use client';
 
 /**
- * Pagina de professores.
+ * Pagina de cadastro de professores com integracao Google Auth.
  */
 
-import { Box } from '@mui/material';
-import { Edit, Delete } from '@mui/icons-material';
+import { useMemo } from 'react';
+import { Box, Typography, Chip, Alert, Tooltip, Stack } from '@mui/material';
+import { Edit, PersonOff, PersonAdd } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
-import DataTable from '@/components/ui/DataTable';
-import FormModal from '@/components/ui/FormModal';
-import ConfirmDialog from '@/components/ui/ConfirmDialog';
-import { Professor } from '@/types';
+import { DataTable, ConfirmDialog, FormModal } from '@/components/ui';
+import { usePermissions } from '@/hooks/usePermissions';
+import { Usuario } from '@/types';
 import { useProfessoresPage } from './hooks';
-import { FilterBar, ProfessorFormContent, DisciplinasTable } from './components';
+import { FilterBar, ProfessorFormContent } from './components';
+import { ProfessorTableRow } from './types';
 
 export default function ProfessoresPage() {
+  const { hasMinRole } = usePermissions();
+  const canAccess = hasMinRole('coordenador');
+
   const {
-    filteredProfessores,
+    professoresTable,
+    disciplinas,
+    turmas,
+    loading,
     filtro,
-    modalOpen,
-    deleteDialog,
-    editingProfessor,
-    formData,
-    setDeleteDialog,
+    setFiltro,
+    form,
+    setForm,
+    saving,
+    formModal,
+    deleteModal,
     handleOpenModal,
     handleCloseModal,
     handleSave,
-    handleDelete,
-    handleDisciplinaToggle,
-    handleFormChange,
-    handleFiltroChange,
+    handleToggleStatus,
   } = useProfessoresPage();
 
-  const columns = [
-    { id: 'nome', label: 'Nome', minWidth: 200 },
-    { id: 'cpf', label: 'CPF', minWidth: 130 },
-    { id: 'telefone', label: 'Telefone', minWidth: 130 },
+  const columns = useMemo(() => [
     {
-      id: 'coordenador',
-      label: 'Coordenador',
-      minWidth: 100,
-      format: (value: boolean) => value ? 'Sim' : 'Não',
+      id: 'nome' as const,
+      label: 'Nome',
+      minWidth: 180,
     },
     {
-      id: 'disciplinas',
-      label: 'Professor',
-      minWidth: 100,
-      format: (value: string[]) => value.length > 0 ? 'Sim' : 'Não',
+      id: 'googleEmail' as const,
+      label: 'E-mail',
+      minWidth: 200,
+      format: (value: string | undefined, row: ProfessorTableRow) => value || row.email || '-',
     },
-  ];
+    {
+      id: 'tipo' as const,
+      label: 'Papel',
+      minWidth: 100,
+      format: (value: string) => (
+        <Chip
+          label={value === 'coordenador' ? 'Coordenador' : 'Professor'}
+          size="small"
+          color={value === 'coordenador' ? 'warning' : 'default'}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      id: 'disciplinasNomes' as const,
+      label: 'Disciplinas',
+      minWidth: 200,
+      format: (value: string[]) => (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+          {value.length === 0 ? (
+            <Typography variant="caption" color="text.secondary">-</Typography>
+          ) : value.length <= 2 ? (
+            value.map((nome, i) => (
+              <Chip key={i} label={nome} size="small" variant="outlined" />
+            ))
+          ) : (
+            <>
+              <Chip label={value[0]} size="small" variant="outlined" />
+              <Tooltip title={value.slice(1).join(', ')}>
+                <Chip label={`+${value.length - 1}`} size="small" color="primary" />
+              </Tooltip>
+            </>
+          )}
+        </Stack>
+      ),
+    },
+    {
+      id: 'turmasNomes' as const,
+      label: 'Turmas',
+      minWidth: 150,
+      format: (value: string[]) => (
+        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap>
+          {value.length === 0 ? (
+            <Typography variant="caption" color="text.secondary">-</Typography>
+          ) : value.length <= 2 ? (
+            value.map((nome, i) => (
+              <Chip key={i} label={nome} size="small" variant="outlined" color="primary" />
+            ))
+          ) : (
+            <>
+              <Chip label={value[0]} size="small" variant="outlined" color="primary" />
+              <Tooltip title={value.slice(1).join(', ')}>
+                <Chip label={`+${value.length - 1}`} size="small" color="primary" />
+              </Tooltip>
+            </>
+          )}
+        </Stack>
+      ),
+    },
+    {
+      id: 'statusLabel' as const,
+      label: 'Status',
+      minWidth: 140,
+      format: (value: string, row: ProfessorTableRow) => (
+        <Chip
+          label={value}
+          size="small"
+          color={row.statusColor}
+          icon={row.statusColor === 'warning' ? <PersonAdd fontSize="small" /> : undefined}
+        />
+      ),
+    },
+  ], []);
 
-  const actions = [
+  const actions = useMemo(() => [
     {
-      icon: <Edit />,
+      icon: <Edit fontSize="small" />,
       label: 'Editar',
-      onClick: (professor: Professor) => handleOpenModal(professor),
-      color: 'primary' as const,
+      onClick: (professor: ProfessorTableRow) => handleOpenModal(professor),
     },
     {
-      icon: <Delete />,
-      label: 'Excluir',
-      onClick: (professor: Professor) => setDeleteDialog({ open: true, id: professor.id }),
+      icon: <PersonOff fontSize="small" />,
+      label: 'Desativar',
       color: 'error' as const,
+      onClick: (professor: ProfessorTableRow) => deleteModal.open(professor),
+      hidden: (professor: ProfessorTableRow) => !professor.ativo,
     },
-  ];
+    {
+      icon: <PersonAdd fontSize="small" />,
+      label: 'Ativar',
+      color: 'success' as const,
+      onClick: (professor: ProfessorTableRow) => handleToggleStatus(professor),
+      hidden: (professor: ProfessorTableRow) => professor.ativo,
+    },
+  ], [handleOpenModal, deleteModal, handleToggleStatus]);
+
+  if (!canAccess) {
+    return (
+      <MainLayout title="Professores" showSidebar>
+        <Alert severity="error">Voce nao tem permissao para acessar esta pagina.</Alert>
+      </MainLayout>
+    );
+  }
 
   return (
-    <MainLayout title="Professores">
+    <MainLayout title="Cadastro de Professores" showSidebar>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" fontWeight={600}>Professores</Typography>
+        </Box>
+
         <FilterBar
           filtro={filtro}
-          onFiltroChange={handleFiltroChange}
+          onFiltroChange={setFiltro}
           onAddClick={() => handleOpenModal()}
         />
 
-        <DisciplinasTable professor={editingProfessor} />
-
         <DataTable
           columns={columns}
-          data={filteredProfessores}
+          data={professoresTable}
           actions={actions}
+          loading={loading}
           rowKey="id"
           emptyMessage="Nenhum professor encontrado"
         />
       </Box>
 
       <FormModal
-        open={modalOpen}
+        open={formModal.isOpen}
         onClose={handleCloseModal}
-        title={editingProfessor ? 'Editar Professor(a)' : 'Cadastro do(a) Professor(a)'}
+        title={formModal.data ? 'Editar Professor' : 'Novo Professor'}
         onSubmit={handleSave}
+        submitLabel={saving ? 'Salvando...' : 'Salvar'}
+        loading={saving}
+        maxWidth="sm"
       >
         <ProfessorFormContent
-          formData={formData}
-          onFormChange={handleFormChange}
-          onDisciplinaToggle={handleDisciplinaToggle}
+          form={form}
+          setForm={setForm}
+          isEditing={!!formModal.data}
         />
       </FormModal>
 
       <ConfirmDialog
-        open={deleteDialog.open}
-        onClose={() => setDeleteDialog({ open: false, id: '' })}
-        onConfirm={() => handleDelete(deleteDialog.id)}
-        title="Excluir Professor"
-        message="Tem certeza que deseja excluir este professor? Esta ação não pode ser desfeita."
-        confirmLabel="Excluir"
+        open={deleteModal.isOpen}
+        onClose={deleteModal.close}
+        onConfirm={() => deleteModal.data && handleToggleStatus(deleteModal.data)}
+        title="Confirmar Desativacao"
+        message={`Tem certeza que deseja desativar o professor "${deleteModal.data?.nome}"? Ele nao podera mais acessar o sistema.`}
+        confirmLabel="Desativar"
         confirmColor="error"
       />
     </MainLayout>

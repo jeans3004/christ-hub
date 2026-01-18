@@ -4,13 +4,23 @@
  * Barra de filtros para professores.
  */
 
-import { Box, Paper, Button, TextField, InputAdornment } from '@mui/material';
+import {
+  Box,
+  Paper,
+  Button,
+  TextField,
+  InputAdornment,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
 import { Add, Search } from '@mui/icons-material';
 import { ProfessorFiltro } from '../types';
 
 interface FilterBarProps {
   filtro: ProfessorFiltro;
-  onFiltroChange: (field: keyof ProfessorFiltro, value: string) => void;
+  onFiltroChange: (filtro: ProfessorFiltro) => void;
   onAddClick: () => void;
 }
 
@@ -19,10 +29,10 @@ export function FilterBar({ filtro, onFiltroChange, onAddClick }: FilterBarProps
     <Paper sx={{ p: 2 }}>
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
-          label="Nome"
+          label="Buscar por nome"
           size="small"
           value={filtro.nome}
-          onChange={(e) => onFiltroChange('nome', e.target.value)}
+          onChange={(e) => onFiltroChange({ ...filtro, nome: e.target.value })}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -30,24 +40,31 @@ export function FilterBar({ filtro, onFiltroChange, onAddClick }: FilterBarProps
               </InputAdornment>
             ),
           }}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: 250 }}
         />
-        <TextField
-          label="CPF"
-          size="small"
-          value={filtro.cpf}
-          onChange={(e) => onFiltroChange('cpf', e.target.value)}
-          sx={{ minWidth: 150 }}
-        />
-        <TextField
-          label="Telefone"
-          size="small"
-          placeholder="(99) 9999-9999"
-          value={filtro.telefone}
-          onChange={(e) => onFiltroChange('telefone', e.target.value)}
-          sx={{ minWidth: 150 }}
-        />
-        <Button variant="contained" startIcon={<Add />} onClick={onAddClick}>
+
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Status</InputLabel>
+          <Select
+            value={filtro.status}
+            label="Status"
+            onChange={(e) => onFiltroChange({ ...filtro, status: e.target.value as ProfessorFiltro['status'] })}
+          >
+            <MenuItem value="todos">Todos</MenuItem>
+            <MenuItem value="ativos">Ativos</MenuItem>
+            <MenuItem value="pendentes">Aguardando acesso</MenuItem>
+            <MenuItem value="inativos">Inativos</MenuItem>
+          </Select>
+        </FormControl>
+
+        <Box sx={{ flex: 1 }} />
+
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={onAddClick}
+          sx={{ textTransform: 'none' }}
+        >
           Novo Professor
         </Button>
       </Box>
