@@ -1,0 +1,198 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "alunos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacaoRubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacaoRubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacaoRubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "bimestre", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacaoRubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "bimestre", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "avaliacaoRubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "bimestre", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" },
+        { "fieldPath": "av", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "chamadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "conceitos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "mes", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disciplinas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disciplinas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "parentId", "order": "ASCENDING" },
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "disciplinas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ordem", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mapeamentoSala",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "professorId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mapeamentoSala",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "mapeamentoSala",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "professorId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "notas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "disciplinaId", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ocorrencias",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "alunoId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "ocorrencias",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "professores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "rubricas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "ordem", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "templateComposicao",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "disciplinaId", "order": "ASCENDING" },
+        { "fieldPath": "bimestre", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "templateComposicao",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "turmaId", "order": "ASCENDING" },
+        { "fieldPath": "disciplinaId", "order": "ASCENDING" },
+        { "fieldPath": "bimestre", "order": "ASCENDING" },
+        { "fieldPath": "av", "order": "ASCENDING" },
+        { "fieldPath": "ano", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "turmas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ano", "order": "ASCENDING" },
+        { "fieldPath": "ativo", "order": "ASCENDING" },
+        { "fieldPath": "nome", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
