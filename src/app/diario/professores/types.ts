@@ -9,6 +9,7 @@ export interface ProfessorFormData {
   nome: string;
   googleEmail: string;
   googleUid?: string;
+  celular: string;
   tipo: UserRole;
   disciplinaIds: string[];
   turmaIds: string[];
@@ -19,6 +20,7 @@ export const initialFormData: ProfessorFormData = {
   nome: '',
   googleEmail: '',
   googleUid: '',
+  celular: '',
   tipo: 'professor',
   disciplinaIds: [],
   turmaIds: [],

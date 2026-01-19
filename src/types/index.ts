@@ -47,6 +47,7 @@ export interface Usuario {
   cpf: string;
   email: string;
   telefone?: string;
+  celular?: string;  // Telefone celular (opcional)
   tipo: UserRole;
   // For professors - which disciplines they teach
   disciplinaIds?: string[];

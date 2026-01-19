@@ -17,12 +17,21 @@ import {
   Alert,
   Tooltip,
   Typography,
+  InputAdornment,
 } from '@mui/material';
-import { Info, Google, Key } from '@mui/icons-material';
+import { Info, Google, Key, Phone } from '@mui/icons-material';
 import { UserRole } from '@/types';
 import { ProfessorFormData } from '../types';
 import { DisciplinaCheckboxSelector } from '@/components/common/DisciplinaCheckboxSelector';
 import { TurmaCheckboxSelector } from '@/components/common/TurmaCheckboxSelector';
+
+// Formatar telefone celular brasileiro
+const formatPhone = (value: string): string => {
+  const numbers = value.replace(/\D/g, '').slice(0, 11);
+  if (numbers.length <= 2) return numbers;
+  if (numbers.length <= 7) return `(${numbers.slice(0, 2)}) ${numbers.slice(2)}`;
+  return `(${numbers.slice(0, 2)}) ${numbers.slice(2, 7)}-${numbers.slice(7)}`;
+};
 
 interface ProfessorFormContentProps {
   form: ProfessorFormData;
@@ -61,6 +70,26 @@ export function ProfessorFormContent({
           startAdornment: <Google sx={{ color: 'action.active', mr: 1 }} />,
         }}
         helperText="E-mail que sera usado para login com Google"
+      />
+
+      {/* Celular */}
+      <TextField
+        label="Celular"
+        value={formatPhone(form.celular || '')}
+        onChange={(e) => setForm(prev => ({
+          ...prev,
+          celular: e.target.value.replace(/\D/g, '').slice(0, 11)
+        }))}
+        fullWidth
+        placeholder="(92) 99999-9999"
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Phone fontSize="small" color="action" />
+            </InputAdornment>
+          ),
+        }}
+        helperText="Telefone celular (opcional)"
       />
 
       {/* Toggle: Ja possui acesso */}
