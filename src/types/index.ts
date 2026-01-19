@@ -346,3 +346,102 @@ export interface MapeamentoSala {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// =====================================
+// WhatsApp / Mensagens
+// =====================================
+
+// Status de entrega WhatsApp
+export type MensagemStatus = 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
+
+// Tipo de envio
+export type MensagemTipo = 'individual' | 'broadcast' | 'grupo';
+
+// Categoria de template
+export type TemplateCategoria = 'aviso' | 'lembrete' | 'comunicado' | 'outro';
+
+// Log de mensagem enviada
+export interface MensagemLog {
+  id: string;
+  // Destinatário
+  destinatarioId: string;
+  destinatarioNome: string;
+  destinatarioNumero: string;
+  // Conteúdo
+  mensagem: string;
+  tipo: MensagemTipo;
+  grupoId?: string;
+  grupoNome?: string;
+  // Status
+  status: MensagemStatus;
+  messageId?: string;
+  erro?: string;
+  // Metadata
+  enviadoPorId: string;
+  enviadoPorNome: string;
+  templateId?: string;
+  // Timestamps
+  enviadoEm: Date;
+  entregueEm?: Date;
+  lidoEm?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Template de mensagem reutilizável
+export interface TemplateMensagem {
+  id: string;
+  nome: string;
+  conteudo: string;
+  variaveis: string[];
+  categoria: TemplateCategoria;
+  criadoPorId: string;
+  criadoPorNome: string;
+  usageCount: number;
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Configuração da instância WhatsApp
+export interface WhatsAppConfig {
+  id: string;
+  instanceName: string;
+  instanceId: string;
+  connected: boolean;
+  phoneNumber?: string;
+  profileName?: string;
+  profilePicUrl?: string;
+  lastSyncAt?: Date;
+  webhookUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Grupo do WhatsApp
+export interface GrupoWhatsApp {
+  id: string;
+  nome: string;
+  descricao?: string;
+  participantes: number;
+  isAdmin: boolean;
+  profilePicUrl?: string;
+}
+
+// Resposta do serviço de envio
+export interface SendMessageResult {
+  success: boolean;
+  messageId?: string;
+  status?: MensagemStatus;
+  error?: string;
+}
+
+// Variáveis disponíveis para templates
+export interface TemplateVariables {
+  nome: string;
+  email?: string;
+  celular?: string;
+  tipo?: string;
+  disciplinas?: string;
+  turmas?: string;
+}
