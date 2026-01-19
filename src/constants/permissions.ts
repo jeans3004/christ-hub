@@ -66,7 +66,11 @@ export type Permission =
   | 'usuarios:edit'
   | 'usuarios:delete'
   // Sistema (System)
-  | 'sistema:configurar';
+  | 'sistema:configurar'
+  // Mensagens WhatsApp
+  | 'mensagens:view'
+  | 'mensagens:send'
+  | 'mensagens:templates';
 
 /**
  * Permissoes base que todos os usuarios tem.
@@ -130,6 +134,9 @@ const COORDENADOR_PERMISSIONS: Permission[] = [
   'comunicados:edit',
   'comunicados:delete',
   'usuarios:view',
+  'mensagens:view',
+  'mensagens:send',
+  'mensagens:templates',
 ];
 
 /**

@@ -17,6 +17,7 @@ import {
   Class,
   Folder,
   GridView,
+  WhatsApp,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -84,6 +85,13 @@ export const NAVIGATION: NavSection[] = [
           { label: 'Ocorrencias', icon: <ReportProblem />, href: '/diario/ocorrencias', permission: 'ocorrencias:view' },
         ],
       },
+      {
+        label: 'Mensagens WhatsApp',
+        icon: <WhatsApp />,
+        href: '/diario/mensagens',
+        permission: 'mensagens:view',
+        minRole: 'coordenador',
+      },
       { label: 'Familia', icon: <FamilyRestroom />, href: '/diario/familia', minRole: 'coordenador' },
     ],
   },
@@ -150,6 +158,7 @@ export const ROUTES = {
   USUARIOS: '/diario/usuarios',
   CONFIGURACOES: '/diario/configuracoes',
   SENHA: '/diario/senha',
+  MENSAGENS: '/diario/mensagens',
 } as const;
 
 /**
