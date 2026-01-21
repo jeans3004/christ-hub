@@ -14,6 +14,7 @@ interface SeatCellProps {
   selected: boolean;
   onCelulaClick: () => void;
   onDrop: (alunoId: string) => void;
+  onTouchDrop?: (targetRow: number, targetCol: number, alunoId: string) => void;
   row: number;
   col: number;
 }
@@ -24,6 +25,7 @@ export function SeatCell({
   selected,
   onCelulaClick,
   onDrop,
+  onTouchDrop,
   row,
   col,
 }: SeatCellProps) {
@@ -90,8 +92,12 @@ export function SeatCell({
         const targetRow = result.targetElement.getAttribute('data-row');
         const targetCol = result.targetElement.getAttribute('data-col');
         if (targetRow !== null && targetCol !== null) {
-          // The drop will be handled by the parent component
-          onDrop(result.alunoId);
+          const targetRowNum = parseInt(targetRow, 10);
+          const targetColNum = parseInt(targetCol, 10);
+          // Usar onTouchDrop se disponível (permite passar coordenadas do destino)
+          if (onTouchDrop) {
+            onTouchDrop(targetRowNum, targetColNum, result.alunoId);
+          }
         }
       }
     }

@@ -186,6 +186,7 @@ export function ClassroomGrid({
                     selected={isSelected}
                     onCelulaClick={() => onCelulaClick(rowIndex, colIndex)}
                     onDrop={(alunoId) => onDrop(rowIndex, colIndex, alunoId)}
+                    onTouchDrop={(targetRow, targetCol, alunoId) => onDrop(targetRow, targetCol, alunoId)}
                     row={rowIndex}
                     col={colIndex}
                   />

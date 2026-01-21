@@ -76,10 +76,17 @@ export function useMapeamentoActions({
 
   const atribuirAluno = useCallback((row: number, col: number, alunoId: string | null) => {
     setCelulas((prev) => {
-      const semAluno = prev.map((c) =>
-        c.alunoId === alunoId ? { ...c, alunoId: null, aluno: undefined } : c
-      );
-      return semAluno.map((c) => {
+      // Encontrar célula de origem (onde o aluno está atualmente)
+      const celulaOrigem = prev.find((c) => c.alunoId === alunoId);
+      // Encontrar célula de destino
+      const celulaDestino = prev.find((c) => c.row === row && c.column === col);
+
+      // Se destino tem aluno e origem existe, fazer SWAP
+      const alunoDestinoId = celulaDestino?.alunoId;
+      const alunoDestinoData = celulaDestino?.aluno;
+
+      return prev.map((c) => {
+        // Célula de destino recebe o aluno arrastado
         if (c.row === row && c.column === col) {
           const aluno = alunos.find((a) => a.id === alunoId);
           return {
@@ -92,6 +99,20 @@ export function useMapeamentoActions({
               iniciais: getIniciais(aluno.nome),
             } : undefined,
           };
+        }
+        // Célula de origem recebe o aluno do destino (swap) ou fica vazia
+        if (celulaOrigem && c.row === celulaOrigem.row && c.column === celulaOrigem.column) {
+          if (alunoDestinoId && alunoDestinoData) {
+            // Swap: origem recebe aluno do destino
+            return {
+              ...c,
+              alunoId: alunoDestinoId,
+              aluno: alunoDestinoData,
+            };
+          } else {
+            // Sem swap: origem fica vazia
+            return { ...c, alunoId: null, aluno: undefined };
+          }
         }
         return c;
       });
