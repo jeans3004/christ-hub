@@ -48,23 +48,25 @@ async function findFolder(
   accessToken: string,
   name: string,
   parentId?: string,
-  sharedDriveId?: string
+  sharedDriveId?: string,
+  searchAnywhere = false
 ): Promise<string | null> {
   const driveId = sharedDriveId || SHARED_DRIVE_ID;
   let query = `name='${name}' and mimeType='${FOLDER_MIME_TYPE}' and trashed=false`;
 
   // Se tem parentId, buscar dentro dele
+  // Se searchAnywhere=true, não adiciona restrição de parent (busca em todo o Drive)
   // Se não tem parentId e é Shared Drive, buscar na raiz do Shared Drive
   if (parentId) {
     query += ` and '${parentId}' in parents`;
-  } else if (isSharedDrive(driveId)) {
+  } else if (!searchAnywhere && isSharedDrive(driveId)) {
     query += ` and '${driveId}' in parents`;
   }
 
   const params = new URLSearchParams({
     q: query,
-    fields: 'files(id)',
-    pageSize: '1',
+    fields: 'files(id,name,parents)',
+    pageSize: '10',
     ...getSharedDriveParams(driveId),
   });
 
@@ -81,10 +83,13 @@ async function findFolder(
   });
 
   if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error('Drive API error:', response.status, errorData);
     return null;
   }
 
   const data = await response.json();
+  console.log(`Search for "${name}":`, data.files?.length || 0, 'results');
   return data.files && data.files.length > 0 ? data.files[0].id : null;
 }
 
@@ -167,14 +172,15 @@ export async function POST(request: NextRequest) {
     // Criar estrutura de pastas
     const ids: FolderIds = {};
 
-    // Primeiro, buscar a pasta pai SGE_NOVO (deve existir)
-    const parentId = await findFolder(accessToken, FOLDER_STRUCTURE.PARENT, undefined, driveId);
+    // Primeiro, buscar a pasta pai SGE_NOVO em qualquer lugar do Shared Drive
+    const parentId = await findFolder(accessToken, FOLDER_STRUCTURE.PARENT, undefined, driveId, true);
     if (!parentId) {
       return NextResponse.json(
         { error: `Pasta "${FOLDER_STRUCTURE.PARENT}" não encontrada no Drive. Crie-a manualmente primeiro.` },
         { status: 404 }
       );
     }
+    console.log(`Found parent folder "${FOLDER_STRUCTURE.PARENT}" with ID:`, parentId);
     ids.PARENT = parentId;
 
     // Pasta raiz: SGE Diário Digital (dentro de SGE_NOVO)
