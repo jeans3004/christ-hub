@@ -35,7 +35,8 @@ export function NavSection({
         <Typography
           variant="overline"
           sx={{
-            px: 3,
+            pl: 2,
+            pr: 0,
             py: 1.5,
             display: 'block',
             color: 'sidebar.section',
@@ -61,7 +62,7 @@ export function NavSection({
           />
         ))}
       </List>
-      {!isLast && section.title && <Divider sx={{ my: 1, mx: 2 }} />}
+      {!isLast && section.title && <Divider sx={{ my: 1, ml: 1, mr: 0 }} />}
     </Box>
   );
 }

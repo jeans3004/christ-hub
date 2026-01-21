@@ -48,7 +48,7 @@ export default function OcorrenciasPage() {
 
   return (
     <MainLayout title="Ocorrências">
-      <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box sx={{ display: 'flex', gap: { xs: 0, md: 1.5 }, flexDirection: { xs: 'column', md: 'row' } }}>
         <OcorrenciaFilters ano={ano} onAnoChange={setAno} />
 
         <OcorrenciaTabs

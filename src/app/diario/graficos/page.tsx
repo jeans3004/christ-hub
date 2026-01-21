@@ -78,7 +78,7 @@ export default function GraficosPage() {
         Atenção! Para uma melhor experiência com alguns gráficos, orientamos maximizar a tela.
       </Alert>
 
-      <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box sx={{ display: 'flex', gap: { xs: 0, md: 1.5 }, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Filters */}
         <Paper sx={{ p: 2, width: { xs: '100%', md: 250 }, flexShrink: 0 }}>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

@@ -49,7 +49,10 @@ export default function MainLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 2, sm: 3, md: 4 },
+          pt: { xs: 0.5, sm: 0.5, md: 1 },
+          pb: { xs: 1, sm: 1, md: 1.5 },
+          pl: 0,
+          pr: { xs: 0.5, sm: 1, md: 1.5 },
           width: showSidebar && !isMobile
             ? `calc(100% - ${contentMargin}px)`
             : '100%',
