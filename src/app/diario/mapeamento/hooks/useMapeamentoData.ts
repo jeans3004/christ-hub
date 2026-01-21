@@ -37,6 +37,8 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     atualizarCelula,
     atribuirAluno,
     alternarTipoCelula,
+    distribuirAleatorio,
+    limparTodos,
     salvar,
     resetar,
   } = useMapeamentoActions({
@@ -86,6 +88,8 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     atualizarCelula,
     atribuirAluno,
     alternarTipoCelula,
+    distribuirAleatorio,
+    limparTodos,
     salvar,
     resetar,
   };

@@ -5,7 +5,8 @@
  */
 
 import { useState, useCallback } from 'react';
-import { Box, Typography, Snackbar, Alert, CircularProgress } from '@mui/material';
+import { Box, Typography, Snackbar, Alert, CircularProgress, Button, Tooltip } from '@mui/material';
+import { Shuffle, ClearAll } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useMapeamentoData } from './hooks';
 import { MapeamentoFilters, ClassroomGrid, StudentList, ModoToolbar, ModoInstrucoes, TouchDragProvider } from './components';
@@ -18,6 +19,7 @@ export default function MapeamentoPage() {
     loadingTurmas, loadingDisciplinas, loadingAlunos, loadingMapeamento,
     alunosDisponiveis, layout, celulas, modoEdicao, setModoEdicao,
     atualizarLayout, alternarTipoCelula, atribuirAluno, saving, salvar, resetar,
+    distribuirAleatorio, limparTodos,
   } = useMapeamentoData();
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
@@ -78,6 +80,31 @@ export default function MapeamentoPage() {
               modoEdicao={modoEdicao} setModoEdicao={setModoEdicao}
               saving={saving} onSave={handleSave} onResetar={resetar}
             />
+            <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+              <Tooltip title="Distribuir alunos aleatoriamente nas mesas disponíveis">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Shuffle />}
+                  onClick={distribuirAleatorio}
+                  disabled={alunos.length === 0}
+                >
+                  Distribuir Aleatório
+                </Button>
+              </Tooltip>
+              <Tooltip title="Remover todos os alunos das mesas">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  color="warning"
+                  startIcon={<ClearAll />}
+                  onClick={limparTodos}
+                  disabled={!celulas.some(c => c.alunoId)}
+                >
+                  Limpar Todos
+                </Button>
+              </Tooltip>
+            </Box>
             <ModoInstrucoes modoEdicao={modoEdicao} />
 
             <TouchDragProvider>

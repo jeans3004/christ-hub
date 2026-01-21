@@ -39,6 +39,8 @@ export interface UseMapeamentoDataReturn {
   atualizarCelula: (row: number, col: number, updates: Partial<CelulaMapa>) => void;
   atribuirAluno: (row: number, col: number, alunoId: string | null) => void;
   alternarTipoCelula: (row: number, col: number) => void;
+  distribuirAleatorio: () => void;
+  limparTodos: () => void;
   salvar: () => Promise<void>;
   resetar: () => void;
 }

@@ -27,6 +27,8 @@ interface UseMapeamentoActionsReturn {
   atualizarCelula: (row: number, col: number, updates: Partial<CelulaMapa>) => void;
   atribuirAluno: (row: number, col: number, alunoId: string | null) => void;
   alternarTipoCelula: (row: number, col: number) => void;
+  distribuirAleatorio: () => void;
+  limparTodos: () => void;
   salvar: () => Promise<void>;
   resetar: () => void;
 }
@@ -148,6 +150,57 @@ export function useMapeamentoActions({
     }
   }, [turmaId, usuario, ano, layout, celulas, disciplinaId, addToast, setIsDirty]);
 
+  const distribuirAleatorio = useCallback(() => {
+    // Shuffle alunos array
+    const alunosEmbaralhados = [...alunos].sort(() => Math.random() - 0.5);
+
+    setCelulas((prev) => {
+      // First, clear all students from cells
+      const celulasLimpas = prev.map((c) => ({
+        ...c,
+        alunoId: null,
+        aluno: undefined,
+      }));
+
+      // Get available desk cells
+      const mesasDisponiveis = celulasLimpas.filter((c) => c.tipo === 'mesa');
+
+      // Assign students to desks randomly
+      let alunoIndex = 0;
+      return celulasLimpas.map((c) => {
+        if (c.tipo === 'mesa' && alunoIndex < alunosEmbaralhados.length) {
+          const aluno = alunosEmbaralhados[alunoIndex];
+          alunoIndex++;
+          return {
+            ...c,
+            alunoId: aluno.id,
+            aluno: {
+              id: aluno.id,
+              nome: aluno.nome,
+              fotoUrl: aluno.fotoUrl,
+              iniciais: getIniciais(aluno.nome),
+            },
+          };
+        }
+        return c;
+      });
+    });
+    setIsDirty(true);
+    addToast(`${Math.min(alunos.length, celulas.filter(c => c.tipo === 'mesa').length)} alunos distribuídos aleatoriamente`, 'success');
+  }, [alunos, celulas, setCelulas, setIsDirty, addToast]);
+
+  const limparTodos = useCallback(() => {
+    setCelulas((prev) =>
+      prev.map((c) => ({
+        ...c,
+        alunoId: null,
+        aluno: undefined,
+      }))
+    );
+    setIsDirty(true);
+    addToast('Todos os alunos foram removidos', 'info');
+  }, [setCelulas, setIsDirty, addToast]);
+
   const resetar = useCallback(() => {
     setLayout(DEFAULT_LAYOUT);
     setCelulas(gerarLayoutInicial(DEFAULT_LAYOUT));
@@ -160,6 +213,8 @@ export function useMapeamentoActions({
     atualizarCelula,
     atribuirAluno,
     alternarTipoCelula,
+    distribuirAleatorio,
+    limparTodos,
     salvar,
     resetar,
   };
