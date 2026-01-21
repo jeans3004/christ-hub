@@ -58,8 +58,8 @@ export default function MapeamentoPage() {
 
   return (
     <MainLayout>
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" fontWeight={600} sx={{ mb: 3 }}>Mapeamento de Sala</Typography>
+      <Box sx={{ px: 2, py: 1.5 }}>
+        <Typography variant="h5" fontWeight={600} sx={{ mb: 2 }}>Mapeamento de Sala</Typography>
 
         <MapeamentoFilters
           ano={ano} setAno={setAno} turmaId={turmaId} setTurmaId={setTurmaId}
@@ -108,8 +108,8 @@ export default function MapeamentoPage() {
             <ModoInstrucoes modoEdicao={modoEdicao} />
 
             <TouchDragProvider>
-              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                <Box sx={{ flex: 1, minWidth: 400 }}>
+              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, minWidth: 350 }}>
                   <ClassroomGrid
                     layout={layout} celulas={celulas} modoEdicao={mapModoEdicao(modoEdicao)}
                     selectedCell={null} onCelulaClick={handleCelulaClick}
