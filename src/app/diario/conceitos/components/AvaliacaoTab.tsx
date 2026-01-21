@@ -31,8 +31,10 @@ export function AvaliacaoTab({
     disciplinasFiltradas,
     hasPendingChanges,
     pendingCount,
+    observacoes,
     getAvaliacao,
     handleNivelClick,
+    handleObservacaoChange,
     handleSaveAll,
   } = useAvaliacaoTab({
     turmaId,
@@ -83,6 +85,8 @@ export function AvaliacaoTab({
             rubricas={rubricas}
             getAvaliacao={getAvaliacao}
             onNivelClick={handleNivelClick}
+            observacoes={observacoes}
+            onObservacaoChange={handleObservacaoChange}
           />
 
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
