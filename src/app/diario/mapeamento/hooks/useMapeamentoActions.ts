@@ -12,6 +12,7 @@ import { CelulaMapa, DEFAULT_LAYOUT, getIniciais, gerarLayoutInicial } from '../
 interface UseMapeamentoActionsProps {
   turmaId: string;
   ano: number;
+  disciplinaId: string;
   alunos: Aluno[];
   layout: LayoutSala;
   celulas: CelulaMapa[];
@@ -33,6 +34,7 @@ interface UseMapeamentoActionsReturn {
 export function useMapeamentoActions({
   turmaId,
   ano,
+  disciplinaId,
   alunos,
   layout,
   celulas,
@@ -127,7 +129,15 @@ export function useMapeamentoActions({
         tipo: c.tipo,
       }));
 
-      await mapeamentoSalaService.save(turmaId, usuario.id, ano, layout, assentos);
+      await mapeamentoSalaService.save(
+        turmaId,
+        usuario.id,
+        ano,
+        layout,
+        assentos,
+        undefined, // nome
+        disciplinaId || undefined // disciplinaId
+      );
       setIsDirty(false);
       addToast('Mapeamento salvo com sucesso!', 'success');
     } catch (error) {
@@ -136,7 +146,7 @@ export function useMapeamentoActions({
     } finally {
       setSaving(false);
     }
-  }, [turmaId, usuario, ano, layout, celulas, addToast, setIsDirty]);
+  }, [turmaId, usuario, ano, layout, celulas, disciplinaId, addToast, setIsDirty]);
 
   const resetar = useCallback(() => {
     setLayout(DEFAULT_LAYOUT);

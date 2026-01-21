@@ -360,6 +360,7 @@ export interface MapeamentoSala {
   id: string;
   turmaId: string;
   professorId: string;
+  disciplinaId?: string;  // Permite mapeamentos diferentes por disciplina
   ano: number;
   nome?: string;
   layout: LayoutSala;

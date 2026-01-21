@@ -12,12 +12,15 @@ import { useMapeamentoActions } from './useMapeamentoActions';
 export function useMapeamentoData(): UseMapeamentoDataReturn {
   const { ano, setAno } = useFilterStore();
   const [turmaId, setTurmaId] = useState('');
+  const [disciplinaId, setDisciplinaId] = useState('');
   const [modoEdicao, setModoEdicao] = useState<ModoEdicao>('selecionar');
 
   const {
     turmas,
+    disciplinas,
     alunos,
     loadingTurmas,
+    loadingDisciplinas,
     loadingAlunos,
     loadingMapeamento,
     layout,
@@ -26,7 +29,7 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     setCelulas,
     isDirty,
     setIsDirty,
-  } = useMapeamentoLoader(ano, turmaId);
+  } = useMapeamentoLoader(ano, turmaId, disciplinaId);
 
   const {
     saving,
@@ -39,6 +42,7 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
   } = useMapeamentoActions({
     turmaId,
     ano,
+    disciplinaId,
     alunos,
     layout,
     celulas,
@@ -59,16 +63,20 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
 
   return {
     turmas,
+    disciplinas,
     alunos,
     alunosDisponiveis,
     loadingTurmas,
+    loadingDisciplinas,
     loadingAlunos,
     loadingMapeamento,
     saving,
     ano,
     turmaId,
+    disciplinaId,
     setAno,
     setTurmaId,
+    setDisciplinaId,
     layout,
     celulas,
     isDirty,

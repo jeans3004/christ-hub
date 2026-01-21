@@ -19,6 +19,7 @@ export {
   mapeamentoSalaService,
   mensagemLogService,
   templateMensagemService,
+  eventoService,
   extractVariables,
   replaceVariables,
   getDocument,

@@ -2,15 +2,17 @@
  * Tipos para os hooks de mapeamento.
  */
 
-import { Turma, Aluno, LayoutSala } from '@/types';
+import { Turma, Aluno, LayoutSala, Disciplina } from '@/types';
 import { CelulaMapa, AlunoMapa, ModoEdicao } from '../types';
 
 export interface UseMapeamentoDataReturn {
   // Dados basicos
   turmas: Turma[];
+  disciplinas: Disciplina[];
   alunos: Aluno[];
   alunosDisponiveis: AlunoMapa[];
   loadingTurmas: boolean;
+  loadingDisciplinas: boolean;
   loadingAlunos: boolean;
   loadingMapeamento: boolean;
   saving: boolean;
@@ -18,8 +20,10 @@ export interface UseMapeamentoDataReturn {
   // Filtros
   ano: number;
   turmaId: string;
+  disciplinaId: string;
   setAno: (ano: number) => void;
   setTurmaId: (turmaId: string) => void;
+  setDisciplinaId: (disciplinaId: string) => void;
 
   // Layout e celulas
   layout: LayoutSala;

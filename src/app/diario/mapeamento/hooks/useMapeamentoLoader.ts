@@ -6,14 +6,16 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { usePermissions } from '@/hooks/usePermissions';
-import { turmaService, alunoService, mapeamentoSalaService } from '@/services/firestore';
-import { Aluno, Turma, LayoutSala } from '@/types';
+import { turmaService, alunoService, mapeamentoSalaService, disciplinaService } from '@/services/firestore';
+import { Aluno, Turma, Disciplina, LayoutSala } from '@/types';
 import { CelulaMapa, DEFAULT_LAYOUT, getIniciais, gerarLayoutInicial } from '../types';
 
 interface UseMapeamentoLoaderReturn {
   turmas: Turma[];
+  disciplinas: Disciplina[];
   alunos: Aluno[];
   loadingTurmas: boolean;
+  loadingDisciplinas: boolean;
   loadingAlunos: boolean;
   loadingMapeamento: boolean;
   layout: LayoutSala;
@@ -24,35 +26,51 @@ interface UseMapeamentoLoaderReturn {
   setIsDirty: (isDirty: boolean) => void;
 }
 
-export function useMapeamentoLoader(ano: number, turmaId: string): UseMapeamentoLoaderReturn {
+export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: string): UseMapeamentoLoaderReturn {
   const { usuario } = useAuthStore();
   const { addToast } = useUIStore();
   const { isCoordinatorOrAbove, turmaIds } = usePermissions();
 
   const [turmas, setTurmas] = useState<Turma[]>([]);
+  const [disciplinas, setDisciplinas] = useState<Disciplina[]>([]);
   const [alunos, setAlunos] = useState<Aluno[]>([]);
   const [loadingTurmas, setLoadingTurmas] = useState(false);
+  const [loadingDisciplinas, setLoadingDisciplinas] = useState(false);
   const [loadingAlunos, setLoadingAlunos] = useState(false);
   const [loadingMapeamento, setLoadingMapeamento] = useState(false);
   const [layout, setLayout] = useState<LayoutSala>(DEFAULT_LAYOUT);
   const [celulas, setCelulas] = useState<CelulaMapa[]>([]);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Carregar turmas
+  // Carregar turmas e disciplinas
   useEffect(() => {
     let isMounted = true;
 
-    const loadTurmas = async () => {
+    const loadTurmasAndDisciplinas = async () => {
       setLoadingTurmas(true);
+      setLoadingDisciplinas(true);
       try {
-        let turmasData = await turmaService.getByAno(ano);
+        const [turmasData, disciplinasData] = await Promise.all([
+          turmaService.getByAno(ano),
+          disciplinaService.getAll(),
+        ]);
 
-        if (!isCoordinatorOrAbove() && turmaIds.length > 0) {
-          turmasData = turmasData.filter((t) => turmaIds.includes(t.id));
+        let turmasFiltradas = turmasData;
+        let disciplinasFiltradas = disciplinasData;
+
+        if (!isCoordinatorOrAbove()) {
+          if (turmaIds.length > 0) {
+            turmasFiltradas = turmasData.filter((t) => turmaIds.includes(t.id));
+          }
+          // Filtrar disciplinas do professor se tiver disciplinaIds
+          if (usuario?.disciplinaIds && usuario.disciplinaIds.length > 0) {
+            disciplinasFiltradas = disciplinasData.filter((d) => usuario.disciplinaIds!.includes(d.id));
+          }
         }
 
         if (isMounted) {
-          setTurmas(turmasData);
+          setTurmas(turmasFiltradas);
+          setDisciplinas(disciplinasFiltradas);
         }
       } catch (error) {
         if (isMounted) {
@@ -61,11 +79,12 @@ export function useMapeamentoLoader(ano: number, turmaId: string): UseMapeamento
       } finally {
         if (isMounted) {
           setLoadingTurmas(false);
+          setLoadingDisciplinas(false);
         }
       }
     };
 
-    loadTurmas();
+    loadTurmasAndDisciplinas();
     return () => { isMounted = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ano]);
@@ -89,7 +108,12 @@ export function useMapeamentoLoader(ano: number, turmaId: string): UseMapeamento
       try {
         const [alunosData, mapeamento] = await Promise.all([
           alunoService.getByTurma(turmaId),
-          mapeamentoSalaService.getByTurmaProfessorAno(turmaId, usuario.id, ano),
+          mapeamentoSalaService.getByTurmaProfessorDisciplinaAno(
+            turmaId,
+            usuario.id,
+            ano,
+            disciplinaId || undefined
+          ),
         ]);
 
         if (!isMounted) return;
@@ -132,12 +156,14 @@ export function useMapeamentoLoader(ano: number, turmaId: string): UseMapeamento
 
     loadData();
     return () => { isMounted = false; };
-  }, [turmaId, ano, usuario, addToast]);
+  }, [turmaId, ano, disciplinaId, usuario, addToast]);
 
   return {
     turmas,
+    disciplinas,
     alunos,
     loadingTurmas,
+    loadingDisciplinas,
     loadingAlunos,
     loadingMapeamento,
     layout,

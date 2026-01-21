@@ -10,7 +10,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { Turma } from '@/types';
+import { Turma, Disciplina } from '@/types';
 
 interface MapeamentoFiltersProps {
   ano: number;
@@ -19,6 +19,10 @@ interface MapeamentoFiltersProps {
   setTurmaId: (id: string) => void;
   turmas: Turma[];
   loadingTurmas: boolean;
+  disciplinaId: string;
+  setDisciplinaId: (id: string) => void;
+  disciplinas: Disciplina[];
+  loadingDisciplinas: boolean;
 }
 
 export function MapeamentoFilters({
@@ -28,6 +32,10 @@ export function MapeamentoFilters({
   setTurmaId,
   turmas,
   loadingTurmas,
+  disciplinaId,
+  setDisciplinaId,
+  disciplinas,
+  loadingDisciplinas,
 }: MapeamentoFiltersProps) {
   const currentYear = new Date().getFullYear();
   const years = [currentYear, currentYear - 1, currentYear - 2];
@@ -64,6 +72,25 @@ export function MapeamentoFilters({
             {turmas.map((t) => (
               <MenuItem key={t.id} value={t.id}>
                 {t.nome}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <FormControl size="small" sx={{ minWidth: 180 }}>
+          <InputLabel>Disciplina</InputLabel>
+          <Select
+            value={disciplinaId}
+            label="Disciplina"
+            onChange={(e) => setDisciplinaId(e.target.value)}
+            disabled={loadingDisciplinas || !turmaId}
+          >
+            <MenuItem value="">
+              {loadingDisciplinas ? 'Carregando...' : 'Todas (geral)'}
+            </MenuItem>
+            {disciplinas.map((d) => (
+              <MenuItem key={d.id} value={d.id}>
+                {d.nome}
               </MenuItem>
             ))}
           </Select>
