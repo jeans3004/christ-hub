@@ -421,7 +421,7 @@ interface TemplateMensagem {
 | `/diario/notas` | Notas com composição | notas:view |
 | `/diario/conceitos` | Avaliações por rubricas | conceitos:view |
 | `/diario/dossie` | Dossiê completo do aluno | alunos:view |
-| `/diario/mapeamento` | Mapa de sala interativo | chamada:view |
+| `/diario/mapeamento` | Mapa de sala interativo (drag-and-drop, swap, touch) | chamada:view |
 | `/diario/ocorrencias` | Gestão de ocorrências | ocorrencias:view |
 | `/diario/professores` | Cadastro com Google Auth | professores:view |
 | `/diario/mensagens` | WhatsApp com compositor avançado | mensagens:view |
@@ -508,6 +508,77 @@ const FORMAT_MARKERS = {
   list: { prefix: '• ', suffix: '' },
   quote: { prefix: '> ', suffix: '' },
 };
+```
+
+---
+
+## Módulo de Mapeamento de Sala (Detalhado)
+
+### Estrutura de Arquivos
+```
+src/app/diario/mapeamento/
+├── page.tsx                    # Página principal
+├── types.ts                    # Tipos do módulo (CelulaMapa, AlunoMapa, ModoEdicao)
+├── components/
+│   ├── index.ts
+│   ├── MapeamentoFilters.tsx   # Filtros (ano, turma, disciplina)
+│   ├── ClassroomGrid.tsx       # Grid visual da sala
+│   ├── SeatCell.tsx            # Célula individual (mesa/vazio/professor)
+│   ├── StudentList.tsx         # Lista de alunos disponíveis
+│   ├── ModoToolbar.tsx         # Toolbar de modos de edição
+│   ├── ModoInstrucoes.tsx      # Instruções por modo
+│   └── TouchDragContext.tsx    # Contexto para drag-and-drop touch
+└── hooks/
+    ├── index.ts
+    ├── useMapeamentoData.ts    # Hook principal
+    ├── useMapeamentoLoader.ts  # Carregamento de dados
+    ├── useMapeamentoActions.ts # Ações (atribuir, swap, distribuir)
+    └── mapeamentoTypes.ts      # Tipos dos hooks
+```
+
+### Funcionalidades
+```typescript
+// Modos de edição
+type ModoEdicao = 'visualizar' | 'selecionar' | 'editar_tipo' | 'remover';
+
+// Tipos de célula
+type TipoCelula = 'mesa' | 'vazio' | 'professor';
+
+// Ações disponíveis
+interface MapeamentoActions {
+  atribuirAluno(row, col, alunoId);      // Atribui aluno (com swap automático)
+  alternarTipoCelula(row, col);          // Cicla entre mesa/vazio/professor
+  distribuirAleatorio();                  // Distribui alunos aleatoriamente
+  limparTodos();                          // Remove todos os alunos
+  atualizarLayout({ rows, columns });     // Altera dimensões do grid
+  salvar();                               // Persiste no Firestore
+  resetar();                              // Volta ao layout padrão
+}
+```
+
+### Drag-and-Drop
+- **Mouse**: Arrastar alunos da lista ou entre mesas
+- **Touch (tablet/mobile)**: Suporte via TouchDragContext
+- **Swap automático**: Ao soltar em mesa ocupada, troca os dois alunos
+- **Visual feedback**: Preview flutuante durante arrasto
+
+### Componentes Visuais
+```typescript
+// SeatCell - Célula do mapa
+<SeatCell
+  celula={celula}
+  modoEdicao={modo}
+  onDrop={(alunoId) => handleDrop(row, col, alunoId)}
+  onTouchDrop={(targetRow, targetCol, alunoId) => handleDrop(targetRow, targetCol, alunoId)}
+/>
+
+// ClassroomGrid - Grid com controles de dimensão
+<ClassroomGrid
+  layout={{ rows: 5, columns: 6 }}
+  celulas={celulas}
+  onLayoutChange={handleLayoutChange}
+  onDrop={handleDrop}
+/>
 ```
 
 ---
@@ -742,4 +813,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.3.0 | Última atualização: 21/01/2026*
+*Versão: 2.4.0 | Última atualização: 21/01/2026*
