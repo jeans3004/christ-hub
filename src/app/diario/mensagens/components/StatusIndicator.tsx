@@ -147,16 +147,20 @@ export function StatusIndicator({
         <Box sx={{ display: 'flex', gap: 1 }}>
           {onRefresh && (
             <Tooltip title="Atualizar status">
-              <IconButton onClick={onRefresh} disabled={status.loading}>
-                <Refresh />
-              </IconButton>
+              <span>
+                <IconButton onClick={onRefresh} disabled={status.loading}>
+                  <Refresh />
+                </IconButton>
+              </span>
             </Tooltip>
           )}
           {!status.connected && !status.loading && (
             <Tooltip title="Conectar WhatsApp">
-              <IconButton color="primary" onClick={handleOpenQrModal}>
-                <QrCode />
-              </IconButton>
+              <span>
+                <IconButton color="primary" onClick={handleOpenQrModal}>
+                  <QrCode />
+                </IconButton>
+              </span>
             </Tooltip>
           )}
         </Box>

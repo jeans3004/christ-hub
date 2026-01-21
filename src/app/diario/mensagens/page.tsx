@@ -2,7 +2,7 @@
 
 /**
  * Pagina de mensagens WhatsApp.
- * Permite enviar mensagens para professores e visualizar historico.
+ * Permite enviar mensagens, gerenciar grupos, usar templates, criar enquetes e visualizar historico.
  */
 
 import { useState, useMemo, useCallback } from 'react';
@@ -15,21 +15,25 @@ import {
   Button,
   Alert,
   CircularProgress,
-  Divider,
   Card,
   CardContent,
 } from '@mui/material';
-import { Send, History, WhatsApp } from '@mui/icons-material';
+import { Send, History, WhatsApp, Group, Description, Poll } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useMensagensLoader, useMensagensActions } from './hooks';
+import { useMensagensLoader, useMensagensActions, useGrupos, useQuickActions } from './hooks';
 import {
   DestinatarioSelector,
   MensagemComposer,
   HistoricoTable,
   StatusIndicator,
+  QuickActionsBar,
 } from './components';
-import { TabValue, Destinatario } from './types';
+import { GruposTab } from './components/grupos';
+import { TemplatesTab } from './components/templates';
+import { PollComposer } from './components/enquetes';
+import { TabValue, QuickActionType, TemplatePreset } from './types';
+import { getVariaveisSistema, TEMPLATE_PRESETS } from './constants';
 
 export default function MensagensPage() {
   const { can } = usePermissions();
@@ -50,6 +54,12 @@ export default function MensagensPage() {
     refreshHistorico,
     refreshStatus,
   } = useMensagensLoader();
+
+  // Grupos
+  const { grupos } = useGrupos();
+
+  // Quick actions
+  const { getActionTemplate, isEnqueteAction } = useQuickActions();
 
   // Acoes
   const {
@@ -95,6 +105,50 @@ export default function MensagensPage() {
       resetForm();
     }
   }, [sendMessage, resetForm]);
+
+  // Handler para quick actions
+  const handleQuickAction = useCallback(
+    (actionId: QuickActionType) => {
+      if (isEnqueteAction(actionId)) {
+        setActiveTab('enquetes');
+        return;
+      }
+
+      const template = getActionTemplate(actionId);
+      if (template) {
+        const systemVars = getVariaveisSistema();
+        let content = template.conteudo;
+
+        // Substituir variaveis do sistema
+        Object.entries(systemVars).forEach(([key, value]) => {
+          const regex = new RegExp(`{{${key}}}`, 'g');
+          content = content.replace(regex, value);
+        });
+
+        setForm((prev) => ({ ...prev, mensagem: content }));
+        setActiveTab('enviar');
+      }
+    },
+    [getActionTemplate, isEnqueteAction, setForm]
+  );
+
+  // Handler para usar template da aba Templates
+  const handleUseTemplate = useCallback(
+    (template: TemplatePreset) => {
+      const systemVars = getVariaveisSistema();
+      let content = template.conteudo;
+
+      // Substituir variaveis do sistema
+      Object.entries(systemVars).forEach(([key, value]) => {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        content = content.replace(regex, value);
+      });
+
+      setForm((prev) => ({ ...prev, mensagem: content }));
+      setActiveTab('enviar');
+    },
+    [setForm]
+  );
 
   // Permissao negada
   if (!canView) {
@@ -142,18 +196,48 @@ export default function MensagensPage() {
           </Alert>
         )}
 
+        {/* Quick Actions Bar */}
+        {canSend && whatsappStatus.connected && (
+          <QuickActionsBar
+            onActionClick={handleQuickAction}
+            disabled={!whatsappStatus.connected}
+          />
+        )}
+
         {/* Tabs */}
         <Paper sx={{ borderRadius: 2 }}>
           <Tabs
             value={activeTab}
             onChange={(_, v) => setActiveTab(v)}
             sx={{ borderBottom: 1, borderColor: 'divider' }}
+            variant="scrollable"
+            scrollButtons="auto"
           >
             <Tab
               icon={<Send />}
               iconPosition="start"
-              label="Enviar Mensagem"
+              label="Enviar"
               value="enviar"
+              disabled={!canSend}
+            />
+            <Tab
+              icon={<Group />}
+              iconPosition="start"
+              label="Grupos"
+              value="grupos"
+              disabled={!canSend}
+            />
+            <Tab
+              icon={<Description />}
+              iconPosition="start"
+              label="Templates"
+              value="templates"
+            />
+            <Tab
+              icon={<Poll />}
+              iconPosition="start"
+              label="Enquetes"
+              value="enquetes"
               disabled={!canSend}
             />
             <Tab
@@ -244,6 +328,28 @@ export default function MensagensPage() {
                   </Button>
                 </Box>
               </Box>
+            )}
+
+            {/* Tab: Grupos */}
+            {activeTab === 'grupos' && (
+              <GruposTab disabled={!whatsappStatus.connected} />
+            )}
+
+            {/* Tab: Templates */}
+            {activeTab === 'templates' && (
+              <TemplatesTab
+                onUseTemplate={handleUseTemplate}
+                disabled={!whatsappStatus.connected}
+              />
+            )}
+
+            {/* Tab: Enquetes */}
+            {activeTab === 'enquetes' && (
+              <PollComposer
+                destinatarios={destinatarios}
+                grupos={grupos}
+                disabled={!whatsappStatus.connected}
+              />
             )}
 
             {/* Tab: Historico */}

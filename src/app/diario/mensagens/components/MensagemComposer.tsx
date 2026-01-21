@@ -1,38 +1,47 @@
 'use client';
 
 /**
- * Compositor de mensagem com preview e contador.
+ * Compositor de mensagem com formatação, preview e templates.
+ * Mantém compatibilidade com a interface existente.
  */
 
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   Box,
-  TextField,
-  Typography,
   Paper,
+  Typography,
   IconButton,
   Tooltip,
+  Divider,
+  Collapse,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Divider,
   Chip,
 } from '@mui/material';
 import {
   Send,
-  EmojiEmotions,
+  Preview as PreviewIcon,
   Description,
-  Preview,
   ContentCopy,
 } from '@mui/icons-material';
 import { TemplateMensagem } from '@/types';
+import { useFormatting } from '../hooks';
+import { FormatType } from '../types';
+import {
+  FormatToolbar,
+  TextEditor,
+  TextEditorRef,
+  MessagePreview,
+  EmojiPicker,
+} from './composer';
 
 interface MensagemComposerProps {
   value: string;
   onChange: (value: string) => void;
   templates?: TemplateMensagem[];
-  onApplyTemplate?: (template: TemplateMensagem) => void;
+  onApplyTemplate?: (template: TemplateMensagem, variables?: Record<string, string>) => void;
   onSend?: () => void;
   sending?: boolean;
   disabled?: boolean;
@@ -40,7 +49,6 @@ interface MensagemComposerProps {
   maxLength?: number;
 }
 
-// Limite do WhatsApp
 const MAX_MESSAGE_LENGTH = 4096;
 
 export function MensagemComposer({
@@ -56,9 +64,18 @@ export function MensagemComposer({
 }: MensagemComposerProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [templateAnchor, setTemplateAnchor] = useState<null | HTMLElement>(null);
+  const textEditorRef = useRef<TextEditorRef>(null);
 
   const charCount = value.length;
   const isOverLimit = charCount > maxLength;
+
+  // Handler para selecionar emoji
+  const handleEmojiSelect = useCallback(
+    (emoji: string) => {
+      textEditorRef.current?.insertText(emoji);
+    },
+    []
+  );
 
   // Abrir menu de templates
   const handleTemplateClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -85,6 +102,7 @@ export function MensagemComposer({
 
   return (
     <Box>
+      {/* Header com título e ações */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
         <Typography variant="subtitle2" color="text.secondary">
           Mensagem
@@ -92,24 +110,41 @@ export function MensagemComposer({
         <Box sx={{ display: 'flex', gap: 0.5 }}>
           {templates.length > 0 && (
             <Tooltip title="Usar template">
-              <IconButton size="small" onClick={handleTemplateClick} disabled={disabled}>
-                <Description fontSize="small" />
-              </IconButton>
+              <span>
+                <IconButton size="small" onClick={handleTemplateClick} disabled={disabled}>
+                  <Description fontSize="small" />
+                </IconButton>
+              </span>
             </Tooltip>
           )}
+          <EmojiPicker
+            onSelect={handleEmojiSelect}
+            disabled={disabled || sending}
+            buttonSize="small"
+          />
           <Tooltip title={showPreview ? 'Editar' : 'Preview'}>
-            <IconButton size="small" onClick={() => setShowPreview(!showPreview)} disabled={!value}>
-              <Preview fontSize="small" color={showPreview ? 'primary' : 'inherit'} />
-            </IconButton>
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => setShowPreview(!showPreview)}
+                disabled={!value}
+                color={showPreview ? 'primary' : 'default'}
+              >
+                <PreviewIcon fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
           <Tooltip title="Copiar">
-            <IconButton size="small" onClick={handleCopy} disabled={!value}>
-              <ContentCopy fontSize="small" />
-            </IconButton>
+            <span>
+              <IconButton size="small" onClick={handleCopy} disabled={!value}>
+                <ContentCopy fontSize="small" />
+              </IconButton>
+            </span>
           </Tooltip>
         </Box>
       </Box>
 
+      {/* Preview ou Editor */}
       {showPreview ? (
         <Paper
           variant="outlined"
@@ -118,36 +153,31 @@ export function MensagemComposer({
             minHeight: 150,
             maxHeight: 300,
             overflow: 'auto',
-            bgcolor: '#dcf8c6', // WhatsApp green
+            bgcolor: '#dcf8c6',
             borderRadius: 2,
           }}
         >
-          <Typography
-            variant="body2"
-            sx={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
-          >
-            {value || 'Nenhuma mensagem para visualizar'}
-          </Typography>
+          <MessagePreview
+            text={value}
+            showCopyButton={false}
+            variant="card"
+          />
         </Paper>
       ) : (
-        <TextField
-          multiline
-          rows={6}
-          fullWidth
+        <TextEditor
+          ref={textEditorRef}
           value={value}
-          onChange={(e) => onChange(e.target.value)}
+          onChange={onChange}
           placeholder={placeholder}
           disabled={disabled || sending}
-          error={isOverLimit}
-          sx={{
-            '& .MuiOutlinedInput-root': {
-              bgcolor: 'background.paper',
-            },
-          }}
+          maxLength={maxLength}
+          showToolbar={true}
+          showCharCount={false}
+          minRows={6}
         />
       )}
 
-      {/* Contador e acoes */}
+      {/* Contador e ações */}
       <Box
         sx={{
           display: 'flex',
@@ -197,7 +227,7 @@ export function MensagemComposer({
         <Divider />
         {templates.length === 0 ? (
           <MenuItem disabled>
-            <ListItemText primary="Nenhum template disponivel" />
+            <ListItemText primary="Nenhum template disponível" />
           </MenuItem>
         ) : (
           templates.map((template) => (
