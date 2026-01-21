@@ -105,8 +105,9 @@ export async function POST(request: NextRequest) {
         status: 'queued',
         enviadoPorId,
         enviadoPorNome,
-        templateId,
         enviadoEm: new Date(),
+        // Adicionar templateId apenas se definido (Firebase não aceita undefined)
+        ...(templateId && { templateId }),
       };
 
       const logId = await mensagemLogService.create(logData);
@@ -114,12 +115,14 @@ export async function POST(request: NextRequest) {
       // Enviar via Evolution API
       const result = await whatsappService.sendText(dest.numero, mensagem);
 
-      // Atualizar log com resultado
-      await mensagemLogService.update(logId, {
+      // Atualizar log com resultado (remover campos undefined)
+      const updateData: Record<string, unknown> = {
         status: result.success ? 'sent' : 'failed',
-        messageId: result.messageId,
-        erro: result.error,
-      });
+      };
+      if (result.messageId) updateData.messageId = result.messageId;
+      if (result.error) updateData.erro = result.error;
+
+      await mensagemLogService.update(logId, updateData);
 
       if (result.success) {
         successCount++;

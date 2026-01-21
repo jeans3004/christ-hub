@@ -63,21 +63,39 @@ export async function POST(request: NextRequest) {
       status: 'queued',
       enviadoPorId,
       enviadoPorNome,
-      templateId,
       enviadoEm: new Date(),
+      // Adicionar templateId apenas se definido (Firebase não aceita undefined)
+      ...(templateId && { templateId }),
     };
 
-    const logId = await mensagemLogService.create(logData);
+    let logId: string;
+    try {
+      logId = await mensagemLogService.create(logData);
+    } catch (logError) {
+      console.error('Erro ao criar log no Firestore:', logError);
+      // Continuar sem log - nao bloquear o envio
+      logId = '';
+    }
 
     // Enviar via Evolution API
+    console.log('Enviando mensagem para:', numero);
     const result = await whatsappService.sendText(numero, mensagem);
+    console.log('Resultado do envio:', result);
 
-    // Atualizar log com resultado
-    await mensagemLogService.update(logId, {
-      status: result.success ? 'sent' : 'failed',
-      messageId: result.messageId,
-      erro: result.error,
-    });
+    // Atualizar log com resultado (remover campos undefined)
+    if (logId) {
+      const updateData: Record<string, unknown> = {
+        status: result.success ? 'sent' : 'failed',
+      };
+      if (result.messageId) updateData.messageId = result.messageId;
+      if (result.error) updateData.erro = result.error;
+
+      try {
+        await mensagemLogService.update(logId, updateData);
+      } catch (updateError) {
+        console.error('Erro ao atualizar log:', updateError);
+      }
+    }
 
     if (!result.success) {
       return NextResponse.json(
@@ -97,8 +115,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('API /api/whatsapp/send error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Erro interno do servidor';
     return NextResponse.json(
-      { error: 'Erro interno do servidor' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
