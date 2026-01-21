@@ -4,8 +4,8 @@
  * Header principal do sistema.
  */
 
-import { AppBar, Toolbar, Box, IconButton, Typography, useTheme } from '@mui/material';
-import { Menu as MenuIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Box, IconButton, Typography, useTheme, useMediaQuery, Tooltip } from '@mui/material';
+import { Menu as MenuIcon, MenuOpen as MenuOpenIcon } from '@mui/icons-material';
 import { useUIStore } from '@/store/uiStore';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
@@ -19,10 +19,15 @@ interface HeaderProps {
 
 export default function Header({ title, showMenuButton = true }: HeaderProps) {
   const theme = useTheme();
-  const { setSidebarOpen, addToast } = useUIStore();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const { setSidebarOpen, toggleSidebarMode, sidebarMode, addToast } = useUIStore();
 
   const handleMenuClick = () => {
-    setSidebarOpen(true);
+    if (isMobile) {
+      setSidebarOpen(true);
+    } else {
+      toggleSidebarMode();
+    }
   };
 
   const handleHelp = () => {
@@ -50,17 +55,18 @@ export default function Header({ title, showMenuButton = true }: HeaderProps) {
       }}
     >
       <Toolbar sx={{ gap: 1 }}>
-        {/* Menu Button (Mobile) */}
+        {/* Menu Button (Mobile e Desktop) */}
         {showMenuButton && (
-          <IconButton
-            color="inherit"
-            edge="start"
-            onClick={handleMenuClick}
-            sx={{ display: { md: 'none' } }}
-            aria-label="abrir menu"
-          >
-            <MenuIcon />
-          </IconButton>
+          <Tooltip title={isMobile ? 'Abrir menu' : (sidebarMode === 'expanded' ? 'Recolher menu' : 'Expandir menu')}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleMenuClick}
+              aria-label={isMobile ? 'abrir menu' : 'alternar menu'}
+            >
+              {!isMobile && sidebarMode === 'expanded' ? <MenuOpenIcon /> : <MenuIcon />}
+            </IconButton>
+          </Tooltip>
         )}
 
         {/* Logo */}

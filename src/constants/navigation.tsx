@@ -162,6 +162,7 @@ export const ROUTES = {
 } as const;
 
 /**
- * Largura do drawer do Sidebar
+ * Larguras do drawer do Sidebar
  */
 export const DRAWER_WIDTH = 260;
+export const DRAWER_WIDTH_COLLAPSED = 72;

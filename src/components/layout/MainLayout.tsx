@@ -1,10 +1,10 @@
 'use client';
 
-import { Box, Toolbar } from '@mui/material';
+import { Box, Toolbar, useTheme, useMediaQuery } from '@mui/material';
 import Header from './Header';
 import Sidebar from './Sidebar';
-
-const DRAWER_WIDTH = 260;
+import { useUIStore } from '@/store/uiStore';
+import { DRAWER_WIDTH, DRAWER_WIDTH_COLLAPSED } from '@/constants/navigation';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -17,6 +17,28 @@ export default function MainLayout({
   title,
   showSidebar = true,
 }: MainLayoutProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const sidebarMode = useUIStore((state) => state.sidebarMode);
+
+  // Calcula margem dinamica baseada no modo do sidebar
+  const getContentMargin = () => {
+    if (!showSidebar) return 0;
+    if (isMobile) return 0;
+    switch (sidebarMode) {
+      case 'expanded':
+        return DRAWER_WIDTH;
+      case 'collapsed':
+        return DRAWER_WIDTH_COLLAPSED;
+      case 'hidden':
+        return 0;
+      default:
+        return DRAWER_WIDTH;
+    }
+  };
+
+  const contentMargin = getContentMargin();
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <Header title={title} showMenuButton={showSidebar} />
@@ -27,11 +49,19 @@ export default function MainLayout({
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: showSidebar ? { md: `calc(100% - ${DRAWER_WIDTH}px)` } : '100%',
-          ml: showSidebar ? { md: `${DRAWER_WIDTH}px` } : 0,
+          p: { xs: 2, sm: 3, md: 4 },
+          width: showSidebar && !isMobile
+            ? `calc(100% - ${contentMargin}px)`
+            : '100%',
+          ml: showSidebar && !isMobile
+            ? `${contentMargin}px`
+            : 0,
           bgcolor: 'background.default',
           minHeight: '100vh',
+          transition: theme.transitions.create(['margin', 'width'], {
+            easing: theme.transitions.easing.sharp,
+            duration: theme.transitions.duration.enteringScreen,
+          }),
         }}
       >
         <Toolbar />
