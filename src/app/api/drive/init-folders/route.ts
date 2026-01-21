@@ -193,6 +193,31 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(`Using parent folder "${FOLDER_STRUCTURE.PARENT}" with ID:`, parentId);
+
+    // Verificar se a pasta pai é acessível (importante para Shared Drives)
+    const verifyParams = new URLSearchParams({
+      fields: 'id,name',
+      supportsAllDrives: 'true',
+    });
+    const verifyResponse = await fetch(`${DRIVE_API_BASE}/files/${parentId}?${verifyParams}`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (!verifyResponse.ok) {
+      const verifyError = await verifyResponse.json().catch(() => ({}));
+      console.error('Parent folder verification failed:', verifyError);
+      return NextResponse.json(
+        {
+          error: `Não foi possível acessar a pasta pai. Verifique se sua conta tem acesso ao Drive Compartilhado.`,
+          details: verifyError.error?.message,
+          folderId: parentId,
+        },
+        { status: 403 }
+      );
+    }
+
+    const parentFolder = await verifyResponse.json();
+    console.log('Parent folder verified:', parentFolder);
     ids.PARENT = parentId;
 
     // Pasta raiz: SGE Diário Digital (dentro de SGE_NOVO)
