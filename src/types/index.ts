@@ -275,6 +275,27 @@ export interface Aniversariante {
   turno: Turno;
 }
 
+// Tipo de Evento
+export type TipoEvento = 'aula' | 'prova' | 'reuniao' | 'feriado' | 'entrega' | 'excursao' | 'outro';
+
+// Evento da Agenda
+export interface Evento {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  data: Date;
+  dataFim?: Date;
+  tipo: TipoEvento;
+  turmaIds?: string[];
+  disciplinaId?: string;
+  professorId: string;
+  professorNome: string;
+  diaInteiro: boolean;
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Filtros comuns
 export interface FiltroBase {
   ano: number;
