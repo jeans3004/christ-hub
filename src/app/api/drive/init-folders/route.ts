@@ -11,6 +11,8 @@ const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 
 // ID do Drive de Equipe (Shared Drive)
 const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
+// ID da pasta pai (SGE_NOVO) - obtido diretamente da URL do Drive
+const PARENT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID || '';
 
 const FOLDER_STRUCTURE = {
   PARENT: 'SGE_NOVO',           // Pasta pai existente no Shared Drive
@@ -172,15 +174,25 @@ export async function POST(request: NextRequest) {
     // Criar estrutura de pastas
     const ids: FolderIds = {};
 
-    // Primeiro, buscar a pasta pai SGE_NOVO em qualquer lugar do Shared Drive
-    const parentId = await findFolder(accessToken, FOLDER_STRUCTURE.PARENT, undefined, driveId, true);
+    // Usar ID da pasta pai diretamente do env (mais confiável que buscar por nome)
+    let parentId: string | null = PARENT_FOLDER_ID || null;
+
+    // Se não tem ID no env, tenta buscar por nome
+    if (!parentId) {
+      parentId = await findFolder(accessToken, FOLDER_STRUCTURE.PARENT, undefined, driveId, true);
+    }
+
     if (!parentId) {
       return NextResponse.json(
-        { error: `Pasta "${FOLDER_STRUCTURE.PARENT}" não encontrada no Drive. Crie-a manualmente primeiro.` },
+        {
+          error: `Pasta "${FOLDER_STRUCTURE.PARENT}" não encontrada. Configure NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID no .env.local com o ID da pasta.`,
+          hint: 'Abra a pasta no Google Drive e copie o ID da URL: drive.google.com/drive/folders/XXXXXXX'
+        },
         { status: 404 }
       );
     }
-    console.log(`Found parent folder "${FOLDER_STRUCTURE.PARENT}" with ID:`, parentId);
+
+    console.log(`Using parent folder "${FOLDER_STRUCTURE.PARENT}" with ID:`, parentId);
     ids.PARENT = parentId;
 
     // Pasta raiz: SGE Diário Digital (dentro de SGE_NOVO)
