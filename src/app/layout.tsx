@@ -5,20 +5,41 @@ import ToastProvider from '@/components/ui/ToastProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Diario Digital',
-  description: 'Sistema de gestao escolar - Diario Digital',
+  title: 'SGE Diário Digital',
+  description: 'Sistema de Gestão Escolar - Diário Digital',
   manifest: '/manifest.json',
   icons: {
-    icon: '/favicon.ico',
-    apple: '/apple-touch-icon.png',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/icons/icon-152x152.png', sizes: '152x152' },
+      { url: '/icons/icon-192x192.png', sizes: '192x192' },
+    ],
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'SGE Diário',
+  },
+  applicationName: 'SGE Diário Digital',
+  formatDetection: {
+    telephone: false,
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: '#5B21B6',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#5B21B6' },
+    { media: '(prefers-color-scheme: dark)', color: '#1e1e2e' },
+  ],
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({
