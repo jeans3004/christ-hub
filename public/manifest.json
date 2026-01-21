@@ -1,9 +1,9 @@
 {
-  "id": "/diario/menu",
+  "id": "sge-diario-digital",
   "name": "SGE Diário Digital",
   "short_name": "SGE Diário",
   "description": "Sistema de Gestão Escolar - Diário Digital",
-  "start_url": "/diario/menu",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "prefer_related_applications": false,
