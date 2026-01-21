@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 import ToastProvider from '@/components/ui/ToastProvider';
+import PWAProvider from '@/components/pwa/PWAProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default function RootLayout({
           <ThemeProvider>
             {children}
             <ToastProvider />
+            <PWAProvider />
           </ThemeProvider>
         </AppRouterCacheProvider>
       </body>

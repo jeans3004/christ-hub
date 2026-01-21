@@ -1,10 +1,12 @@
 {
+  "id": "/diario/menu",
   "name": "SGE Diário Digital",
   "short_name": "SGE Diário",
   "description": "Sistema de Gestão Escolar - Diário Digital",
   "start_url": "/diario/menu",
   "scope": "/",
   "display": "standalone",
+  "prefer_related_applications": false,
   "background_color": "#ffffff",
   "theme_color": "#5B21B6",
   "orientation": "portrait-primary",
