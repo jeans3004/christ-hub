@@ -118,23 +118,22 @@ export function PhotoUpload({
 
       {canEdit && !uploading && (
         <Tooltip title={isDriveConnected ? 'Alterar foto' : 'Drive não conectado'}>
-          <IconButton
-            size="small"
-            sx={{
-              position: 'absolute',
-              bottom: 0,
-              right: 0,
-              bgcolor: isDriveConnected ? 'primary.main' : 'warning.main',
-              color: 'white',
-              '&:hover': {
-                bgcolor: isDriveConnected ? 'primary.dark' : 'warning.dark',
-              },
-            }}
-            onClick={handleMenuOpen}
-            disabled={!isDriveConnected}
-          >
-            {isDriveConnected ? <CameraAlt fontSize="small" /> : <CloudOff fontSize="small" />}
-          </IconButton>
+          <span style={{ position: 'absolute', bottom: 0, right: 0 }}>
+            <IconButton
+              size="small"
+              sx={{
+                bgcolor: isDriveConnected ? 'primary.main' : 'warning.main',
+                color: 'white',
+                '&:hover': {
+                  bgcolor: isDriveConnected ? 'primary.dark' : 'warning.dark',
+                },
+              }}
+              onClick={handleMenuOpen}
+              disabled={!isDriveConnected}
+            >
+              {isDriveConnected ? <CameraAlt fontSize="small" /> : <CloudOff fontSize="small" />}
+            </IconButton>
+          </span>
         </Tooltip>
       )}
 
