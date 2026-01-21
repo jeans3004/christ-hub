@@ -84,8 +84,16 @@ export function useStudentPhoto(): UseStudentPhotoReturn {
           throw new Error(result.error || 'Erro ao fazer upload');
         }
 
-        // Obter link público da foto
-        const photoUrl = result.file.webViewLink || `https://drive.google.com/file/d/${result.file.id}/view`;
+        // Tornar arquivo público para exibição
+        try {
+          await service.setPublicAccess(result.file.id);
+        } catch (e) {
+          console.warn('Não foi possível tornar a foto pública:', e);
+        }
+
+        // URL embeddable para exibir a imagem (não webViewLink que é para visualização)
+        // Formato: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
+        const photoUrl = `https://drive.google.com/thumbnail?id=${result.file.id}&sz=w400`;
 
         // Atualizar o aluno com a URL da foto
         await alunoService.update(alunoId, { fotoUrl: photoUrl });
