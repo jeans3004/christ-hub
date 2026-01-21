@@ -63,15 +63,21 @@ export const useUIStore = create<UIState>()(
 
       // Toast actions
       addToast: (message, severity = 'info') => {
-        const id = Date.now().toString();
-        set((state) => ({
-          toasts: [...state.toasts, { id, message, severity }],
-        }));
+        // Use crypto.randomUUID for unique IDs, with fallback to Date.now + random
+        const id = typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        // Use setTimeout to defer the state update and avoid setState during render
         setTimeout(() => {
           set((state) => ({
-            toasts: state.toasts.filter((t) => t.id !== id),
+            toasts: [...state.toasts, { id, message, severity }],
           }));
-        }, 5000);
+          setTimeout(() => {
+            set((state) => ({
+              toasts: state.toasts.filter((t) => t.id !== id),
+            }));
+          }, 5000);
+        }, 0);
       },
       removeToast: (id) =>
         set((state) => ({
