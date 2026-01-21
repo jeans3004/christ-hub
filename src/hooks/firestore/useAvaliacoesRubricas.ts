@@ -56,9 +56,13 @@ export function useAvaliacoesRubricas(
     if (!turmaId) return false;
 
     try {
-      // Check if avaliacao already exists (sem componenteId para compatibilidade)
+      // Check if avaliacao already exists (verifica também disciplinaId e bimestre)
       const existing = avaliacoes.find(
-        a => a.alunoId === alunoId && a.rubricaId === rubricaId && (!a.componenteId || a.componenteId === '')
+        a => a.alunoId === alunoId &&
+             a.rubricaId === rubricaId &&
+             a.disciplinaId === disciplinaId &&
+             a.bimestre === bimestre &&
+             (!a.componenteId || a.componenteId === '')
       );
 
       if (existing) {

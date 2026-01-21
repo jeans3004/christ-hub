@@ -32,6 +32,7 @@ export function useAvaliacaoTab({
   const { addToast } = useUIStore();
   const [saving, setSaving] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<Record<string, NivelRubrica>>({});
+  const [observacoes, setObservacoes] = useState<Record<string, string>>({});
 
   const disciplinasFiltradas = turmaId
     ? disciplinas.filter((d) => d.turmaIds?.includes(turmaId))
@@ -40,13 +41,19 @@ export function useAvaliacaoTab({
   const getAvaliacao = useCallback((alunoId: string, rubricaId: string): NivelRubrica | null => {
     const key = `${alunoId}-${rubricaId}`;
     if (pendingChanges[key]) return pendingChanges[key];
-    const avaliacao = avaliacoes.find((a) => a.alunoId === alunoId && a.rubricaId === rubricaId);
+    // Verifica também disciplinaId para evitar conflitos entre disciplinas
+    const avaliacao = avaliacoes.find(
+      (a) => a.alunoId === alunoId && a.rubricaId === rubricaId && a.disciplinaId === disciplinaId
+    );
     return avaliacao?.nivel || null;
-  }, [pendingChanges, avaliacoes]);
+  }, [pendingChanges, avaliacoes, disciplinaId]);
 
   const handleNivelClick = useCallback((alunoId: string, rubricaId: string, nivel: NivelRubrica) => {
     const key = `${alunoId}-${rubricaId}`;
-    const current = pendingChanges[key] || avaliacoes.find((a) => a.alunoId === alunoId && a.rubricaId === rubricaId)?.nivel;
+    const currentAvaliacao = avaliacoes.find(
+      (a) => a.alunoId === alunoId && a.rubricaId === rubricaId && a.disciplinaId === disciplinaId
+    );
+    const current = pendingChanges[key] || currentAvaliacao?.nivel;
 
     if (current === nivel) {
       setPendingChanges((prev) => {
@@ -57,7 +64,7 @@ export function useAvaliacaoTab({
     } else {
       setPendingChanges((prev) => ({ ...prev, [key]: nivel }));
     }
-  }, [pendingChanges, avaliacoes]);
+  }, [pendingChanges, avaliacoes, disciplinaId]);
 
   const handleSaveAll = useCallback(async () => {
     if (!usuario || !disciplinaId) {
@@ -87,8 +94,19 @@ export function useAvaliacaoTab({
     }
   }, [usuario, disciplinaId, pendingChanges, onSaveAvaliacao, addToast]);
 
-  const hasPendingChanges = Object.keys(pendingChanges).length > 0;
-  const pendingCount = Object.keys(pendingChanges).length;
+  const handleObservacaoChange = useCallback((alunoId: string, texto: string) => {
+    setObservacoes((prev) => {
+      if (texto.trim() === '') {
+        const updated = { ...prev };
+        delete updated[alunoId];
+        return updated;
+      }
+      return { ...prev, [alunoId]: texto };
+    });
+  }, []);
+
+  const hasPendingChanges = Object.keys(pendingChanges).length > 0 || Object.keys(observacoes).length > 0;
+  const pendingCount = Object.keys(pendingChanges).length + Object.keys(observacoes).length;
 
   return {
     saving,
@@ -96,8 +114,10 @@ export function useAvaliacaoTab({
     pendingChanges,
     hasPendingChanges,
     pendingCount,
+    observacoes,
     getAvaliacao,
     handleNivelClick,
+    handleObservacaoChange,
     handleSaveAll,
   };
 }
