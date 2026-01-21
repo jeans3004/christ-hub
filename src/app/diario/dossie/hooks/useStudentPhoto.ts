@@ -1,15 +1,18 @@
 /**
  * Hook para gerenciamento de foto do aluno.
+ * Usa Google Drive (Shared Drive) para armazenamento.
  */
 
 import { useState, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
+import { useDriveStore } from '@/store/driveStore';
 import {
-  uploadAlunoPhoto,
-  deleteAlunoPhoto,
-  validateImageFile,
-  UploadProgress,
-} from '@/services/storageService';
+  createDriveService,
+  uploadAlunoPhotoDrive,
+  deleteAlunoPhotoDrive,
+} from '@/services/driveService';
+import { validateImageFile, resizeImage } from '@/services/storageService';
+import { alunoService } from '@/services/firestore';
 
 interface UseStudentPhotoReturn {
   uploading: boolean;
@@ -19,17 +22,17 @@ interface UseStudentPhotoReturn {
   deletePhoto: (alunoId: string, fotoUrl: string) => Promise<boolean>;
   validateFile: (file: File) => { valid: boolean; error?: string };
   resetState: () => void;
+  isDriveConnected: boolean;
 }
 
 export function useStudentPhoto(): UseStudentPhotoReturn {
   const { addToast } = useUIStore();
+  const { accessToken, folderIds, isTokenValid } = useDriveStore();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
-  const handleProgress = useCallback((uploadProgress: UploadProgress) => {
-    setProgress(uploadProgress.progress);
-  }, []);
+  const isDriveConnected = !!(accessToken && isTokenValid() && folderIds?.ALUNOS);
 
   const uploadPhoto = useCallback(
     async (alunoId: string, file: File): Promise<string | null> => {
@@ -41,14 +44,54 @@ export function useStudentPhoto(): UseStudentPhotoReturn {
         return null;
       }
 
+      // Verificar se Drive está conectado
+      if (!isDriveConnected || !accessToken || !folderIds) {
+        const errorMessage = 'Google Drive não está conectado. Faça login novamente.';
+        setError(errorMessage);
+        addToast(errorMessage, 'error');
+        return null;
+      }
+
       setUploading(true);
       setProgress(0);
       setError(null);
 
       try {
-        const result = await uploadAlunoPhoto(alunoId, file, handleProgress);
+        // Redimensionar imagem antes do upload
+        let uploadFile: File;
+        try {
+          const resizedBlob = await resizeImage(file);
+          uploadFile = new File([resizedBlob], `${alunoId}.jpg`, { type: 'image/jpeg' });
+        } catch {
+          // Se falhar o redimensionamento, usa o arquivo original
+          console.warn('Falha ao redimensionar, usando original');
+          uploadFile = file;
+        }
+
+        // Criar serviço do Drive
+        const service = createDriveService(accessToken);
+
+        // Fazer upload para o Drive
+        const result = await uploadAlunoPhotoDrive(
+          service,
+          folderIds,
+          alunoId,
+          uploadFile,
+          setProgress
+        );
+
+        if (!result.success || !result.file) {
+          throw new Error(result.error || 'Erro ao fazer upload');
+        }
+
+        // Obter link público da foto
+        const photoUrl = result.file.webViewLink || `https://drive.google.com/file/d/${result.file.id}/view`;
+
+        // Atualizar o aluno com a URL da foto
+        await alunoService.update(alunoId, { fotoUrl: photoUrl });
+
         addToast('Foto atualizada com sucesso!', 'success');
-        return result.url;
+        return photoUrl;
       } catch (err: any) {
         const errorMessage = err?.message || 'Erro ao fazer upload da foto';
         setError(errorMessage);
@@ -59,16 +102,32 @@ export function useStudentPhoto(): UseStudentPhotoReturn {
         setProgress(0);
       }
     },
-    [addToast, handleProgress]
+    [addToast, isDriveConnected, accessToken, folderIds]
   );
 
   const deletePhoto = useCallback(
     async (alunoId: string, fotoUrl: string): Promise<boolean> => {
+      // Verificar se Drive está conectado
+      if (!isDriveConnected || !accessToken || !folderIds) {
+        const errorMessage = 'Google Drive não está conectado. Faça login novamente.';
+        setError(errorMessage);
+        addToast(errorMessage, 'error');
+        return false;
+      }
+
       setUploading(true);
       setError(null);
 
       try {
-        await deleteAlunoPhoto(alunoId, fotoUrl);
+        // Criar serviço do Drive
+        const service = createDriveService(accessToken);
+
+        // Deletar foto do Drive
+        await deleteAlunoPhotoDrive(service, folderIds, alunoId);
+
+        // Remover URL do documento do aluno
+        await alunoService.update(alunoId, { fotoUrl: '' });
+
         addToast('Foto removida com sucesso!', 'success');
         return true;
       } catch (err: any) {
@@ -80,7 +139,7 @@ export function useStudentPhoto(): UseStudentPhotoReturn {
         setUploading(false);
       }
     },
-    [addToast]
+    [addToast, isDriveConnected, accessToken, folderIds]
   );
 
   const validateFile = useCallback((file: File) => {
@@ -101,5 +160,6 @@ export function useStudentPhoto(): UseStudentPhotoReturn {
     deletePhoto,
     validateFile,
     resetState,
+    isDriveConnected,
   };
 }

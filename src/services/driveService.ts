@@ -21,6 +21,9 @@ const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 // ID do Drive de Equipe (Shared Drive)
 const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
 
+// Nome da pasta pai existente no Shared Drive
+const PARENT_FOLDER_NAME = DRIVE_FOLDERS.PARENT;
+
 /**
  * Classe de servico para operacoes do Google Drive.
  * Configurada para usar Drive de Equipe quando SHARED_DRIVE_ID esta definido.
@@ -148,15 +151,31 @@ class DriveService {
   }
 
   /**
+   * Busca a pasta pai existente (SGE_NOVO) no Shared Drive.
+   * Esta pasta deve existir previamente.
+   */
+  async findParentFolder(): Promise<string | null> {
+    const folder = await this.findFolder(PARENT_FOLDER_NAME);
+    return folder?.id || null;
+  }
+
+  /**
    * Inicializa a estrutura de pastas do SGE no Drive.
-   * Para Drive de Equipe, cria as pastas diretamente na raiz do Shared Drive.
+   * Cria as pastas dentro de SGE_NOVO (existente) > SGE Diário Digital > subpastas.
    * Retorna um mapa com os IDs de cada pasta.
    */
   async initializeFolderStructure(): Promise<DriveFolderIds> {
     const ids: DriveFolderIds = {};
 
-    // Pasta raiz: SGE Diário Digital (dentro do Shared Drive ou My Drive)
-    ids.ROOT = await this.findOrCreateFolder(DRIVE_FOLDERS.ROOT);
+    // Primeiro, buscar a pasta pai SGE_NOVO (deve existir)
+    const parentId = await this.findParentFolder();
+    if (!parentId) {
+      throw new Error(`Pasta "${PARENT_FOLDER_NAME}" não encontrada no Drive. Crie-a manualmente primeiro.`);
+    }
+    ids.PARENT = parentId;
+
+    // Pasta raiz: SGE Diário Digital (dentro de SGE_NOVO)
+    ids.ROOT = await this.findOrCreateFolder(DRIVE_FOLDERS.ROOT, parentId);
 
     // Documentos
     ids.DOCUMENTOS = await this.findOrCreateFolder(DRIVE_FOLDERS.DOCUMENTOS, ids.ROOT);
@@ -168,6 +187,10 @@ class DriveService {
     ids.ANEXOS = await this.findOrCreateFolder(DRIVE_FOLDERS.ANEXOS, ids.ROOT);
     ids.OCORRENCIAS = await this.findOrCreateFolder(DRIVE_FOLDERS.OCORRENCIAS, ids.ANEXOS);
     ids.MENSAGENS = await this.findOrCreateFolder(DRIVE_FOLDERS.MENSAGENS, ids.ANEXOS);
+
+    // Fotos de Alunos
+    ids.FOTOS = await this.findOrCreateFolder(DRIVE_FOLDERS.FOTOS, ids.ROOT);
+    ids.ALUNOS = await this.findOrCreateFolder(DRIVE_FOLDERS.ALUNOS, ids.FOTOS);
 
     // Backups
     ids.BACKUPS = await this.findOrCreateFolder(DRIVE_FOLDERS.BACKUPS, ids.ROOT);
@@ -450,6 +473,67 @@ export function isSharedDriveConfigured(): boolean {
  */
 export function getConfiguredSharedDriveId(): string | null {
   return SHARED_DRIVE_ID || null;
+}
+
+/**
+ * Upload de foto de aluno para o Drive.
+ * A foto é salva em: SGE_NOVO/SGE Diário Digital/Fotos/Alunos/{alunoId}.jpg
+ */
+export async function uploadAlunoPhotoDrive(
+  service: DriveService,
+  folderIds: DriveFolderIds,
+  alunoId: string,
+  file: File,
+  onProgress?: (progress: number) => void
+): Promise<DriveUploadResult> {
+  const fileName = `${alunoId}.jpg`;
+  return service.uploadFile({
+    file,
+    folderId: folderIds.ALUNOS,
+    fileName,
+    onProgress,
+  });
+}
+
+/**
+ * Busca foto de aluno no Drive pelo ID.
+ */
+export async function findAlunoPhotoDrive(
+  service: DriveService,
+  folderIds: DriveFolderIds,
+  alunoId: string
+): Promise<DriveFile | null> {
+  const files = await service.listFiles(folderIds.ALUNOS);
+  return files.find(f => f.name.startsWith(alunoId)) || null;
+}
+
+/**
+ * Remove foto de aluno do Drive.
+ */
+export async function deleteAlunoPhotoDrive(
+  service: DriveService,
+  folderIds: DriveFolderIds,
+  alunoId: string
+): Promise<void> {
+  const existingFile = await findAlunoPhotoDrive(service, folderIds, alunoId);
+  if (existingFile) {
+    await service.deleteFile(existingFile.id);
+  }
+}
+
+/**
+ * Gera link público para visualização da foto do aluno.
+ */
+export async function getAlunoPhotoUrlDrive(
+  service: DriveService,
+  folderIds: DriveFolderIds,
+  alunoId: string
+): Promise<string | null> {
+  const file = await findAlunoPhotoDrive(service, folderIds, alunoId);
+  if (!file) return null;
+
+  // Torna público e retorna link
+  return service.setPublicAccess(file.id);
 }
 
 export type { DriveService };

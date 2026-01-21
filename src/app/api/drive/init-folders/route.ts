@@ -13,6 +13,7 @@ const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
 
 const FOLDER_STRUCTURE = {
+  PARENT: 'SGE_NOVO',           // Pasta pai existente no Shared Drive
   ROOT: 'SGE Diário Digital',
   DOCUMENTOS: 'Documentos',
   COMUNICADOS: 'Comunicados',
@@ -21,6 +22,8 @@ const FOLDER_STRUCTURE = {
   ANEXOS: 'Anexos',
   OCORRENCIAS: 'Ocorrencias',
   MENSAGENS: 'Mensagens',
+  FOTOS: 'Fotos',
+  ALUNOS: 'Alunos',
   BACKUPS: 'Backups',
   EXPORTS: 'Exports',
 };
@@ -164,8 +167,18 @@ export async function POST(request: NextRequest) {
     // Criar estrutura de pastas
     const ids: FolderIds = {};
 
-    // Pasta raiz (dentro do Shared Drive ou My Drive)
-    ids.ROOT = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ROOT, undefined, driveId);
+    // Primeiro, buscar a pasta pai SGE_NOVO (deve existir)
+    const parentId = await findFolder(accessToken, FOLDER_STRUCTURE.PARENT, undefined, driveId);
+    if (!parentId) {
+      return NextResponse.json(
+        { error: `Pasta "${FOLDER_STRUCTURE.PARENT}" não encontrada no Drive. Crie-a manualmente primeiro.` },
+        { status: 404 }
+      );
+    }
+    ids.PARENT = parentId;
+
+    // Pasta raiz: SGE Diário Digital (dentro de SGE_NOVO)
+    ids.ROOT = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ROOT, parentId, driveId);
 
     // Documentos
     ids.DOCUMENTOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.DOCUMENTOS, ids.ROOT, driveId);
@@ -177,6 +190,10 @@ export async function POST(request: NextRequest) {
     ids.ANEXOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ANEXOS, ids.ROOT, driveId);
     ids.OCORRENCIAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.OCORRENCIAS, ids.ANEXOS, driveId);
     ids.MENSAGENS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.MENSAGENS, ids.ANEXOS, driveId);
+
+    // Fotos de Alunos
+    ids.FOTOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.FOTOS, ids.ROOT, driveId);
+    ids.ALUNOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ALUNOS, ids.FOTOS, driveId);
 
     // Backups
     ids.BACKUPS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.BACKUPS, ids.ROOT, driveId);

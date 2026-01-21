@@ -46,7 +46,9 @@ export interface OcorrenciaAnexo {
 }
 
 // Estrutura de pastas do Drive
+// Hierarquia: SGE_NOVO (existente) > SGE Diário Digital > subpastas
 export const DRIVE_FOLDERS = {
+  PARENT: 'SGE_NOVO',           // Pasta pai existente no Shared Drive
   ROOT: 'SGE Diário Digital',
   DOCUMENTOS: 'Documentos',
   COMUNICADOS: 'Comunicados',
@@ -55,6 +57,8 @@ export const DRIVE_FOLDERS = {
   ANEXOS: 'Anexos',
   OCORRENCIAS: 'Ocorrencias',
   MENSAGENS: 'Mensagens',
+  FOTOS: 'Fotos',
+  ALUNOS: 'Alunos',
   BACKUPS: 'Backups',
   EXPORTS: 'Exports',
 } as const;

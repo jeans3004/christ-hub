@@ -1,5 +1,6 @@
 /**
  * Componente de upload de foto do aluno.
+ * Usa Google Drive (Shared Drive) para armazenamento.
  */
 
 import { useRef, useState } from 'react';
@@ -13,12 +14,14 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  Tooltip,
 } from '@mui/material';
 import {
   CameraAlt,
   Delete,
   Person,
   Upload,
+  CloudOff,
 } from '@mui/icons-material';
 import { useStudentPhoto } from '../hooks';
 
@@ -39,7 +42,7 @@ export function PhotoUpload({
 }: PhotoUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const { uploading, progress, uploadPhoto, deletePhoto } = useStudentPhoto();
+  const { uploading, progress, uploadPhoto, deletePhoto, isDriveConnected } = useStudentPhoto();
 
   const getInitials = (nome: string) => {
     const parts = nome.split(' ');
@@ -114,22 +117,25 @@ export function PhotoUpload({
       </Avatar>
 
       {canEdit && !uploading && (
-        <IconButton
-          size="small"
-          sx={{
-            position: 'absolute',
-            bottom: 0,
-            right: 0,
-            bgcolor: 'primary.main',
-            color: 'white',
-            '&:hover': {
-              bgcolor: 'primary.dark',
-            },
-          }}
-          onClick={handleMenuOpen}
-        >
-          <CameraAlt fontSize="small" />
-        </IconButton>
+        <Tooltip title={isDriveConnected ? 'Alterar foto' : 'Drive não conectado'}>
+          <IconButton
+            size="small"
+            sx={{
+              position: 'absolute',
+              bottom: 0,
+              right: 0,
+              bgcolor: isDriveConnected ? 'primary.main' : 'warning.main',
+              color: 'white',
+              '&:hover': {
+                bgcolor: isDriveConnected ? 'primary.dark' : 'warning.dark',
+              },
+            }}
+            onClick={handleMenuOpen}
+            disabled={!isDriveConnected}
+          >
+            {isDriveConnected ? <CameraAlt fontSize="small" /> : <CloudOff fontSize="small" />}
+          </IconButton>
+        </Tooltip>
       )}
 
       <input
