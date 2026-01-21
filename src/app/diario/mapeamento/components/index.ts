@@ -8,3 +8,4 @@ export { SeatCell } from './SeatCell';
 export { StudentList } from './StudentList';
 export { ModoToolbar } from './ModoToolbar';
 export { ModoInstrucoes } from './ModoInstrucoes';
+export { TouchDragProvider, useTouchDrag } from './TouchDragContext';

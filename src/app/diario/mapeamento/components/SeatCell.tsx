@@ -12,6 +12,8 @@ interface SeatCellProps {
   selected: boolean;
   onCelulaClick: () => void;
   onDrop: (alunoId: string) => void;
+  row: number;
+  col: number;
 }
 
 export function SeatCell({
@@ -20,6 +22,8 @@ export function SeatCell({
   selected,
   onCelulaClick,
   onDrop,
+  row,
+  col,
 }: SeatCellProps) {
   const colors = TIPO_COLORS[celula.tipo];
 
@@ -105,6 +109,9 @@ export function SeatCell({
       onClick={onCelulaClick}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
+      data-seat-cell="true"
+      data-row={row}
+      data-col={col}
       sx={{
         width: 80,
         height: 80,

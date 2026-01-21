@@ -8,13 +8,14 @@ import { useState, useCallback } from 'react';
 import { Box, Typography, Snackbar, Alert, CircularProgress } from '@mui/material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useMapeamentoData } from './hooks';
-import { MapeamentoFilters, ClassroomGrid, StudentList, ModoToolbar, ModoInstrucoes } from './components';
+import { MapeamentoFilters, ClassroomGrid, StudentList, ModoToolbar, ModoInstrucoes, TouchDragProvider } from './components';
 import { ModoEdicao } from './types';
 
 export default function MapeamentoPage() {
   const {
     ano, setAno, turmaId, setTurmaId, turmas, alunos,
-    loadingTurmas, loadingAlunos, loadingMapeamento,
+    disciplinaId, setDisciplinaId, disciplinas,
+    loadingTurmas, loadingDisciplinas, loadingAlunos, loadingMapeamento,
     alunosDisponiveis, layout, celulas, modoEdicao, setModoEdicao,
     atualizarLayout, alternarTipoCelula, atribuirAluno, saving, salvar, resetar,
   } = useMapeamentoData();
@@ -61,6 +62,8 @@ export default function MapeamentoPage() {
         <MapeamentoFilters
           ano={ano} setAno={setAno} turmaId={turmaId} setTurmaId={setTurmaId}
           turmas={turmas} loadingTurmas={loadingTurmas}
+          disciplinaId={disciplinaId} setDisciplinaId={setDisciplinaId}
+          disciplinas={disciplinas} loadingDisciplinas={loadingDisciplinas}
         />
 
         {!turmaId ? (
@@ -77,18 +80,25 @@ export default function MapeamentoPage() {
             />
             <ModoInstrucoes modoEdicao={modoEdicao} />
 
-            <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-              <Box sx={{ flex: 1, minWidth: 400 }}>
-                <ClassroomGrid
-                  layout={layout} celulas={celulas} modoEdicao={mapModoEdicao(modoEdicao)}
-                  selectedCell={null} onCelulaClick={handleCelulaClick}
-                  onDrop={handleDrop} onLayoutChange={atualizarLayout}
-                />
+            <TouchDragProvider>
+              <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+                <Box sx={{ flex: 1, minWidth: 400 }}>
+                  <ClassroomGrid
+                    layout={layout} celulas={celulas} modoEdicao={mapModoEdicao(modoEdicao)}
+                    selectedCell={null} onCelulaClick={handleCelulaClick}
+                    onDrop={handleDrop} onLayoutChange={atualizarLayout}
+                  />
+                </Box>
+                {modoEdicao === 'selecionar' && (
+                  <StudentList
+                    alunosDisponiveis={alunosDisponiveis}
+                    totalAlunos={alunos.length}
+                    loading={loadingAlunos}
+                    onTouchDrop={handleDrop}
+                  />
+                )}
               </Box>
-              {modoEdicao === 'selecionar' && (
-                <StudentList alunosDisponiveis={alunosDisponiveis} totalAlunos={alunos.length} loading={loadingAlunos} />
-              )}
-            </Box>
+            </TouchDragProvider>
           </>
         )}
 

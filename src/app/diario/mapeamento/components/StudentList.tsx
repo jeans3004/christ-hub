@@ -1,7 +1,9 @@
 /**
  * Lista de alunos disponiveis para arrastar para o mapa.
+ * Suporta drag-and-drop via mouse e touch (dispositivos moveis).
  */
 
+import { useRef, useCallback } from 'react';
 import {
   Paper,
   Box,
@@ -14,25 +16,72 @@ import {
   Chip,
 } from '@mui/material';
 import { Person } from '@mui/icons-material';
-import { AlunoMapa } from '../types';
+import { AlunoMapa, getIniciais } from '../types';
+import { useTouchDrag } from './TouchDragContext';
 
 interface StudentListProps {
   alunosDisponiveis: AlunoMapa[];
   totalAlunos: number;
   loading: boolean;
+  onTouchDrop?: (row: number, col: number, alunoId: string) => void;
 }
 
 export function StudentList({
   alunosDisponiveis,
   totalAlunos,
   loading,
+  onTouchDrop,
 }: StudentListProps) {
   const alunosAtribuidos = totalAlunos - alunosDisponiveis.length;
+  const { startDrag, updatePosition, endDrag } = useTouchDrag();
+  const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
   const handleDragStart = (e: React.DragEvent, alunoId: string) => {
     e.dataTransfer.setData('alunoId', alunoId);
     e.dataTransfer.effectAllowed = 'move';
   };
+
+  // Touch event handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent, aluno: AlunoMapa) => {
+    const touch = e.touches[0];
+    touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
+    // Don't start drag immediately - wait for some movement to distinguish from tap
+  }, []);
+
+  const handleTouchMove = useCallback((e: React.TouchEvent, aluno: AlunoMapa) => {
+    const touch = e.touches[0];
+    const startData = touchStartRef.current;
+
+    if (!startData) return;
+
+    // Check if moved enough to start dragging (10px threshold)
+    const dx = touch.clientX - startData.x;
+    const dy = touch.clientY - startData.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    if (distance > 10) {
+      // Prevent scrolling while dragging
+      e.preventDefault();
+
+      // Start drag if not already dragging
+      startDrag(aluno.id, aluno.nome, aluno.iniciais, touch.clientX, touch.clientY);
+      updatePosition(touch.clientX, touch.clientY);
+    }
+  }, [startDrag, updatePosition]);
+
+  const handleTouchEnd = useCallback(() => {
+    touchStartRef.current = null;
+    const { alunoId, targetElement } = endDrag();
+
+    if (alunoId && targetElement && onTouchDrop) {
+      const row = targetElement.getAttribute('data-row');
+      const col = targetElement.getAttribute('data-col');
+
+      if (row !== null && col !== null) {
+        onTouchDrop(parseInt(row, 10), parseInt(col, 10), alunoId);
+      }
+    }
+  }, [endDrag, onTouchDrop]);
 
   return (
     <Paper sx={{ p: 2, height: 'fit-content', minWidth: 250 }}>
@@ -94,10 +143,15 @@ export function StudentList({
                 key={aluno.id}
                 draggable
                 onDragStart={(e) => handleDragStart(e, aluno.id)}
+                onTouchStart={(e) => handleTouchStart(e, aluno)}
+                onTouchMove={(e) => handleTouchMove(e, aluno)}
+                onTouchEnd={handleTouchEnd}
                 sx={{
                   border: 1,
                   borderColor: 'divider',
                   bgcolor: 'background.paper',
+                  touchAction: 'none', // Prevent browser handling of touch
+                  userSelect: 'none',
                 }}
               >
                 <ListItemAvatar>
