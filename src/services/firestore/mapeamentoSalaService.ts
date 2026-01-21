@@ -61,7 +61,7 @@ export const mapeamentoSalaService = {
     const data = {
       layout,
       assentos,
-      nome,
+      ...(nome !== undefined && { nome }),
       ...(disciplinaId && { disciplinaId }),
     };
 

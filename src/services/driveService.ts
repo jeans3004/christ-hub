@@ -1,5 +1,6 @@
 /**
  * Servico para integracao com Google Drive API.
+ * Suporta Drive de Equipe (Shared Drive).
  * Usa REST API diretamente (sem biblioteca do Google).
  */
 
@@ -17,14 +18,27 @@ import {
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const DRIVE_UPLOAD_BASE = 'https://www.googleapis.com/upload/drive/v3';
 
+// ID do Drive de Equipe (Shared Drive)
+const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
+
 /**
  * Classe de servico para operacoes do Google Drive.
+ * Configurada para usar Drive de Equipe quando SHARED_DRIVE_ID esta definido.
  */
 class DriveService {
   private accessToken: string;
+  private sharedDriveId: string;
 
-  constructor(accessToken: string) {
+  constructor(accessToken: string, sharedDriveId?: string) {
     this.accessToken = accessToken;
+    this.sharedDriveId = sharedDriveId || SHARED_DRIVE_ID;
+  }
+
+  /**
+   * Verifica se esta usando Drive de Equipe.
+   */
+  private isSharedDrive(): boolean {
+    return !!this.sharedDriveId;
   }
 
   /**
@@ -38,19 +52,43 @@ class DriveService {
   }
 
   /**
+   * Parametros comuns para operacoes em Drive de Equipe.
+   */
+  private getSharedDriveParams(): Record<string, string> {
+    if (!this.isSharedDrive()) return {};
+    return {
+      supportsAllDrives: 'true',
+      includeItemsFromAllDrives: 'true',
+    };
+  }
+
+  /**
    * Busca uma pasta pelo nome dentro de um parent.
+   * Para Drive de Equipe, usa corpora=drive e driveId.
    */
   async findFolder(name: string, parentId?: string): Promise<DriveFile | null> {
     let query = `name='${name}' and mimeType='${DRIVE_MIME_TYPES.FOLDER}' and trashed=false`;
+
+    // Se tem parentId, buscar dentro dele
+    // Se não tem parentId e é Shared Drive, buscar na raiz do Shared Drive
     if (parentId) {
       query += ` and '${parentId}' in parents`;
+    } else if (this.isSharedDrive()) {
+      query += ` and '${this.sharedDriveId}' in parents`;
     }
 
     const params = new URLSearchParams({
       q: query,
       fields: 'files(id,name,mimeType,webViewLink,createdTime)',
       pageSize: '1',
+      ...this.getSharedDriveParams(),
     });
+
+    // Para Shared Drive, especificar corpora e driveId
+    if (this.isSharedDrive()) {
+      params.set('corpora', 'drive');
+      params.set('driveId', this.sharedDriveId);
+    }
 
     const response = await fetch(`${DRIVE_API_BASE}/files?${params}`, {
       headers: this.getHeaders(),
@@ -67,15 +105,23 @@ class DriveService {
 
   /**
    * Cria uma pasta no Drive.
+   * Para Drive de Equipe, coloca na raiz do Shared Drive se não tiver parent.
    */
   async createFolder(name: string, parentId?: string): Promise<string> {
+    // Se não tem parentId e é Shared Drive, usar o Shared Drive como parent
+    const parents = parentId
+      ? [parentId]
+      : (this.isSharedDrive() ? [this.sharedDriveId] : undefined);
+
     const metadata: DriveFileMetadata = {
       name,
       mimeType: DRIVE_MIME_TYPES.FOLDER,
-      parents: parentId ? [parentId] : undefined,
+      parents,
     };
 
-    const response = await fetch(`${DRIVE_API_BASE}/files`, {
+    const params = new URLSearchParams(this.getSharedDriveParams());
+
+    const response = await fetch(`${DRIVE_API_BASE}/files?${params}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(metadata),
@@ -103,12 +149,13 @@ class DriveService {
 
   /**
    * Inicializa a estrutura de pastas do SGE no Drive.
+   * Para Drive de Equipe, cria as pastas diretamente na raiz do Shared Drive.
    * Retorna um mapa com os IDs de cada pasta.
    */
   async initializeFolderStructure(): Promise<DriveFolderIds> {
     const ids: DriveFolderIds = {};
 
-    // Pasta raiz: SGE Diário Digital
+    // Pasta raiz: SGE Diário Digital (dentro do Shared Drive ou My Drive)
     ids.ROOT = await this.findOrCreateFolder(DRIVE_FOLDERS.ROOT);
 
     // Documentos
@@ -126,6 +173,11 @@ class DriveService {
     ids.BACKUPS = await this.findOrCreateFolder(DRIVE_FOLDERS.BACKUPS, ids.ROOT);
     ids.EXPORTS = await this.findOrCreateFolder(DRIVE_FOLDERS.EXPORTS, ids.BACKUPS);
 
+    // Salvar referencia ao Shared Drive se aplicavel
+    if (this.isSharedDrive()) {
+      ids.SHARED_DRIVE = this.sharedDriveId;
+    }
+
     return ids;
   }
 
@@ -138,6 +190,7 @@ class DriveService {
 
   /**
    * Upload de arquivo usando multipart upload.
+   * Suporta Drive de Equipe com supportsAllDrives=true.
    */
   async uploadFile(options: DriveUploadOptions): Promise<DriveUploadResult> {
     const { file, folderId, fileName, onProgress } = options;
@@ -156,6 +209,13 @@ class DriveService {
         new Blob([JSON.stringify(metadata)], { type: 'application/json' })
       );
       form.append('file', file);
+
+      // Montar URL com parametros para Shared Drive
+      const uploadParams = new URLSearchParams({
+        uploadType: 'multipart',
+        fields: 'id,name,mimeType,webViewLink,webContentLink,size,createdTime',
+        ...this.getSharedDriveParams(),
+      });
 
       // Para rastrear progresso, usamos XMLHttpRequest
       const result = await new Promise<DriveFile>((resolve, reject) => {
@@ -198,7 +258,7 @@ class DriveService {
           reject(new Error('Upload cancelado'));
         });
 
-        xhr.open('POST', `${DRIVE_UPLOAD_BASE}/files?uploadType=multipart&fields=id,name,mimeType,webViewLink,webContentLink,size,createdTime`);
+        xhr.open('POST', `${DRIVE_UPLOAD_BASE}/files?${uploadParams}`);
         xhr.setRequestHeader('Authorization', `Bearer ${this.accessToken}`);
         xhr.send(form);
       });
@@ -223,6 +283,7 @@ class DriveService {
       fields: 'files(id,name,mimeType,webViewLink,webContentLink,thumbnailLink,size,createdTime,modifiedTime)',
       pageSize: pageSize.toString(),
       orderBy: 'createdTime desc',
+      ...this.getSharedDriveParams(),
     });
 
     const response = await fetch(`${DRIVE_API_BASE}/files?${params}`, {
@@ -248,6 +309,7 @@ class DriveService {
   async getFile(fileId: string): Promise<DriveFile> {
     const params = new URLSearchParams({
       fields: 'id,name,mimeType,webViewLink,webContentLink,thumbnailLink,size,createdTime,modifiedTime,parents',
+      ...this.getSharedDriveParams(),
     });
 
     const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}?${params}`, {
@@ -271,7 +333,9 @@ class DriveService {
    * Deletar um arquivo.
    */
   async deleteFile(fileId: string): Promise<void> {
-    const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}`, {
+    const params = new URLSearchParams(this.getSharedDriveParams());
+
+    const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}?${params}`, {
       method: 'DELETE',
       headers: this.getHeaders(),
     });
@@ -284,10 +348,13 @@ class DriveService {
 
   /**
    * Tornar arquivo publico e retornar link.
+   * Nota: Em Shared Drives, as permissoes sao controladas pelo Drive.
    */
   async setPublicAccess(fileId: string): Promise<string> {
+    const params = new URLSearchParams(this.getSharedDriveParams());
+
     // Criar permissao de leitura para qualquer pessoa
-    const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}/permissions`, {
+    const response = await fetch(`${DRIVE_API_BASE}/files/${fileId}/permissions?${params}`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
@@ -298,7 +365,8 @@ class DriveService {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'Erro ao definir permissões');
+      // Em Shared Drives, pode nao ter permissao para mudar acesso
+      console.warn('Aviso ao definir permissões:', error.error?.message);
     }
 
     // Retornar link de visualizacao
@@ -311,6 +379,7 @@ class DriveService {
   async moveFile(fileId: string, newFolderId: string, currentFolderId?: string): Promise<void> {
     const params = new URLSearchParams({
       addParents: newFolderId,
+      ...this.getSharedDriveParams(),
     });
 
     if (currentFolderId) {
@@ -327,13 +396,22 @@ class DriveService {
       throw new Error(error.error?.message || 'Erro ao mover arquivo');
     }
   }
+
+  /**
+   * Retorna o ID do Shared Drive configurado.
+   */
+  getSharedDriveId(): string | null {
+    return this.sharedDriveId || null;
+  }
 }
 
 /**
  * Criar instancia do servico com token de acesso.
+ * @param accessToken Token OAuth do Google
+ * @param sharedDriveId ID do Shared Drive (opcional, usa env var se nao fornecido)
  */
-export function createDriveService(accessToken: string): DriveService {
-  return new DriveService(accessToken);
+export function createDriveService(accessToken: string, sharedDriveId?: string): DriveService {
+  return new DriveService(accessToken, sharedDriveId);
 }
 
 /**
@@ -358,6 +436,20 @@ export async function getMensagensFolderForMonth(
 ): Promise<string> {
   const mesStr = `${ano}-${mes.toString().padStart(2, '0')}`;
   return service.getSubfolder(folderIds.MENSAGENS, mesStr);
+}
+
+/**
+ * Verifica se esta configurado para usar Shared Drive.
+ */
+export function isSharedDriveConfigured(): boolean {
+  return !!SHARED_DRIVE_ID;
+}
+
+/**
+ * Retorna o ID do Shared Drive configurado.
+ */
+export function getConfiguredSharedDriveId(): string | null {
+  return SHARED_DRIVE_ID || null;
 }
 
 export type { DriveService };

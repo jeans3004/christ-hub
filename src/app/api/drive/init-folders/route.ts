@@ -1,5 +1,6 @@
 /**
  * API Route para inicializar estrutura de pastas no Google Drive.
+ * Suporta Drive de Equipe (Shared Drive) quando NEXT_PUBLIC_SHARED_DRIVE_ID esta definido.
  * POST /api/drive/init-folders
  */
 
@@ -7,6 +8,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const DRIVE_API_BASE = 'https://www.googleapis.com/drive/v3';
 const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
+
+// ID do Drive de Equipe (Shared Drive)
+const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
 
 const FOLDER_STRUCTURE = {
   ROOT: 'SGE Diário Digital',
@@ -25,21 +29,47 @@ interface FolderIds {
   [key: string]: string;
 }
 
+function isSharedDrive(sharedDriveId: string): boolean {
+  return !!sharedDriveId;
+}
+
+function getSharedDriveParams(sharedDriveId: string): Record<string, string> {
+  if (!isSharedDrive(sharedDriveId)) return {};
+  return {
+    supportsAllDrives: 'true',
+    includeItemsFromAllDrives: 'true',
+  };
+}
+
 async function findFolder(
   accessToken: string,
   name: string,
-  parentId?: string
+  parentId?: string,
+  sharedDriveId?: string
 ): Promise<string | null> {
+  const driveId = sharedDriveId || SHARED_DRIVE_ID;
   let query = `name='${name}' and mimeType='${FOLDER_MIME_TYPE}' and trashed=false`;
+
+  // Se tem parentId, buscar dentro dele
+  // Se não tem parentId e é Shared Drive, buscar na raiz do Shared Drive
   if (parentId) {
     query += ` and '${parentId}' in parents`;
+  } else if (isSharedDrive(driveId)) {
+    query += ` and '${driveId}' in parents`;
   }
 
   const params = new URLSearchParams({
     q: query,
     fields: 'files(id)',
     pageSize: '1',
+    ...getSharedDriveParams(driveId),
   });
+
+  // Para Shared Drive, especificar corpora e driveId
+  if (isSharedDrive(driveId)) {
+    params.set('corpora', 'drive');
+    params.set('driveId', driveId);
+  }
 
   const response = await fetch(`${DRIVE_API_BASE}/files?${params}`, {
     headers: {
@@ -58,15 +88,25 @@ async function findFolder(
 async function createFolder(
   accessToken: string,
   name: string,
-  parentId?: string
+  parentId?: string,
+  sharedDriveId?: string
 ): Promise<string> {
+  const driveId = sharedDriveId || SHARED_DRIVE_ID;
+
+  // Se não tem parentId e é Shared Drive, usar o Shared Drive como parent
+  const parents = parentId
+    ? [parentId]
+    : (isSharedDrive(driveId) ? [driveId] : undefined);
+
   const metadata = {
     name,
     mimeType: FOLDER_MIME_TYPE,
-    parents: parentId ? [parentId] : undefined,
+    parents,
   };
 
-  const response = await fetch(`${DRIVE_API_BASE}/files`, {
+  const params = new URLSearchParams(getSharedDriveParams(driveId));
+
+  const response = await fetch(`${DRIVE_API_BASE}/files?${params}`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -87,13 +127,14 @@ async function createFolder(
 async function findOrCreateFolder(
   accessToken: string,
   name: string,
-  parentId?: string
+  parentId?: string,
+  sharedDriveId?: string
 ): Promise<string> {
-  const existingId = await findFolder(accessToken, name, parentId);
+  const existingId = await findFolder(accessToken, name, parentId, sharedDriveId);
   if (existingId) {
     return existingId;
   }
-  return createFolder(accessToken, name, parentId);
+  return createFolder(accessToken, name, parentId, sharedDriveId);
 }
 
 export async function POST(request: NextRequest) {
@@ -109,30 +150,47 @@ export async function POST(request: NextRequest) {
 
     const accessToken = authHeader.substring(7);
 
+    // Obter sharedDriveId do body (opcional)
+    let sharedDriveId: string | undefined;
+    try {
+      const body = await request.json();
+      sharedDriveId = body.sharedDriveId;
+    } catch {
+      // Body vazio ou inválido, usa env var
+    }
+
+    const driveId = sharedDriveId || SHARED_DRIVE_ID;
+
     // Criar estrutura de pastas
     const ids: FolderIds = {};
 
-    // Pasta raiz
-    ids.ROOT = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ROOT);
+    // Pasta raiz (dentro do Shared Drive ou My Drive)
+    ids.ROOT = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ROOT, undefined, driveId);
 
     // Documentos
-    ids.DOCUMENTOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.DOCUMENTOS, ids.ROOT);
-    ids.COMUNICADOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.COMUNICADOS, ids.DOCUMENTOS);
-    ids.ATAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ATAS, ids.DOCUMENTOS);
-    ids.RELATORIOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.RELATORIOS, ids.DOCUMENTOS);
+    ids.DOCUMENTOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.DOCUMENTOS, ids.ROOT, driveId);
+    ids.COMUNICADOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.COMUNICADOS, ids.DOCUMENTOS, driveId);
+    ids.ATAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ATAS, ids.DOCUMENTOS, driveId);
+    ids.RELATORIOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.RELATORIOS, ids.DOCUMENTOS, driveId);
 
     // Anexos
-    ids.ANEXOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ANEXOS, ids.ROOT);
-    ids.OCORRENCIAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.OCORRENCIAS, ids.ANEXOS);
-    ids.MENSAGENS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.MENSAGENS, ids.ANEXOS);
+    ids.ANEXOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ANEXOS, ids.ROOT, driveId);
+    ids.OCORRENCIAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.OCORRENCIAS, ids.ANEXOS, driveId);
+    ids.MENSAGENS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.MENSAGENS, ids.ANEXOS, driveId);
 
     // Backups
-    ids.BACKUPS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.BACKUPS, ids.ROOT);
-    ids.EXPORTS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.EXPORTS, ids.BACKUPS);
+    ids.BACKUPS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.BACKUPS, ids.ROOT, driveId);
+    ids.EXPORTS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.EXPORTS, ids.BACKUPS, driveId);
+
+    // Incluir referência ao Shared Drive se aplicável
+    if (isSharedDrive(driveId)) {
+      ids.SHARED_DRIVE = driveId;
+    }
 
     return NextResponse.json({
       success: true,
       folderIds: ids,
+      isSharedDrive: isSharedDrive(driveId),
     });
   } catch (error) {
     console.error('Erro ao inicializar pastas do Drive:', error);
