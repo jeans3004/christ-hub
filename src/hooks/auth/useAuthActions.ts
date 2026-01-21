@@ -6,11 +6,12 @@
 
 import { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut } from 'firebase/auth';
+import { signInWithEmailAndPassword, signInWithPopup, signInWithRedirect, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useDriveStore } from '@/store/driveStore';
 import { Usuario } from '@/types';
 import { isAllowedDomain, ALLOWED_DOMAIN } from '@/lib/permissions';
 import { googleProvider, DEMO_MODE } from './authConstants';
@@ -78,6 +79,13 @@ export function useAuthActions() {
         return { success: false, error: message };
       }
 
+      // Capturar token do Google Drive
+      const credential = GoogleAuthProvider.credentialFromResult(result);
+      if (credential?.accessToken) {
+        // Token expira em 1 hora (3600 segundos)
+        useDriveStore.getState().setAccessToken(credential.accessToken, 3600);
+      }
+
       addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
       return { success: true };
     } catch (error: any) {
@@ -112,6 +120,7 @@ export function useAuthActions() {
   const handleLogout = useCallback(async () => {
     if (DEMO_MODE) {
       logout();
+      useDriveStore.getState().reset();
       addToast('Logout realizado com sucesso!', 'success');
       router.push('/login');
       return;
@@ -120,6 +129,7 @@ export function useAuthActions() {
     try {
       await signOut(auth);
       logout();
+      useDriveStore.getState().reset();
       addToast('Logout realizado com sucesso!', 'success');
       router.push('/login');
     } catch (error) {

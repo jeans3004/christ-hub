@@ -62,6 +62,10 @@ export interface Usuario {
   firstLoginAt?: Date | null;        // Data do primeiro login
   createdBy?: string;                // ID do admin que cadastrou
 
+  // Integracao Google Drive
+  driveConnected?: boolean;          // Drive esta conectado
+  driveRootFolderId?: string;        // ID da pasta raiz no Drive
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -260,8 +264,23 @@ export interface Ocorrencia {
   aprovadaEm?: Date;
   canceladaPor?: string;
   canceladaEm?: Date;
+  // Anexos do Google Drive
+  anexos?: OcorrenciaAnexoRef[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// Referencia de anexo (armazenado no Firestore)
+export interface OcorrenciaAnexoRef {
+  id: string;
+  driveFileId: string;
+  fileName: string;
+  mimeType: string;
+  size: number;
+  webViewLink: string;
+  thumbnailLink?: string;
+  uploadedAt: Date;
+  uploadedBy: string;
 }
 
 // Aniversariantes

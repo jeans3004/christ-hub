@@ -635,6 +635,52 @@ storageService.deleteAlunoPhoto(alunoId: string): Promise<void>
 storageService.getAlunoPhotoUrl(alunoId: string): Promise<string | null>
 ```
 
+### Google Drive Service
+```typescript
+// services/driveService.ts
+createDriveService(accessToken: string): DriveService
+
+// DriveService methods
+driveService.findFolder(name: string, parentId?: string): Promise<DriveFile | null>
+driveService.createFolder(name: string, parentId?: string): Promise<string>
+driveService.findOrCreateFolder(name: string, parentId?: string): Promise<string>
+driveService.initializeFolderStructure(): Promise<DriveFolderIds>
+driveService.uploadFile(options: DriveUploadOptions): Promise<DriveUploadResult>
+driveService.listFiles(folderId: string): Promise<DriveFile[]>
+driveService.getFile(fileId: string): Promise<DriveFile>
+driveService.deleteFile(fileId: string): Promise<void>
+driveService.setPublicAccess(fileId: string): Promise<string>
+driveService.moveFile(fileId: string, newFolderId: string): Promise<void>
+
+// Helpers
+getOcorrenciasFolderForYear(service, folderIds, ano): Promise<string>
+getMensagensFolderForMonth(service, folderIds, ano, mes): Promise<string>
+```
+
+### Drive Store (Zustand)
+```typescript
+// store/driveStore.ts
+useDriveStore().accessToken        // Token de acesso (em memória)
+useDriveStore().folderIds          // IDs das pastas do Drive
+useDriveStore().isInitialized      // Drive está inicializado
+useDriveStore().pendingUploads     // Uploads pendentes
+useDriveStore().setAccessToken(token, expiresIn)
+useDriveStore().isTokenValid()
+useDriveStore().reset()
+```
+
+### Drive Upload Hook
+```typescript
+// hooks/useDriveUpload.ts
+const { upload, uploadMultiple, uploadState, isConnected, initializeDrive } = useDriveUpload();
+
+// Upload para pasta específica
+await upload(file, 'OCORRENCIAS', { ano: 2026 });
+await upload(file, 'MENSAGENS', { ano: 2026, mes: 1 });
+await upload(file, 'EXPORTS');
+await upload(file, 'COMUNICADOS');
+```
+
 ---
 
 ## Componentes UI Reutilizáveis
@@ -655,6 +701,10 @@ OfflineIndicator       // Indicador de status offline
 DisciplinaSelect       // Select de disciplinas (filtra grupos)
 TurmaSelect            // Select de turmas por ano
 CheckboxSelector       // Seletor de múltiplos itens com agrupamento
+
+// components/drive/
+DriveUploadButton      // Botão de upload para Google Drive com progresso
+DriveFileList          // Lista de arquivos anexados (com ícones por tipo)
 ```
 
 ### Componentes do Compositor de Mensagens
@@ -813,4 +863,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.4.0 | Última atualização: 21/01/2026*
+*Versão: 2.5.0 | Última atualização: 21/01/2026*
