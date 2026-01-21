@@ -12,17 +12,23 @@ export async function GET() {
 
     return NextResponse.json({
       connected: status.connected,
+      connectionState: status.connectionState,
       phoneNumber: status.phoneNumber,
       profileName: status.profileName,
       profilePicUrl: status.profilePicUrl,
       error: status.error,
+      errorType: status.errorType,
+      errorCode: status.errorCode,
     });
   } catch (error) {
     console.error('API /api/whatsapp/status error:', error);
     return NextResponse.json(
       {
         connected: false,
-        error: 'Erro ao verificar status',
+        connectionState: 'error',
+        error: 'Erro interno ao verificar status',
+        errorType: 'api',
+        errorCode: 'INTERNAL_ERROR',
       },
       { status: 500 }
     );
