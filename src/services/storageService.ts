@@ -24,6 +24,8 @@ export interface UploadResult {
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const MAX_IMAGE_DIMENSION = 400; // Dimensao maxima para fotos de perfil
+const JPEG_QUALITY = 0.85; // Qualidade JPEG (0-1)
 
 /**
  * Valida o arquivo antes do upload
@@ -39,7 +41,71 @@ export function validateImageFile(file: File): { valid: boolean; error?: string 
 }
 
 /**
+ * Redimensiona uma imagem mantendo a proporcao
+ * Retorna um Blob no formato JPEG
+ */
+export async function resizeImage(
+  file: File,
+  maxDimension: number = MAX_IMAGE_DIMENSION
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    if (!ctx) {
+      reject(new Error('Erro ao criar canvas'));
+      return;
+    }
+
+    img.onload = () => {
+      let { width, height } = img;
+
+      // Calcula nova dimensao mantendo proporcao
+      if (width > height) {
+        if (width > maxDimension) {
+          height = Math.round((height * maxDimension) / width);
+          width = maxDimension;
+        }
+      } else {
+        if (height > maxDimension) {
+          width = Math.round((width * maxDimension) / height);
+          height = maxDimension;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Desenha a imagem redimensionada
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Converte para JPEG blob
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Erro ao converter imagem'));
+          }
+        },
+        'image/jpeg',
+        JPEG_QUALITY
+      );
+    };
+
+    img.onerror = () => {
+      reject(new Error('Erro ao carregar imagem'));
+    };
+
+    // Carrega a imagem do arquivo
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/**
  * Faz upload da foto do aluno para o Firebase Storage
+ * Redimensiona automaticamente para otimizar armazenamento
  */
 export async function uploadAlunoPhoto(
   alunoId: string,
@@ -51,12 +117,23 @@ export async function uploadAlunoPhoto(
     throw new Error(validation.error);
   }
 
-  const extension = file.name.split('.').pop() || 'jpg';
-  const path = `alunos/${alunoId}/foto.${extension}`;
+  // Redimensiona a imagem antes do upload
+  let uploadData: Blob;
+  try {
+    onProgress?.({ progress: 0, state: 'running' });
+    uploadData = await resizeImage(file);
+  } catch (error) {
+    // Se falhar o redimensionamento, usa o arquivo original
+    console.warn('Falha ao redimensionar, usando original:', error);
+    uploadData = file;
+  }
+
+  // Sempre usa extensao .jpg pois convertemos para JPEG
+  const path = `alunos/${alunoId}/foto.jpg`;
   const storageRef = ref(storage, path);
 
   return new Promise((resolve, reject) => {
-    const uploadTask = uploadBytesResumable(storageRef, file);
+    const uploadTask = uploadBytesResumable(storageRef, uploadData);
 
     uploadTask.on(
       'state_changed',
@@ -140,4 +217,5 @@ export const storageService = {
   deleteAlunoPhoto,
   getAlunoPhotoUrl,
   validateImageFile,
+  resizeImage,
 };
