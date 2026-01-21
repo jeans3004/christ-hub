@@ -55,3 +55,7 @@ ui-debug.log
 # Sistema documentado (referência apenas)
 sistema_documentado/
 .env.vercel
+
+# Modelos de referência (não versionar)
+MODELO_IGNORAR/
+novoSISTEMAbase/
