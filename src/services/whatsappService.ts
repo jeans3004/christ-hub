@@ -7,7 +7,7 @@ import { GrupoWhatsApp, SendMessageResult } from '@/types';
 
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || '';
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
-const INSTANCE_NAME = process.env.EVOLUTION_INSTANCE || 'sge-diario';
+const INSTANCE_NAME = process.env.EVOLUTION_INSTANCE_NAME || 'sge-whatsapp';
 
 /**
  * Formatar número para padrão internacional brasileiro.
@@ -77,9 +77,40 @@ export const whatsappService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.log('Evolution API error:', response.status, JSON.stringify(errorData));
+
+        const errorMessage = errorData.response?.message;
+        const errorStr = typeof errorMessage === 'string' ? errorMessage : '';
+
+        // Tratar erro de conexao fechada (pode vir com status 500 ou 400)
+        if (errorStr === 'Connection Closed' || errorStr.includes('Connection') || errorStr.includes('closed')) {
+          return {
+            success: false,
+            error: 'WhatsApp desconectado. Escaneie o QR Code novamente.',
+          };
+        }
+
+        // Tratar erro de numero invalido
+        if (Array.isArray(errorMessage) && errorMessage[0]?.exists === false) {
+          return {
+            success: false,
+            error: 'Numero nao existe no WhatsApp',
+          };
+        }
+
+        // Tratar Internal Server Error da Evolution API
+        if (response.status === 500 || errorStr === 'Internal Server Error') {
+          return {
+            success: false,
+            error: 'Erro no servidor WhatsApp. Verifique se a Evolution API esta funcionando corretamente.',
+          };
+        }
+
+        // Erro generico
+        const finalError = errorStr || errorData.error || errorData.message || `Erro HTTP ${response.status}`;
         return {
           success: false,
-          error: errorData.message || `HTTP ${response.status}`,
+          error: finalError,
         };
       }
 
@@ -120,9 +151,43 @@ export const whatsappService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.log('Evolution API sendToGroup error:', response.status, JSON.stringify(errorData));
+
+        // Extrair mensagem de erro (pode ser string ou array)
+        const rawMessage = errorData.response?.message;
+        const errorStr = Array.isArray(rawMessage)
+          ? rawMessage[0]
+          : (typeof rawMessage === 'string' ? rawMessage : '');
+
+        // Tratar erro de sessão (bug Baileys/LID em grupos)
+        if (errorStr.includes('SessionError') || errorStr.includes('No sessions')) {
+          return {
+            success: false,
+            error: 'SessionError: No sessions',
+          };
+        }
+
+        // Tratar erro de conexao fechada
+        if (errorStr === 'Connection Closed' || errorStr.includes('Connection') || errorStr.includes('closed')) {
+          return {
+            success: false,
+            error: 'WhatsApp desconectado. Escaneie o QR Code novamente.',
+          };
+        }
+
+        // Tratar Internal Server Error da Evolution API
+        if (response.status === 500 || errorStr === 'Internal Server Error') {
+          return {
+            success: false,
+            error: 'Erro no servidor WhatsApp. Verifique se a Evolution API esta funcionando corretamente.',
+          };
+        }
+
+        // Erro generico
+        const finalError = errorStr || errorData.error || errorData.message || `Erro HTTP ${response.status}`;
         return {
           success: false,
-          error: errorData.message || `HTTP ${response.status}`,
+          error: finalError,
         };
       }
 
@@ -143,27 +208,44 @@ export const whatsappService = {
 
   /**
    * Verificar status da conexão.
+   * Retorna status detalhado diferenciando erro de rede vs instância desconectada.
    */
   async getStatus(): Promise<{
     connected: boolean;
     phoneNumber?: string;
     profileName?: string;
     profilePicUrl?: string;
+    connectionState?: string;
     error?: string;
+    errorType?: 'network' | 'api' | 'instance';
+    errorCode?: string;
   }> {
     checkConfig();
 
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       const response = await fetch(
         `${EVOLUTION_API_URL}/instance/connectionState/${INSTANCE_NAME}`,
         {
           method: 'GET',
           headers: getHeaders(),
+          signal: controller.signal,
         }
       );
 
+      clearTimeout(timeoutId);
+
       if (!response.ok) {
-        return { connected: false, error: `HTTP ${response.status}` };
+        const errorText = await response.text().catch(() => '');
+        return {
+          connected: false,
+          error: `Erro da Evolution API: HTTP ${response.status}`,
+          errorType: 'api',
+          errorCode: `HTTP_${response.status}`,
+          connectionState: 'error',
+        };
       }
 
       const data = await response.json();
@@ -172,15 +254,44 @@ export const whatsappService = {
 
       return {
         connected: isConnected,
+        connectionState: state || 'unknown',
         phoneNumber: data.instance?.wuid?.split('@')[0],
         profileName: data.instance?.profileName,
         profilePicUrl: data.instance?.profilePicUrl,
+        ...((!isConnected && state) && {
+          error: `WhatsApp ${state === 'close' ? 'desconectado' : state}`,
+          errorType: 'instance',
+          errorCode: state,
+        }),
       };
     } catch (error) {
-      console.error('WhatsApp getStatus error:', error);
+      const err = error as Error & { code?: string; cause?: { code?: string } };
+      const code = err.code || err.cause?.code || 'UNKNOWN';
+
+      // Identificar tipo de erro de rede
+      let errorMessage = 'Erro desconhecido';
+      if (code === 'ECONNREFUSED' || err.message?.includes('ECONNREFUSED')) {
+        errorMessage = 'Evolution API offline (conexão recusada)';
+      } else if (code === 'EHOSTUNREACH' || err.message?.includes('EHOSTUNREACH')) {
+        errorMessage = 'Evolution API inacessível (host unreachable)';
+      } else if (code === 'ETIMEDOUT' || err.message?.includes('ETIMEDOUT')) {
+        errorMessage = 'Evolution API não respondeu (timeout)';
+      } else if (err.name === 'AbortError') {
+        errorMessage = 'Evolution API não respondeu em 10s (timeout)';
+      } else if (err.message?.includes('fetch failed')) {
+        errorMessage = 'Falha de conexão com Evolution API';
+      } else {
+        errorMessage = err.message || 'Erro de conexão';
+      }
+
+      console.error('WhatsApp getStatus error:', code, err.message);
+
       return {
         connected: false,
-        error: error instanceof Error ? error.message : String(error),
+        connectionState: 'offline',
+        error: errorMessage,
+        errorType: 'network',
+        errorCode: code,
       };
     }
   },
@@ -233,13 +344,40 @@ export const whatsappService = {
         }
       );
 
+      // Ler resposta como texto primeiro (API pode retornar vazio se não há grupos)
+      const text = await response.text();
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { groups: [], error: errorData.message || 'Erro ao listar grupos' };
+        let errorMessage = 'Erro ao listar grupos';
+        if (text && text.trim()) {
+          try {
+            const errorData = JSON.parse(text);
+            errorMessage = errorData.message || errorMessage;
+          } catch {
+            // Ignora erro de parse
+          }
+        }
+        return { groups: [], error: errorMessage };
       }
 
-      const data = await response.json();
-      const groups: GrupoWhatsApp[] = (data || []).map((g: Record<string, unknown>) => ({
+      // Parsear JSON com tratamento de resposta vazia
+      let data: Record<string, unknown>[] = [];
+      if (text && text.trim()) {
+        try {
+          data = JSON.parse(text);
+        } catch {
+          console.warn('WhatsApp getGroups: resposta nao e JSON valido');
+          return { groups: [], error: 'Resposta invalida da API' };
+        }
+      }
+
+      // Garantir que data seja um array
+      if (!Array.isArray(data)) {
+        console.warn('WhatsApp getGroups: resposta nao e um array', data);
+        return { groups: [] };
+      }
+
+      const groups: GrupoWhatsApp[] = data.map((g: Record<string, unknown>) => ({
         id: g.id as string,
         nome: (g.subject || g.name || 'Sem nome') as string,
         descricao: g.description as string | undefined,
@@ -363,6 +501,341 @@ export const whatsappService = {
         exists: false,
         error: error instanceof Error ? error.message : String(error),
       };
+    }
+  },
+
+  /**
+   * Enviar imagem.
+   */
+  async sendImage(
+    numero: string,
+    media: { base64?: string; url?: string; mimetype?: string },
+    caption?: string
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        mediaMessage: {
+          mediatype: 'image',
+          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(media.mimetype && { mimetype: media.mimetype }),
+          ...(caption && { caption }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendImage error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar documento (PDF, DOC, XLS, etc).
+   */
+  async sendDocument(
+    numero: string,
+    media: { base64?: string; url?: string; filename?: string; mimetype?: string },
+    caption?: string
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        mediaMessage: {
+          mediatype: 'document',
+          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(media.filename && { fileName: media.filename }),
+          ...(media.mimetype && { mimetype: media.mimetype }),
+          ...(caption && { caption }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendDocument error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar áudio.
+   */
+  async sendAudio(
+    numero: string,
+    media: { base64?: string; url?: string; mimetype?: string }
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        mediaMessage: {
+          mediatype: 'audio',
+          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(media.mimetype && { mimetype: media.mimetype }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendAudio error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar vídeo.
+   */
+  async sendVideo(
+    numero: string,
+    media: { base64?: string; url?: string; mimetype?: string },
+    caption?: string
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        mediaMessage: {
+          mediatype: 'video',
+          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(media.mimetype && { mimetype: media.mimetype }),
+          ...(caption && { caption }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendVideo error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar localização.
+   */
+  async sendLocation(
+    numero: string,
+    location: { latitude: number; longitude: number; name?: string; address?: string }
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        locationMessage: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          ...(location.name && { name: location.name }),
+          ...(location.address && { address: location.address }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendLocation/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendLocation error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar cartão de contato.
+   */
+  async sendContact(
+    numero: string,
+    contact: { name: string; phone: string }
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        contactMessage: [{
+          fullName: contact.name,
+          wuid: formatPhoneNumber(contact.phone),
+          phoneNumber: contact.phone,
+        }],
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendContact/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendContact error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
+    }
+  },
+
+  /**
+   * Enviar sticker (figurinha).
+   */
+  async sendSticker(
+    numero: string,
+    media: { base64?: string; url?: string }
+  ): Promise<SendMessageResult> {
+    checkConfig();
+    const formattedNumber = formatPhoneNumber(numero);
+
+    try {
+      const body: Record<string, unknown> = {
+        number: formattedNumber,
+        stickerMessage: {
+          ...(media.base64 ? { image: media.base64 } : { image: media.url }),
+        },
+        delay: 1200,
+      };
+
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/message/sendSticker/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      const data = await response.json();
+      return {
+        success: true,
+        messageId: data.key?.id || data.messageId,
+        status: 'sent',
+      };
+    } catch (error) {
+      console.error('WhatsApp sendSticker error:', error);
+      return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
   },
 };
