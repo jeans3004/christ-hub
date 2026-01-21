@@ -9,6 +9,7 @@ Atue como um engenheiro de prompts sênior especializado em desenvolvimento Next
 - **Backend**: Firebase (Firestore, Auth com Google, Storage)
 - **Estado**: Zustand (stores: authStore, uiStore, filterStore)
 - **WhatsApp**: Evolution API v2.2.3 (Baileys)
+- **PWA**: next-pwa com service worker e cache offline
 - **Hospedagem**: Vercel (Frontend) + Oracle Cloud Free Tier (Evolution API)
 
 ### Arquitetura e Padrões Obrigatórios
@@ -18,7 +19,8 @@ Atue como um engenheiro de prompts sênior especializado em desenvolvimento Next
 src/
 ├── app/
 │   ├── api/                      # API Routes
-│   │   └── whatsapp/             # Rotas WhatsApp (send, send-bulk, status, qrcode, groups)
+│   │   ├── whatsapp/             # Rotas WhatsApp (send, send-bulk, status, qrcode, groups)
+│   │   └── seed/                 # Rotas de seed (dados fictícios)
 │   ├── diario/[modulo]/
 │   │   ├── page.tsx              # Página principal (apenas orquestração)
 │   │   ├── types.ts              # Tipos específicos do módulo
@@ -32,10 +34,10 @@ src/
 │   │   └── utils/                # Utilitários específicos do módulo
 │   └── login/
 ├── components/
-│   ├── ui/                       # Componentes genéricos (DataTable, FormModal, ConfirmDialog)
+│   ├── ui/                       # Componentes genéricos (DataTable, FormModal, ConfirmDialog, ResponsiveContainer, OfflineIndicator)
 │   ├── common/                   # Componentes compartilhados (DisciplinaSelect, etc.)
-│   └── layout/                   # MainLayout, Sidebar, etc.
-├── hooks/                        # Hooks globais (useAuth, useModal, usePermissions)
+│   └── layout/                   # MainLayout, Sidebar (3 modos), Header
+├── hooks/                        # Hooks globais (useAuth, useModal, usePermissions, useResponsive, useOffline)
 ├── services/
 │   ├── firestore/                # Serviços por entidade ([entidade]Service.ts)
 │   └── whatsappService.ts        # Cliente Evolution API
@@ -54,6 +56,91 @@ src/
 - Permissões: usar `usePermissions()` com `can('permissao:acao')`
 - Toast: usar `useUIStore().addToast(message, 'success'|'error'|'warning'|'info')`
 - Filtros: usar `useFilterStore()` para ano/turma globais
+- Responsividade: usar `useResponsive()` para breakpoints
+
+---
+
+## Responsividade e PWA
+
+### Sidebar com 3 Modos
+```typescript
+// uiStore.ts
+type SidebarMode = 'expanded' | 'collapsed' | 'hidden';
+
+// Larguras
+DRAWER_WIDTH = 260;           // Modo expanded
+DRAWER_WIDTH_COLLAPSED = 72;  // Modo collapsed (apenas ícones)
+
+// Comportamento
+// - Mobile: Drawer temporário (abre/fecha)
+// - Desktop expanded: Largura completa com texto
+// - Desktop collapsed: Apenas ícones com tooltips
+// - Hidden: Completamente oculto
+```
+
+### Hook useResponsive
+```typescript
+const { isMobile, isTablet, isDesktop, currentBreakpoint } = useResponsive();
+
+// Breakpoints MUI
+// xs: 0-600px (mobile)
+// sm: 600-900px (tablet portrait)
+// md: 900-1200px (tablet landscape / small desktop)
+// lg: 1200-1536px (desktop)
+// xl: 1536px+ (large desktop)
+```
+
+### Componentes Responsivos
+```typescript
+// ResponsiveContainer - Container com padding responsivo
+<ResponsiveContainer maxWidth="lg" fullHeight>
+  {children}
+</ResponsiveContainer>
+
+// ResponsiveGrid - Grid auto-fill responsivo
+<ResponsiveGrid minItemWidth={280} gap={2}>
+  {items.map(item => <Card key={item.id} />)}
+</ResponsiveGrid>
+
+// ResponsiveStack - Stack que vira coluna no mobile
+<ResponsiveStack direction="row" spacing={2} reverseOnMobile>
+  <Sidebar />
+  <Content />
+</ResponsiveStack>
+```
+
+### PWA Configuration
+```javascript
+// next.config.js
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    // Google Fonts - CacheFirst (1 ano)
+    // Static fonts - StaleWhileRevalidate (7 dias)
+    // Images - StaleWhileRevalidate (24h)
+    // Next.js images - StaleWhileRevalidate (24h)
+    // JS/CSS - StaleWhileRevalidate (24h)
+    // API routes - NetworkFirst (24h)
+    // Others - NetworkFirst (24h)
+  ],
+});
+```
+
+### Offline Indicator
+```typescript
+// Hook para detectar offline
+const { isOffline, isOnline, wasOffline } = useOffline();
+
+// Componente de indicador
+<OfflineIndicator
+  position="top"
+  showRetryButton
+  dismissable
+/>
+```
 
 ---
 
@@ -90,6 +177,9 @@ interface Aluno {
   nome: string;
   matricula?: string;
   turmaId: string;
+  turma?: string;                      // Nome da turma (desnormalizado)
+  serie?: string;                      // Série (desnormalizado)
+  turno?: Turno;                       // Turno (desnormalizado)
   dataNascimento?: Date;
   fotoUrl?: string;
   responsavelNome?: string;
@@ -106,7 +196,7 @@ interface Turma {
   id: string;
   nome: string;
   serie: string;
-  turno: 'matutino' | 'vespertino' | 'noturno';
+  turno: 'Matutino' | 'Vespertino' | 'Noturno';
   ano: number;
   ativo: boolean;
   createdAt: Timestamp;
@@ -150,15 +240,22 @@ interface Rubrica {
 ```typescript
 interface Chamada {
   id: string;
-  alunoId: string;
   turmaId: string;
   disciplinaId: string;
   professorId: string;
   data: Date;
-  presente: boolean;
-  justificativa?: string;
+  tempo: 1 | 2;
+  presencas: PresencaAluno[];
+  conteudo?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+interface PresencaAluno {
+  alunoId: string;
+  alunoNome: string;
+  presente: boolean;
+  justificativa?: string;
 }
 ```
 
@@ -173,10 +270,19 @@ interface Nota {
   bimestre: 1 | 2 | 3 | 4;
   ano: number;
   valor: number;
-  tipo: 'prova' | 'trabalho' | 'participacao' | 'outro';
-  descricao?: string;
+  tipo: 'AV1' | 'AV2' | 'AV3' | 'REC' | 'MEDIA';
+  composicao?: NotaComposicao[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+interface NotaComposicao {
+  id: string;
+  nome: string;
+  porcentagem: number;
+  valor: number | null;
+  quantidadeRubricas: 1 | 2 | 3;
+  rubricaIds?: string[];
 }
 ```
 
@@ -188,9 +294,10 @@ interface Conceito {
   turmaId: string;
   disciplinaId: string;
   professorId: string;
-  bimestre: 1 | 2 | 3 | 4;
+  mes: Mes;
   ano: number;
-  valor: 'A' | 'B' | 'C' | 'D' | 'E';
+  conceito: 'A' | 'B' | 'C' | 'D' | 'E';
+  observacao?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -201,13 +308,19 @@ interface Conceito {
 interface Ocorrencia {
   id: string;
   alunoId: string;
+  alunoNome: string;
   turmaId: string;
-  professorId: string;
+  serie: string;
+  motivo: string;
+  descricao?: string;
+  usuarioId: string;
+  usuarioNome: string;
   data: Date;
-  tipo: 'positiva' | 'negativa' | 'neutra';
-  descricao: string;
-  gravidade?: 'leve' | 'media' | 'grave';
-  status?: 'aberta' | 'resolvida';
+  status: 'pendente' | 'aprovada' | 'cancelada';
+  aprovadaPor?: string;
+  aprovadaEm?: Date;
+  canceladaPor?: string;
+  canceladaEm?: Date;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -219,12 +332,15 @@ interface AvaliacaoRubrica {
   id: string;
   alunoId: string;
   turmaId: string;
+  disciplinaId: string;
   rubricaId: string;
-  disciplinaId?: string;
-  bimestre: 1 | 2 | 3 | 4;
+  componenteId: string;
+  av: 'av1' | 'av2';
+  professorId: string;
+  bimestre: number;
   ano: number;
   nivel: 'A' | 'B' | 'C' | 'D' | 'E';
-  professorId: string;
+  observacao?: string;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
@@ -237,10 +353,18 @@ interface MapeamentoSala {
   turmaId: string;
   professorId: string;
   ano: number;
-  layout: { rows: number; cols: number };
-  assentos: { row: number; col: number; alunoId: string }[];
+  nome?: string;
+  layout: { rows: number; columns: number };
+  assentos: Assento[];
   createdAt: Timestamp;
   updatedAt: Timestamp;
+}
+
+interface Assento {
+  row: number;
+  column: number;
+  alunoId: string | null;
+  tipo: 'mesa' | 'vazio' | 'professor';
 }
 ```
 
@@ -253,6 +377,8 @@ interface MensagemLog {
   destinatarioNumero: string;
   mensagem: string;
   tipo: 'individual' | 'broadcast' | 'grupo';
+  grupoId?: string;
+  grupoNome?: string;
   status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed';
   enviadoPorId: string;
   enviadoPorNome: string;
@@ -448,7 +574,11 @@ storageService.getAlunoPhotoUrl(alunoId: string): Promise<string | null>
 DataTable              // Tabela com ações, loading, empty state
 FormModal              // Modal com formulário, loading, submit
 ConfirmDialog          // Diálogo de confirmação
-LoadingOverlay         // Overlay de carregamento
+LoadingScreen          // Tela de carregamento
+ResponsiveContainer    // Container com padding responsivo
+ResponsiveGrid         // Grid auto-fill responsivo
+ResponsiveStack        // Stack que vira coluna no mobile
+OfflineIndicator       // Indicador de status offline
 
 // components/common/
 DisciplinaSelect       // Select de disciplinas (filtra grupos)
@@ -537,6 +667,27 @@ GET  /api/whatsapp/groups     # Listar grupos
 
 ---
 
+## API de Seed (Dados Fictícios)
+
+### Endpoint
+```
+POST /api/seed/alunos    # Popula turmas com 20 alunos cada
+GET  /api/seed/alunos    # Info sobre jogadores disponíveis
+```
+
+### Dados Gerados
+- **Nomes**: Jogadores lendários do futebol brasileiro (1970-2000)
+  - Era 1970 (Tri): Pelé, Jairzinho, Tostão, Gérson, Rivelino...
+  - Era 1982 (Geração de Ouro): Zico, Sócrates, Falcão, Júnior...
+  - Era 1994 (Tetra): Romário, Bebeto, Raí, Cafu, Roberto Carlos...
+  - Era 1998-2002 (Penta): Ronaldo, Rivaldo, Denílson, Leonardo...
+  - Lendas históricas: Garrincha, Didi, Nílton Santos, Zagallo...
+- **Data de Nascimento**: Aleatória entre 2008-2012
+- **Matrícula**: Gerada automaticamente (formato: AAAATTTNNN)
+- **20 alunos por turma** com nomes embaralhados
+
+---
+
 ## Critérios de Refinamento
 
 1. **Compatibilidade Arquitetural**: Garanta que a solicitação siga os padrões de modularização
@@ -547,6 +698,8 @@ GET  /api/whatsapp/groups     # Listar grupos
 6. **Separação de Responsabilidades**: Hooks para lógica, componentes para UI
 7. **Firestore**: Considere índices compostos necessários para queries
 8. **Componentes < 200 linhas**: Extrair sub-componentes quando necessário
+9. **Responsividade**: Use useResponsive() e componentes responsivos
+10. **PWA**: Considere funcionamento offline quando aplicável
 
 ---
 
@@ -589,4 +742,4 @@ GET  /api/whatsapp/groups     # Listar grupos
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.2.0 | Última atualização: 20/01/2026*
+*Versão: 2.3.0 | Última atualização: 21/01/2026*
