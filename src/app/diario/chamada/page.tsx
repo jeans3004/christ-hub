@@ -36,6 +36,7 @@ export default function ChamadaPage() {
   // Chamada data hook
   const {
     presencas,
+    observacoes,
     conteudo,
     setConteudo,
     loading: loadingChamada,
@@ -43,6 +44,7 @@ export default function ChamadaPage() {
     totalPresentes,
     totalAusentes,
     handlePresencaChange,
+    handleObservacaoChange,
     handleMarcarTodos,
     handleSaveChamada,
   } = useChamadaData({
@@ -73,7 +75,7 @@ export default function ChamadaPage() {
 
   return (
     <MainLayout title="Chamada" showSidebar>
-      <Box sx={{ display: 'flex', gap: { xs: 0, md: 3 }, flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box sx={{ display: 'flex', gap: { xs: 0, md: 1.5 }, flexDirection: { xs: 'column', md: 'row' } }}>
         {/* Filters Section */}
         <ChamadaFilters
           ano={ano}
@@ -118,10 +120,12 @@ export default function ChamadaPage() {
             <ChamadaList
               alunos={alunos}
               presencas={presencas}
+              observacoes={observacoes}
               totalPresentes={totalPresentes}
               totalAusentes={totalAusentes}
               saving={saving}
               onPresencaChange={handlePresencaChange}
+              onObservacaoChange={handleObservacaoChange}
               onMarcarTodos={handleMarcarTodos}
               onSave={handleSaveChamada}
               onOpenConteudo={() => setConteudoModalOpen(true)}

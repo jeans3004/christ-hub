@@ -2,6 +2,7 @@
  * Componente de lista de alunos para chamada.
  */
 
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -10,18 +11,24 @@ import {
   Avatar,
   Chip,
   CircularProgress,
+  IconButton,
+  Tooltip,
+  Badge,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save } from '@mui/icons-material';
+import { CheckCircle, Cancel, Save, NoteAlt } from '@mui/icons-material';
 import { Aluno } from '@/types';
 import { getAvatarColor } from '../types';
+import { ObservacaoPopover } from './ObservacaoPopover';
 
 interface ChamadaListProps {
   alunos: Aluno[];
   presencas: Record<string, boolean>;
+  observacoes: Record<string, string>;
   totalPresentes: number;
   totalAusentes: number;
   saving: boolean;
   onPresencaChange: (alunoId: string) => void;
+  onObservacaoChange: (alunoId: string, observacao: string) => void;
   onMarcarTodos: (presente: boolean) => void;
   onSave: () => Promise<void>;
   onOpenConteudo: () => void;
@@ -30,14 +37,36 @@ interface ChamadaListProps {
 export function ChamadaList({
   alunos,
   presencas,
+  observacoes,
   totalPresentes,
   totalAusentes,
   saving,
   onPresencaChange,
+  onObservacaoChange,
   onMarcarTodos,
   onSave,
   onOpenConteudo,
 }: ChamadaListProps) {
+  const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
+  const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
+
+  const handleOpenObservacao = (event: React.MouseEvent<HTMLElement>, aluno: Aluno) => {
+    event.stopPropagation();
+    setPopoverAnchor(event.currentTarget);
+    setSelectedAluno(aluno);
+  };
+
+  const handleCloseObservacao = () => {
+    setPopoverAnchor(null);
+    setSelectedAluno(null);
+  };
+
+  const handleSaveObservacao = (texto: string) => {
+    if (selectedAluno) {
+      onObservacaoChange(selectedAluno.id, texto);
+    }
+  };
+
   return (
     <>
       {/* Header with stats and actions */}
@@ -97,10 +126,13 @@ export function ChamadaList({
       </Box>
 
       {/* Student List */}
-      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2 }}>
+      <Box sx={{ bgcolor: 'background.paper', borderRadius: 2, overflow: 'hidden' }}>
         {alunos.map((aluno, index) => {
           const isPresente = presencas[aluno.id] ?? true;
           const avatarColor = getAvatarColor(index);
+          const numero = String(index + 1).padStart(2, '0');
+          const hasObservacao = Boolean(observacoes[aluno.id]);
+
           return (
             <Box
               key={aluno.id}
@@ -109,59 +141,112 @@ export function ChamadaList({
                 display: 'flex',
                 alignItems: 'center',
                 gap: { xs: 1, sm: 2 },
-                py: 1.5,
-                px: { xs: 0.5, sm: 1 },
+                py: { xs: 1.5, sm: 2 },
+                px: { xs: 1, sm: 2 },
                 cursor: 'pointer',
                 borderBottom: index < alunos.length - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
-                transition: 'background-color 0.15s ease',
+                transition: 'all 0.2s ease',
+                bgcolor: isPresente ? 'transparent' : 'error.50',
+                borderLeft: isPresente ? '4px solid transparent' : '4px solid',
+                borderLeftColor: isPresente ? 'transparent' : 'error.main',
                 '&:hover': {
-                  bgcolor: 'action.hover',
+                  bgcolor: isPresente ? 'action.hover' : 'error.100',
                 },
               }}
             >
+              {/* Numero do aluno */}
+              <Typography
+                sx={{
+                  minWidth: 28,
+                  fontWeight: 600,
+                  fontSize: '0.85rem',
+                  color: 'text.secondary',
+                  textAlign: 'center',
+                }}
+              >
+                {numero}
+              </Typography>
+
               <Checkbox
                 checked={isPresente}
                 sx={{
                   p: { xs: 0.5, sm: 1 },
-                  color: 'success.main',
+                  color: isPresente ? 'success.main' : 'error.main',
                   '&.Mui-checked': {
                     color: 'success.main',
                   },
                 }}
               />
+
               <Avatar
+                src={aluno.fotoUrl}
                 sx={{
-                  width: { xs: 32, sm: 36 },
-                  height: { xs: 32, sm: 36 },
-                  fontSize: { xs: '0.85rem', sm: '0.95rem' },
+                  width: { xs: 36, sm: 42 },
+                  height: { xs: 36, sm: 42 },
+                  fontSize: { xs: '0.9rem', sm: '1rem' },
                   fontWeight: 600,
                   bgcolor: avatarColor,
+                  border: isPresente ? '2px solid transparent' : '2px solid',
+                  borderColor: isPresente ? 'transparent' : 'error.main',
                 }}
               >
-                {aluno.nome.charAt(0)}
+                {aluno.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
               </Avatar>
-              <Typography
-                sx={{
-                  flex: 1,
-                  fontWeight: 500,
-                  fontSize: { xs: '0.85rem', sm: '0.95rem' },
-                  color: 'text.primary',
-                }}
-              >
-                {aluno.nome}
-              </Typography>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontWeight: 500,
+                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                    color: 'text.primary',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {aluno.nome}
+                </Typography>
+                {aluno.matricula && (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' } }}
+                  >
+                    Mat: {aluno.matricula}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Botao de observacao */}
+              <Tooltip title={hasObservacao ? observacoes[aluno.id] : 'Adicionar observação'} arrow>
+                <IconButton
+                  size="small"
+                  onClick={(e) => handleOpenObservacao(e, aluno)}
+                  sx={{
+                    color: hasObservacao ? 'warning.main' : 'text.disabled',
+                    '&:hover': { color: 'warning.dark' },
+                  }}
+                >
+                  <Badge variant="dot" color="warning" invisible={!hasObservacao}>
+                    <NoteAlt fontSize="small" />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+
               <Button
                 size="small"
                 variant="contained"
                 disableElevation
                 sx={{
-                  minWidth: { xs: 70, sm: 90 },
-                  fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                  minWidth: { xs: 75, sm: 95 },
+                  fontSize: { xs: '0.75rem', sm: '0.85rem' },
                   textTransform: 'none',
-                  borderRadius: 1,
-                  px: { xs: 1, sm: 2 },
+                  borderRadius: 2,
+                  px: { xs: 1.5, sm: 2 },
+                  py: 0.75,
+                  fontWeight: 600,
                   bgcolor: isPresente ? 'success.main' : 'error.main',
+                  boxShadow: isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)',
                   '&:hover': {
                     bgcolor: isPresente ? 'success.dark' : 'error.dark',
                   },
@@ -194,6 +279,15 @@ export function ChamadaList({
           {saving ? 'Salvando...' : 'Salvar Chamada'}
         </Button>
       </Box>
+
+      {/* Popover para observacoes */}
+      <ObservacaoPopover
+        anchorEl={popoverAnchor}
+        alunoNome={selectedAluno?.nome || ''}
+        observacao={selectedAluno ? (observacoes[selectedAluno.id] || '') : ''}
+        onClose={handleCloseObservacao}
+        onSave={handleSaveObservacao}
+      />
     </>
   );
 }

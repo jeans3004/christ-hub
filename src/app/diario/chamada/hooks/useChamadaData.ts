@@ -18,6 +18,7 @@ interface UseChamadaDataParams {
 interface UseChamadaDataReturn {
   presencas: Record<string, boolean>;
   setPresencas: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+  observacoes: Record<string, string>;
   conteudo: string;
   setConteudo: React.Dispatch<React.SetStateAction<string>>;
   loading: boolean;
@@ -25,6 +26,7 @@ interface UseChamadaDataReturn {
   totalPresentes: number;
   totalAusentes: number;
   handlePresencaChange: (alunoId: string) => void;
+  handleObservacaoChange: (alunoId: string, observacao: string) => void;
   handleMarcarTodos: (presente: boolean) => void;
   handleSaveChamada: () => Promise<void>;
 }
@@ -39,6 +41,7 @@ export function useChamadaData({
   const { usuario } = useAuth();
 
   const [presencas, setPresencas] = useState<Record<string, boolean>>({});
+  const [observacoes, setObservacoes] = useState<Record<string, string>>({});
   const [conteudo, setConteudo] = useState('');
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,10 +69,15 @@ export function useChamadaData({
 
         if (chamada) {
           const loadedPresencas: Record<string, boolean> = {};
+          const loadedObservacoes: Record<string, string> = {};
           chamada.presencas.forEach(p => {
             loadedPresencas[p.alunoId] = p.presente;
+            if (p.justificativa) {
+              loadedObservacoes[p.alunoId] = p.justificativa;
+            }
           });
           setPresencas(loadedPresencas);
+          setObservacoes(loadedObservacoes);
           setConteudo(chamada.conteudo || '');
         }
       } catch (error) {
@@ -84,6 +92,17 @@ export function useChamadaData({
 
   const handlePresencaChange = useCallback((alunoId: string) => {
     setPresencas(prev => ({ ...prev, [alunoId]: !prev[alunoId] }));
+  }, []);
+
+  const handleObservacaoChange = useCallback((alunoId: string, observacao: string) => {
+    setObservacoes(prev => {
+      if (observacao.trim() === '') {
+        const updated = { ...prev };
+        delete updated[alunoId];
+        return updated;
+      }
+      return { ...prev, [alunoId]: observacao };
+    });
   }, []);
 
   const handleMarcarTodos = useCallback((presente: boolean) => {
@@ -104,6 +123,7 @@ export function useChamadaData({
         alunoId: aluno.id,
         alunoNome: aluno.nome,
         presente: presencas[aluno.id] ?? true,
+        justificativa: observacoes[aluno.id] || undefined,
       }));
 
       // Check if chamada already exists
@@ -134,7 +154,7 @@ export function useChamadaData({
     } finally {
       setSaving(false);
     }
-  }, [serieId, disciplinaId, usuario, alunos, presencas, dataChamada, conteudo, addToast]);
+  }, [serieId, disciplinaId, usuario, alunos, presencas, observacoes, dataChamada, conteudo, addToast]);
 
   const totalPresentes = Object.values(presencas).filter(Boolean).length;
   const totalAusentes = alunos.length - totalPresentes;
@@ -142,6 +162,7 @@ export function useChamadaData({
   return {
     presencas,
     setPresencas,
+    observacoes,
     conteudo,
     setConteudo,
     loading,
@@ -149,6 +170,7 @@ export function useChamadaData({
     totalPresentes,
     totalAusentes,
     handlePresencaChange,
+    handleObservacaoChange,
     handleMarcarTodos,
     handleSaveChamada,
   };
