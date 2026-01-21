@@ -79,11 +79,40 @@ export function useAuthActions() {
         return { success: false, error: message };
       }
 
-      // Capturar token do Google Drive
+      // Capturar token do Google Drive e inicializar pastas
       const credential = GoogleAuthProvider.credentialFromResult(result);
       if (credential?.accessToken) {
+        const driveStore = useDriveStore.getState();
         // Token expira em 1 hora (3600 segundos)
-        useDriveStore.getState().setAccessToken(credential.accessToken, 3600);
+        driveStore.setAccessToken(credential.accessToken, 3600);
+
+        // Inicializar estrutura de pastas no Drive (em background)
+        driveStore.setInitializing(true);
+        fetch('/api/drive/init-folders', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${credential.accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success && data.folderIds) {
+              driveStore.setFolderIds(data.folderIds);
+              driveStore.setInitialized(true);
+              console.log('Drive folders initialized:', data.folderIds);
+            } else {
+              console.error('Failed to initialize Drive folders:', data.error);
+              driveStore.setInitialized(false);
+            }
+          })
+          .catch(error => {
+            console.error('Error initializing Drive folders:', error);
+            driveStore.setInitialized(false);
+          })
+          .finally(() => {
+            driveStore.setInitializing(false);
+          });
       }
 
       addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
