@@ -2,14 +2,14 @@
  * API Route: Enviar notificacoes automaticas de horarios via WhatsApp.
  * POST /api/horarios/send-notifications
  *
- * Chamado por Cloud Function no final de cada tempo para notificar
+ * Chamado por cron job no final de cada tempo para notificar
  * professores sobre sua proxima aula.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '@/lib/firebase-admin';
+import { horarioService, usuarioService, turmaService, disciplinaService } from '@/services/firestore';
 import { whatsappService } from '@/services/whatsappService';
-import { HorarioAula, DiaSemana, DiasSemanaNomes } from '@/types';
+import { DiaSemana, DiasSemanaNomes } from '@/types';
 
 // Horarios de fim de cada tempo (quando enviar notificacao)
 const MATUTINO_END_TIMES = ['07:45', '08:30', '09:15', '10:00', '10:45', '11:30', '12:15'];
@@ -68,7 +68,7 @@ async function handleNotification(request: NextRequest) {
     const currentHour = brasilTime.getHours().toString().padStart(2, '0');
     const currentMinute = brasilTime.getMinutes().toString().padStart(2, '0');
     const currentTime = `${currentHour}:${currentMinute}`;
-    const currentDay = brasilTime.getDay() as DiaSemana; // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sab
+    const currentDay = brasilTime.getDay() as DiaSemana;
     const currentYear = brasilTime.getFullYear();
 
     // Permitir override para testes (via body ou query params)
@@ -98,7 +98,6 @@ async function handleNotification(request: NextRequest) {
     if (dayToCheck === 5 && SEXTA_VESPERTINO_END_TIMES.includes(timeToCheck)) {
       const index = SEXTA_VESPERTINO_END_TIMES.indexOf(timeToCheck);
       if (index < SEXTA_VESPERTINO_END_TIMES.length - 1) {
-        // Pegar o inicio do proximo tempo (que e o fim atual)
         nextStartTime = SEXTA_VESPERTINO_NEXT_START[timeToCheck];
       }
     } else if (MATUTINO_END_TIMES.includes(timeToCheck)) {
@@ -124,16 +123,13 @@ async function handleNotification(request: NextRequest) {
 
     console.log(`[Horarios Notification] Next slot starts at: ${nextStartTime}`);
 
-    // Buscar horarios do proximo tempo
-    const horariosSnapshot = await adminDb
-      .collection('horarios')
-      .where('ano', '==', currentYear)
-      .where('diaSemana', '==', dayToCheck)
-      .where('horaInicio', '==', nextStartTime)
-      .where('ativo', '==', true)
-      .get();
+    // Buscar todos os horarios do ano e filtrar
+    const allHorarios = await horarioService.getByAno(currentYear);
+    const horarios = allHorarios.filter(
+      h => h.diaSemana === dayToCheck && h.horaInicio === nextStartTime
+    );
 
-    if (horariosSnapshot.empty) {
+    if (horarios.length === 0) {
       return NextResponse.json({
         success: true,
         message: 'Nenhum horario encontrado para o proximo tempo',
@@ -141,41 +137,32 @@ async function handleNotification(request: NextRequest) {
       });
     }
 
-    const horarios = horariosSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as HorarioAula[];
-
     console.log(`[Horarios Notification] Found ${horarios.length} schedules for next slot`);
 
+    // Buscar dados necessarios
+    const [allProfessores, allTurmas, allDisciplinas] = await Promise.all([
+      usuarioService.getAll(),
+      turmaService.getAll(),
+      disciplinaService.getAll(),
+    ]);
+
+    const professoresMap = new Map(allProfessores.map(p => [p.id, p]));
+    const turmasMap = new Map(allTurmas.map(t => [t.id, t]));
+    const disciplinasMap = new Map(allDisciplinas.map(d => [d.id, d]));
+
     // Agrupar por professor
-    const horariosByProfessor = new Map<string, HorarioAula[]>();
+    const horariosByProfessor = new Map<string, typeof horarios>();
     for (const h of horarios) {
       const existing = horariosByProfessor.get(h.professorId) || [];
       existing.push(h);
       horariosByProfessor.set(h.professorId, existing);
     }
 
-    // Buscar dados dos professores, turmas e disciplinas
-    const professorIds = Array.from(horariosByProfessor.keys());
-    const turmaIds = [...new Set(horarios.map(h => h.turmaId))];
-    const disciplinaIds = [...new Set(horarios.map(h => h.disciplinaId))];
-
-    const [professoresSnapshot, turmasSnapshot, disciplinasSnapshot] = await Promise.all([
-      adminDb.collection('usuarios').where('__name__', 'in', professorIds.slice(0, 10)).get(),
-      adminDb.collection('turmas').where('__name__', 'in', turmaIds.slice(0, 10)).get(),
-      adminDb.collection('disciplinas').where('__name__', 'in', disciplinaIds.slice(0, 10)).get(),
-    ]);
-
-    const professores = new Map(professoresSnapshot.docs.map(doc => [doc.id, doc.data()]));
-    const turmas = new Map(turmasSnapshot.docs.map(doc => [doc.id, doc.data()]));
-    const disciplinas = new Map(disciplinasSnapshot.docs.map(doc => [doc.id, doc.data()]));
-
     // Enviar notificacoes
     const results: NotificationResult[] = [];
 
     for (const [professorId, profHorarios] of horariosByProfessor) {
-      const professor = professores.get(professorId);
+      const professor = professoresMap.get(professorId);
       if (!professor) {
         results.push({
           professorId,
@@ -186,11 +173,11 @@ async function handleNotification(request: NextRequest) {
         continue;
       }
 
-      const celular = professor.celular as string;
+      const celular = professor.celular;
       if (!celular) {
         results.push({
           professorId,
-          professorNome: professor.nome as string,
+          professorNome: professor.nome,
           success: false,
           error: 'Professor sem celular cadastrado',
         });
@@ -199,8 +186,8 @@ async function handleNotification(request: NextRequest) {
 
       // Montar mensagem
       const aulaInfo = profHorarios.map(h => {
-        const turma = turmas.get(h.turmaId);
-        const disciplina = disciplinas.get(h.disciplinaId);
+        const turma = turmasMap.get(h.turmaId);
+        const disciplina = disciplinasMap.get(h.disciplinaId);
         const turmaNome = turma?.nome || 'Turma desconhecida';
         const disciplinaNome = disciplina?.nome || 'Disciplina desconhecida';
         const salaInfo = h.sala ? ` (${h.sala})` : '';
@@ -213,14 +200,14 @@ async function handleNotification(request: NextRequest) {
         const result = await whatsappService.sendText(celular, mensagem);
         results.push({
           professorId,
-          professorNome: professor.nome as string,
+          professorNome: professor.nome,
           success: result.success,
           error: result.error,
         });
       } catch (error) {
         results.push({
           professorId,
-          professorNome: professor.nome as string,
+          professorNome: professor.nome,
           success: false,
           error: error instanceof Error ? error.message : 'Erro desconhecido',
         });
