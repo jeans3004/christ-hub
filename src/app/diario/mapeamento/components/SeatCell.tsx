@@ -108,15 +108,15 @@ export function SeatCell({
   const renderContent = () => {
     if (celula.tipo === 'vazio') {
       return (
-        <Block sx={{ fontSize: 24, color: 'text.disabled' }} />
+        <Block sx={{ fontSize: 20, color: 'text.disabled' }} />
       );
     }
 
     if (celula.tipo === 'professor') {
       return (
         <Box sx={{ textAlign: 'center' }}>
-          <School sx={{ fontSize: 28, color: 'warning.main' }} />
-          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+          <School sx={{ fontSize: 22, color: 'warning.main' }} />
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.25, fontSize: '0.65rem' }}>
             Professor
           </Typography>
         </Box>
@@ -131,11 +131,11 @@ export function SeatCell({
             <Avatar
               src={celula.aluno.fotoUrl}
               sx={{
-                width: 40,
-                height: 40,
+                width: 32,
+                height: 32,
                 mx: 'auto',
                 bgcolor: 'primary.main',
-                fontSize: '0.9rem',
+                fontSize: '0.75rem',
               }}
             >
               {celula.aluno.iniciais}
@@ -144,11 +144,12 @@ export function SeatCell({
               variant="caption"
               sx={{
                 display: 'block',
-                mt: 0.5,
-                maxWidth: 70,
+                mt: 0.25,
+                maxWidth: 56,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                fontSize: '0.65rem',
               }}
             >
               {celula.aluno.nome.split(' ')[0]}
@@ -160,8 +161,8 @@ export function SeatCell({
 
     return (
       <Box sx={{ textAlign: 'center' }}>
-        <Person sx={{ fontSize: 28, color: 'text.disabled' }} />
-        <Typography variant="caption" color="text.disabled" sx={{ display: 'block' }}>
+        <Person sx={{ fontSize: 22, color: 'text.disabled' }} />
+        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontSize: '0.65rem' }}>
           Vazio
         </Typography>
       </Box>
@@ -183,18 +184,18 @@ export function SeatCell({
       data-col={col}
       data-aluno-id={celula.aluno?.id || ''}
       sx={{
-        width: 80,
-        height: 80,
+        width: 64,
+        height: 64,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: colors.bg,
-        border: 2,
+        border: 1,
         borderColor: selected ? 'primary.main' : colors.border,
         borderRadius: 1,
         cursor: isDraggable ? 'grab' : 'pointer',
         transition: 'all 0.2s',
-        boxShadow: selected ? 3 : 0,
+        boxShadow: selected ? 2 : 0,
         userSelect: 'none',
         touchAction: isDraggable ? 'none' : 'auto',
         '&:hover': {

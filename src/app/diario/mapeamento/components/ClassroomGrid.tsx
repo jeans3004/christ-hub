@@ -63,9 +63,9 @@ export function ClassroomGrid({
   };
 
   return (
-    <Paper sx={{ p: 3, overflow: 'auto' }}>
+    <Paper sx={{ p: 1.5, overflow: 'auto', width: '100%' }}>
       {/* Controles de colunas */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2, gap: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1, gap: 1 }}>
         <Tooltip title="Remover coluna">
           <span>
             <IconButton
@@ -143,7 +143,7 @@ export function ClassroomGrid({
           sx={{
             display: 'flex',
             flexDirection: 'column',
-            gap: 1,
+            gap: 0.5,
           }}
         >
           {/* Quadro/Lousa */}
@@ -155,8 +155,8 @@ export function ClassroomGrid({
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              mb: 2,
-              width: layout.columns * 88 - 8,
+              mb: 1,
+              width: layout.columns * 68 - 4,
             }}
           >
             <Typography variant="caption" color="white">
@@ -170,7 +170,7 @@ export function ClassroomGrid({
               key={rowIndex}
               sx={{
                 display: 'flex',
-                gap: 1,
+                gap: 0.5,
               }}
             >
               {Array.from({ length: layout.columns }).map((_, colIndex) => {

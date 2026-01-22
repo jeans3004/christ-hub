@@ -18,7 +18,7 @@ interface ModoToolbarProps {
 
 export function ModoToolbar({ modoEdicao, setModoEdicao, saving, onSave, onResetar }: ModoToolbarProps) {
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
       <ButtonGroup size="small" variant="outlined">
         <Tooltip title="Visualizar">
           <Button

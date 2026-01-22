@@ -41,7 +41,7 @@ export function MapeamentoFilters({
   const years = [currentYear, currentYear - 1, currentYear - 2];
 
   return (
-    <Paper sx={{ p: 2, mb: 3 }}>
+    <Paper sx={{ p: 1.5, mb: 2 }}>
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 100 }}>
           <InputLabel>Ano</InputLabel>
