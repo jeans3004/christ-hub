@@ -100,14 +100,48 @@ export interface Turma {
 export interface Aluno {
   id: string;
   nome: string;
+  matricula?: string;
+  inep?: string;                      // Código INEP
   cpf?: string;
+  rg?: string;
+  sexo?: 'M' | 'F';
   dataNascimento?: Date;
+  naturalidade?: string;              // Cidade natal
+  uf?: string;                        // Estado natal
+
+  // Turma (desnormalizado)
   turmaId: string;
   turma?: string;
   serie?: string;
+  ensino?: string;                    // Fundamental, Médio, etc.
   turno?: Turno;
-  matricula?: string;
+
+  // Responsável principal
+  responsavelNome?: string;
+  responsavelTelefone?: string;
+  responsavelCpf?: string;
+  responsavelEmail?: string;
+
+  // Pai
+  paiNome?: string;
+  paiTelefone?: string;
+  paiEmail?: string;
+
+  // Mãe
+  maeNome?: string;
+  maeTelefone?: string;
+  maeEmail?: string;
+
+  // Endereço
+  logradouro?: string;
+  cep?: string;
+  bairro?: string;
+
+  // Outros
+  indicador?: string;
   fotoUrl?: string;
+  fotoFileId?: string;                // ID do arquivo no Google Drive
+
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;

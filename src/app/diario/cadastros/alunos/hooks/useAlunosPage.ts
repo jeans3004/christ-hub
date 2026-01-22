@@ -143,5 +143,6 @@ export function useAlunosPage(canAccess: boolean) {
     handleSave,
     handleDelete,
     getTurmaNome,
+    refetch: loadData,
   };
 }

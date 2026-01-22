@@ -4,15 +4,15 @@
  * Pagina de cadastro de alunos.
  */
 
-import { useMemo } from 'react';
-import { Box, Button, Typography, Chip, Alert, Avatar, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Add, Edit, Delete } from '@mui/icons-material';
+import { useMemo, useState } from 'react';
+import { Box, Button, Typography, Chip, Alert, Avatar, FormControl, InputLabel, Select, MenuItem, Menu } from '@mui/material';
+import { Add, Edit, Delete, Upload, DeleteSweep, MoreVert } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { DataTable, ConfirmDialog, FormModal } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Aluno } from '@/types';
-import { useAlunosPage } from './hooks';
-import { AlunoFormContent, EmptyState } from './components';
+import { useAlunosPage, useAlunosImport } from './hooks';
+import { AlunoFormContent, EmptyState, ImportDialog } from './components';
 import { avatarColors } from './types';
 
 export default function AlunosPage() {
@@ -36,7 +36,23 @@ export default function AlunosPage() {
     handleSave,
     handleDelete,
     getTurmaNome,
+    refetch,
   } = useAlunosPage(canAccess);
+
+  // Import/Delete hooks
+  const {
+    importing,
+    deleting,
+    importResult,
+    importFromFile,
+    deleteAll,
+    clearResult,
+  } = useAlunosImport(refetch);
+
+  // State for dialogs
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
 
   const columns = useMemo(() => [
     {
@@ -106,7 +122,7 @@ export default function AlunosPage() {
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Typography variant="h5" fontWeight={600}>Alunos</Typography>
-          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
             <FormControl size="small" sx={{ minWidth: 200 }}>
               <InputLabel>Filtrar por Turma</InputLabel>
               <Select value={filterTurmaId} label="Filtrar por Turma" onChange={(e) => setFilterTurmaId(e.target.value)}>
@@ -116,6 +132,24 @@ export default function AlunosPage() {
                 ))}
               </Select>
             </FormControl>
+            <Button
+              variant="outlined"
+              startIcon={<Upload />}
+              onClick={() => setImportDialogOpen(true)}
+              sx={{ textTransform: 'none' }}
+            >
+              Importar
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteSweep />}
+              onClick={() => setDeleteAllDialogOpen(true)}
+              disabled={alunos.length === 0}
+              sx={{ textTransform: 'none' }}
+            >
+              Limpar Todos
+            </Button>
             <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenModal()} sx={{ textTransform: 'none' }}>
               Novo Aluno
             </Button>
@@ -165,6 +199,32 @@ export default function AlunosPage() {
         title="Confirmar Desativacao"
         message={`Tem certeza que deseja desativar o aluno "${deleteModal.data?.nome}"?`}
         confirmLabel="Desativar"
+        confirmColor="error"
+      />
+
+      {/* Import Dialog */}
+      <ImportDialog
+        open={importDialogOpen}
+        onClose={() => {
+          setImportDialogOpen(false);
+          clearResult();
+        }}
+        onImport={importFromFile}
+        importing={importing}
+        importResult={importResult}
+      />
+
+      {/* Delete All Confirmation */}
+      <ConfirmDialog
+        open={deleteAllDialogOpen}
+        onClose={() => setDeleteAllDialogOpen(false)}
+        onConfirm={async () => {
+          await deleteAll();
+          setDeleteAllDialogOpen(false);
+        }}
+        title="Excluir Todos os Alunos"
+        message={`ATENÇÃO: Esta ação irá EXCLUIR PERMANENTEMENTE todos os ${alunos.length} alunos do sistema. Esta ação NÃO pode ser desfeita. Tem certeza que deseja continuar?`}
+        confirmLabel={deleting ? 'Excluindo...' : 'Excluir Todos'}
         confirmColor="error"
       />
     </MainLayout>
