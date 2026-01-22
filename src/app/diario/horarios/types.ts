@@ -9,6 +9,7 @@ export interface HorarioCellProps {
   turma?: Turma;
   disciplina?: Disciplina;
   professor?: Usuario;
+  professors?: Usuario[];  // Para disciplinas com múltiplos professores (ex: Trilhas)
   canEdit: boolean;
   onClick: () => void;
 }

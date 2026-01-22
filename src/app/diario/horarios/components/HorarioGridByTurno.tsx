@@ -224,7 +224,12 @@ export function HorarioGridByTurno({
               {turmasFiltradas.map(turma => {
                 const horario = getHorario(turma.id, row.dia, row.slot);
                 const disciplina = horario ? disciplinas.find(d => d.id === horario.disciplinaId) : null;
-                const professor = horario ? professores.find(p => p.id === horario.professorId) : null;
+                // Suporte a múltiplos professores
+                const professorNames = horario
+                  ? (horario.professorIds && horario.professorIds.length > 0
+                      ? horario.professorIds.map(id => professores.find(p => p.id === id)?.nome?.split(' ')[0] || '?').join(', ')
+                      : professores.find(p => p.id === horario.professorId)?.nome?.split(' ')[0] || '?')
+                  : null;
 
                 return (
                   <TableCell
@@ -270,7 +275,7 @@ export function HorarioGridByTurno({
                             lineHeight: 1.1,
                           }}
                         >
-                          {professor?.nome?.split(' ')[0] || '?'}
+                          {professorNames}
                         </Typography>
                         {horario.sala && (
                           <Typography

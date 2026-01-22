@@ -464,6 +464,7 @@ export interface MapeamentoSala {
 export interface HorarioAula {
   id: string;
   professorId: string;
+  professorIds?: string[];  // Para disciplinas com múltiplos professores (ex: Trilhas)
   turmaId: string;
   disciplinaId: string;
   diaSemana: DiaSemana;

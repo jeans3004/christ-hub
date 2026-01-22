@@ -103,6 +103,10 @@ export function HorarioGrid({
                 const turma = horario ? turmas.find(t => t.id === horario.turmaId) : undefined;
                 const disciplina = horario ? disciplinas.find(d => d.id === horario.disciplinaId) : undefined;
                 const professor = horario ? professores.find(p => p.id === horario.professorId) : undefined;
+                // Suporte a múltiplos professores
+                const multipleProfessors = horario?.professorIds && horario.professorIds.length > 0
+                  ? horario.professorIds.map(id => professores.find(p => p.id === id)).filter(Boolean) as typeof professores
+                  : undefined;
 
                 return (
                   <TableCell
@@ -123,6 +127,7 @@ export function HorarioGrid({
                       turma={viewMode === 'professor' ? turma : undefined}
                       disciplina={disciplina}
                       professor={viewMode === 'turma' ? professor : undefined}
+                      professors={viewMode === 'turma' ? multipleProfessors : undefined}
                       canEdit={canEdit}
                       onClick={() => onCellClick(horario || undefined, { dia, slot: daySlot })}
                     />

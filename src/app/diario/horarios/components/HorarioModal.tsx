@@ -2,7 +2,7 @@
  * Modal para criar/editar horario.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -16,8 +16,11 @@ import {
   MenuItem,
   TextField,
   CircularProgress,
-  Typography,
   IconButton,
+  Chip,
+  OutlinedInput,
+  Checkbox,
+  ListItemText,
 } from '@mui/material';
 import { Close as CloseIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, DiasSemanaNomes, HorarioSlot } from '@/types';
@@ -41,6 +44,9 @@ interface HorarioModalProps {
 
 const DIAS_SEMANA: DiaSemana[] = [1, 2, 3, 4, 5]; // Segunda a Sexta
 
+// Disciplinas que permitem múltiplos professores
+const DISCIPLINAS_MULTIPLOS_PROFESSORES = ['trilhas', 'trilha'];
+
 export function HorarioModal({
   open,
   horario,
@@ -61,6 +67,7 @@ export function HorarioModal({
 
   // Form state
   const [professorId, setProfessorId] = useState('');
+  const [professorIds, setProfessorIds] = useState<string[]>([]);
   const [turmaId, setTurmaId] = useState('');
   const [disciplinaId, setDisciplinaId] = useState('');
   const [diaSemana, setDiaSemana] = useState<DiaSemana>(1);
@@ -68,12 +75,24 @@ export function HorarioModal({
   const [horaFim, setHoraFim] = useState('');
   const [sala, setSala] = useState('');
 
+  // Verificar se a disciplina selecionada permite múltiplos professores
+  const selectedDisciplina = useMemo(() => {
+    return disciplinas.find(d => d.id === disciplinaId);
+  }, [disciplinas, disciplinaId]);
+
+  const allowsMultipleProfessors = useMemo(() => {
+    if (!selectedDisciplina) return false;
+    const nome = selectedDisciplina.nome?.toLowerCase() || '';
+    return DISCIPLINAS_MULTIPLOS_PROFESSORES.some(d => nome.includes(d));
+  }, [selectedDisciplina]);
+
   // Inicializar form
   useEffect(() => {
     if (open) {
       if (horario) {
         // Modo edicao
         setProfessorId(horario.professorId);
+        setProfessorIds(horario.professorIds || [horario.professorId]);
         setTurmaId(horario.turmaId);
         setDisciplinaId(horario.disciplinaId);
         setDiaSemana(horario.diaSemana);
@@ -83,6 +102,7 @@ export function HorarioModal({
       } else {
         // Modo criacao
         setProfessorId(initialProfessorId);
+        setProfessorIds(initialProfessorId ? [initialProfessorId] : []);
         setTurmaId(initialTurmaId);
         setDisciplinaId('');
         setSala('');
@@ -99,13 +119,32 @@ export function HorarioModal({
     }
   }, [open, horario, initialTurmaId, initialProfessorId, selectedSlot]);
 
+  // Quando mudar de disciplina normal para Trilhas ou vice-versa, sincronizar professores
+  useEffect(() => {
+    if (allowsMultipleProfessors) {
+      // Se mudou para Trilhas e só tem um professor, inicializar array
+      if (professorId && professorIds.length === 0) {
+        setProfessorIds([professorId]);
+      }
+    } else {
+      // Se mudou de Trilhas para outra, usar primeiro professor do array
+      if (professorIds.length > 0 && !professorId) {
+        setProfessorId(professorIds[0]);
+      }
+    }
+  }, [allowsMultipleProfessors, professorId, professorIds]);
+
   const handleSubmit = async () => {
-    if (!professorId || !turmaId || !disciplinaId || !horaInicio || !horaFim) {
+    const hasValidProfessor = allowsMultipleProfessors
+      ? professorIds.length > 0
+      : !!professorId;
+
+    if (!hasValidProfessor || !turmaId || !disciplinaId || !horaInicio || !horaFim) {
       return;
     }
 
     const data: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'> = {
-      professorId,
+      professorId: allowsMultipleProfessors ? professorIds[0] : professorId,
       turmaId,
       disciplinaId,
       diaSemana,
@@ -114,6 +153,11 @@ export function HorarioModal({
       ano,
       ativo: true,
     };
+
+    // Adicionar professorIds para disciplinas com múltiplos professores
+    if (allowsMultipleProfessors && professorIds.length > 0) {
+      data.professorIds = professorIds;
+    }
 
     // Adicionar sala apenas se preenchida (Firebase nao aceita undefined)
     if (sala.trim()) {
@@ -141,7 +185,8 @@ export function HorarioModal({
     }
   };
 
-  const isValid = professorId && turmaId && disciplinaId && horaInicio && horaFim;
+  const isValid = (allowsMultipleProfessors ? professorIds.length > 0 : professorId)
+    && turmaId && disciplinaId && horaInicio && horaFim;
 
   // Filtrar disciplinas por turma selecionada
   const disciplinasFiltradas = turmaId
@@ -166,20 +211,6 @@ export function HorarioModal({
 
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {/* Professor */}
-          <FormControl fullWidth size="small">
-            <InputLabel>Professor *</InputLabel>
-            <Select
-              value={professorId}
-              label="Professor *"
-              onChange={(e) => setProfessorId(e.target.value)}
-            >
-              {professores.map((p) => (
-                <MenuItem key={p.id} value={p.id}>{p.nome}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
           {/* Turma */}
           <FormControl fullWidth size="small">
             <InputLabel>Turma *</InputLabel>
@@ -211,6 +242,57 @@ export function HorarioModal({
               ))}
             </Select>
           </FormControl>
+
+          {/* Professor(es) */}
+          {allowsMultipleProfessors ? (
+            <FormControl fullWidth size="small">
+              <InputLabel>Professores *</InputLabel>
+              <Select
+                multiple
+                value={professorIds}
+                label="Professores *"
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setProfessorIds(typeof value === 'string' ? value.split(',') : value);
+                }}
+                input={<OutlinedInput label="Professores *" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((id) => {
+                      const prof = professores.find(p => p.id === id);
+                      return (
+                        <Chip
+                          key={id}
+                          label={prof?.nome?.split(' ')[0] || id}
+                          size="small"
+                        />
+                      );
+                    })}
+                  </Box>
+                )}
+              >
+                {professores.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    <Checkbox checked={professorIds.includes(p.id)} />
+                    <ListItemText primary={p.nome} />
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          ) : (
+            <FormControl fullWidth size="small">
+              <InputLabel>Professor *</InputLabel>
+              <Select
+                value={professorId}
+                label="Professor *"
+                onChange={(e) => setProfessorId(e.target.value)}
+              >
+                {professores.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>{p.nome}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {/* Dia da Semana */}
           <FormControl fullWidth size="small">

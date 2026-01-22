@@ -25,6 +25,7 @@ export function HorarioCell({
   turma,
   disciplina,
   professor,
+  professors,
   canEdit,
   onClick,
 }: HorarioCellProps) {
@@ -113,7 +114,22 @@ export function HorarioCell({
         </Typography>
       )}
 
-      {professor && (
+      {(professors && professors.length > 0) ? (
+        <Typography
+          variant="caption"
+          sx={{
+            display: 'block',
+            color: 'text.secondary',
+            fontSize: '0.65rem',
+            lineHeight: 1.1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {professors.map(p => p.nome.split(' ')[0]).join(', ')}
+        </Typography>
+      ) : professor && (
         <Typography
           variant="caption"
           sx={{
