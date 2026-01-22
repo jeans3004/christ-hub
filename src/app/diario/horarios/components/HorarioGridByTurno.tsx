@@ -72,10 +72,26 @@ export function HorarioGridByTurno({
   canEdit,
   onCellClick,
 }: HorarioGridByTurnoProps) {
-  // Filtrar turmas pelo turno
+  // Filtrar turmas pelo turno e ordenar: Fundamental primeiro, depois Médio
   const turmasFiltradas = turmas
     .filter(t => t.turno === turno && t.ativo !== false)
-    .sort((a, b) => a.nome.localeCompare(b.nome));
+    .sort((a, b) => {
+      // Ordenar por ensino: Fundamental antes de Médio
+      const ensinoOrder: Record<string, number> = {
+        'Fundamental': 1,
+        'Médio': 2,
+        'Medio': 2,
+      };
+      const orderA = ensinoOrder[a.ensino || ''] || 99;
+      const orderB = ensinoOrder[b.ensino || ''] || 99;
+
+      if (orderA !== orderB) {
+        return orderA - orderB;
+      }
+
+      // Mesmo ensino: ordenar por nome
+      return a.nome.localeCompare(b.nome);
+    });
 
   if (turmasFiltradas.length === 0) {
     return (
