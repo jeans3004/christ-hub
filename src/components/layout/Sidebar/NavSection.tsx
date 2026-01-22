@@ -37,7 +37,7 @@ export function NavSection({
           sx={{
             pl: 2,
             pr: 0,
-            py: 1.5,
+            py: 0.5,
             display: 'block',
             color: 'sidebar.section',
             fontSize: '0.6875rem',
@@ -62,7 +62,7 @@ export function NavSection({
           />
         ))}
       </List>
-      {!isLast && section.title && <Divider sx={{ my: 1, ml: 1, mr: 0 }} />}
+      {!isLast && section.title && <Divider sx={{ my: 0.25, mx: 0 }} />}
     </Box>
   );
 }

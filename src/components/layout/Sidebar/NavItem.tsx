@@ -53,11 +53,11 @@ export function NavItem({
           selected={isActive}
           sx={{
             pl: 2 + depth * 2,
-            py: 1,
-            borderRadius: 1,
-            ml: 0.5,
+            py: 0.5,
+            borderRadius: 0,
+            ml: 0,
             mr: 0,
-            my: 0.25,
+            my: 0,
             color: isActive ? 'sidebar.activeText' : 'sidebar.text',
             bgcolor: isActive ? 'sidebar.active' : 'transparent',
             '&:hover': {

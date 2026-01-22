@@ -98,7 +98,7 @@ export default function Sidebar() {
       {!isCollapsed && <RoleBadge />}
       {isCollapsed ? (
         // Modo collapsed: apenas icones com tooltips
-        <Box sx={{ pt: 1 }}>
+        <Box sx={{ pt: 0 }}>
           {flattenedItems.map((item, index) => (
             <NavItemCollapsed
               key={`${item.label}-${index}`}

@@ -17,7 +17,7 @@ export function NavItemCollapsed({ item, isActive, onNavigate }: NavItemCollapse
   if (!item.icon || !item.href) return null;
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: 0.5 }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', py: 0 }}>
       <Tooltip title={item.label} placement="right" arrow>
         <IconButton
           onClick={() => onNavigate(item.href!)}

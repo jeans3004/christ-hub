@@ -292,9 +292,9 @@ const getDesignTokens = (mode: PaletteMode): ThemeOptions => {
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: shape.small,
-            margin: '2px 8px',
-            padding: '10px 16px',
+            borderRadius: 0,
+            margin: 0,
+            padding: '6px 16px',
             color: colors.sidebarText,
             '&:hover': { backgroundColor: colors.sidebarHover },
             '&.Mui-selected': {

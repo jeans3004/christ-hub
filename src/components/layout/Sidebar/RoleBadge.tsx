@@ -12,7 +12,7 @@ export function RoleBadge() {
   if (!roleDisplayName) return null;
 
   return (
-    <Box sx={{ pl: 1.5, pr: 0.5, py: 1 }}>
+    <Box sx={{ px: 1, py: 0.5 }}>
       <Chip
         icon={<AdminPanelSettings sx={{ fontSize: 16 }} />}
         label={roleDisplayName}
