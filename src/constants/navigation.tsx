@@ -18,6 +18,7 @@ import {
   Folder,
   GridView,
   WhatsApp,
+  Schedule,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -99,6 +100,7 @@ export const NAVIGATION: NavSection[] = [
     title: 'SALA DE AULA',
     items: [
       { label: 'Calendario', icon: <CalendarMonth />, href: '/diario/agenda', permission: 'agenda:view' },
+      { label: 'Horarios', icon: <Schedule />, href: '/diario/horarios', permission: 'horarios:view' },
       { label: 'Mapeamento', icon: <GridView />, href: '/diario/mapeamento', permission: 'chamada:view' },
       { label: 'Aniversariantes', icon: <Cake />, href: '/diario/aniversariantes', permission: 'aniversariantes:view', minRole: 'coordenador' },
     ],
@@ -145,6 +147,7 @@ export const ROUTES = {
   GRAFICOS: '/diario/graficos',
   DOSSIE: '/diario/dossie',
   MAPEAMENTO: '/diario/mapeamento',
+  HORARIOS: '/diario/horarios',
   PROFESSORES: '/diario/professores',
   OCORRENCIAS: '/diario/ocorrencias',
   FAMILIA: '/diario/familia',

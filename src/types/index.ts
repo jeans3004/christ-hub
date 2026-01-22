@@ -13,6 +13,17 @@ export const MesesAbrev = [
 
 export const Turnos = ['Matutino', 'Vespertino', 'Noturno'] as const;
 
+// Dias da semana (0 = Domingo, 6 = Sabado)
+export type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+export const DiasSemanaNomes = [
+  'Domingo', 'Segunda', 'Terca', 'Quarta', 'Quinta', 'Sexta', 'Sabado'
+] as const;
+
+export const DiasSemanaNomesAbrev = [
+  'DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'
+] as const;
+
 export const Series = [
   '6o Ano - Ensino Fundamental II',
   '7o Ano - Ensino Fundamental II',
@@ -444,6 +455,31 @@ export interface MapeamentoSala {
   assentos: Assento[];
   createdAt: Date;
   updatedAt: Date;
+}
+
+// =====================================
+// Horarios de Aula
+// =====================================
+
+export interface HorarioAula {
+  id: string;
+  professorId: string;
+  turmaId: string;
+  disciplinaId: string;
+  diaSemana: DiaSemana;
+  horaInicio: string;    // "07:30"
+  horaFim: string;       // "08:20"
+  sala?: string;
+  ano: number;
+  ativo: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface HorarioSlot {
+  horaInicio: string;
+  horaFim: string;
+  label: string;
 }
 
 // =====================================

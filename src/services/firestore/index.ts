@@ -19,6 +19,7 @@ export { mensagemLogService } from './mensagemLogService';
 export { templateMensagemService, extractVariables, replaceVariables } from './templateMensagemService';
 export { eventoService } from './eventoService';
 export { relatorioService } from './relatorioService';
+export { horarioService } from './horarioService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';

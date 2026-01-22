@@ -21,6 +21,7 @@ export {
   templateMensagemService,
   eventoService,
   relatorioService,
+  horarioService,
   extractVariables,
   replaceVariables,
   getDocument,

@@ -20,6 +20,7 @@
     "@mui/material": "^7.3.7",
     "@mui/material-nextjs": "^7.3.7",
     "firebase": "^12.7.0",
+    "firebase-admin": "^13.6.0",
     "jspdf": "^4.0.0",
     "jspdf-autotable": "^5.0.7",
     "next": "^16.1.1",

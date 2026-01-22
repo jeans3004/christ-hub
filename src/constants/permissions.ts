@@ -70,7 +70,12 @@ export type Permission =
   // Mensagens WhatsApp
   | 'mensagens:view'
   | 'mensagens:send'
-  | 'mensagens:templates';
+  | 'mensagens:templates'
+  // Horarios (Schedules)
+  | 'horarios:view'
+  | 'horarios:create'
+  | 'horarios:edit'
+  | 'horarios:delete';
 
 /**
  * Permissoes base que todos os usuarios tem.
@@ -101,6 +106,7 @@ const PROFESSOR_PERMISSIONS: Permission[] = [
   'conceitos:edit',
   'ocorrencias:view',
   'ocorrencias:create',
+  'horarios:view',
 ];
 
 /**
@@ -137,6 +143,9 @@ const COORDENADOR_PERMISSIONS: Permission[] = [
   'mensagens:view',
   'mensagens:send',
   'mensagens:templates',
+  'horarios:create',
+  'horarios:edit',
+  'horarios:delete',
 ];
 
 /**
