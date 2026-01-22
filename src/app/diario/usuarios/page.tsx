@@ -5,15 +5,18 @@
  * Acesso: coordenador+ (view), administrador (CRUD completo)
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
   Typography,
   Button,
   Alert,
+  Divider,
+  CircularProgress,
 } from '@mui/material';
-import { Add as AddIcon, AdminPanelSettings } from '@mui/icons-material';
+import { Add as AddIcon, AdminPanelSettings, MergeType } from '@mui/icons-material';
+import { useUIStore } from '@/store/uiStore';
 import MainLayout from '@/components/layout/MainLayout';
 import { ConfirmDialog } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -23,10 +26,54 @@ import { UsuarioFilters, UsuarioTable, UsuarioFormModal } from './components';
 
 export default function UsuariosPage() {
   const { can } = usePermissions();
+  const { addToast } = useUIStore();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingUsuario, setEditingUsuario] = useState<Usuario | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<Usuario | null>(null);
+  const [merging, setMerging] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState<number | null>(null);
+
+  const checkDuplicates = async () => {
+    try {
+      const response = await fetch('/api/usuarios/duplicates');
+      const data = await response.json();
+      if (data.success) {
+        const byName = data.duplicates.filter((d: any) => d.field === 'nome');
+        setDuplicateCount(byName.length);
+      }
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+    }
+  };
+
+  const handleMerge = async () => {
+    setMerging(true);
+    try {
+      const response = await fetch('/api/usuarios/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoMergeAll: true }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        addToast(`Merge concluído! ${data.totalDeleted} duplicados removidos.`, 'success');
+        setDuplicateCount(0);
+        reload();
+      } else {
+        addToast(data.error || 'Erro ao fazer merge', 'error');
+      }
+    } catch (error) {
+      console.error('Error merging:', error);
+      addToast('Erro ao fazer merge', 'error');
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  useEffect(() => {
+    checkDuplicates();
+  }, []);
 
   const {
     usuarios,
@@ -138,6 +185,45 @@ export default function UsuariosPage() {
             onChange={setFilters}
             stats={stats}
           />
+
+          {/* Seção de Merge */}
+          <Divider sx={{ my: 2 }} />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600}>
+                Gerenciar Duplicados
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {duplicateCount === null
+                  ? 'Verificando...'
+                  : duplicateCount === 0
+                  ? 'Nenhum duplicado encontrado'
+                  : `${duplicateCount} duplicado(s) encontrado(s)`}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={checkDuplicates}
+                disabled={merging}
+              >
+                Verificar
+              </Button>
+              {duplicateCount !== null && duplicateCount > 0 && (
+                <Button
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  startIcon={merging ? <CircularProgress size={16} color="inherit" /> : <MergeType />}
+                  onClick={handleMerge}
+                  disabled={merging}
+                >
+                  {merging ? 'Mesclando...' : 'Mesclar'}
+                </Button>
+              )}
+            </Box>
+          </Box>
         </Paper>
 
         {/* Tabela */}
