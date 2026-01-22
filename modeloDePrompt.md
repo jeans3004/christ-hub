@@ -78,6 +78,17 @@ DRAWER_WIDTH_COLLAPSED = 72;  // Modo collapsed (apenas ícones)
 // - Hidden: Completamente oculto
 ```
 
+### Estilo da Sidebar
+```typescript
+// theme.ts - MuiListItemButton
+{
+  borderRadius: 0,
+  margin: 0,
+  padding: '6px 16px',
+  // Sem espaços entre elementos
+}
+```
+
 ### Hook useResponsive
 ```typescript
 const { isMobile, isTablet, isDesktop, currentBreakpoint } = useResponsive();
@@ -181,13 +192,17 @@ interface Aluno {
   serie?: string;                      // Série (desnormalizado)
   turno?: Turno;                       // Turno (desnormalizado)
   dataNascimento?: Date;
-  fotoUrl?: string;
+  fotoUrl?: string;                    // URL da foto no Google Drive (thumbnail)
+  fotoFileId?: string;                 // ID do arquivo no Google Drive
   responsavelNome?: string;
   responsavelTelefone?: string;
   ativo: boolean;
   createdAt: Timestamp;
   updatedAt: Timestamp;
 }
+
+// URL da foto (formato embeddable do Drive)
+// https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
 ```
 
 ### Turma
@@ -635,13 +650,13 @@ storageService.deleteAlunoPhoto(alunoId: string): Promise<void>
 storageService.getAlunoPhotoUrl(alunoId: string): Promise<string | null>
 ```
 
-### Google Drive Service
+### Google Drive Service (Shared Drive)
 ```typescript
 // services/driveService.ts
 createDriveService(accessToken: string): DriveService
 
 // DriveService methods
-driveService.findFolder(name: string, parentId?: string): Promise<DriveFile | null>
+driveService.findFolder(name: string, parentId?: string, searchAnywhere?: boolean): Promise<DriveFile | null>
 driveService.createFolder(name: string, parentId?: string): Promise<string>
 driveService.findOrCreateFolder(name: string, parentId?: string): Promise<string>
 driveService.initializeFolderStructure(): Promise<DriveFolderIds>
@@ -655,6 +670,44 @@ driveService.moveFile(fileId: string, newFolderId: string): Promise<void>
 // Helpers
 getOcorrenciasFolderForYear(service, folderIds, ano): Promise<string>
 getMensagensFolderForMonth(service, folderIds, ano, mes): Promise<string>
+```
+
+### Estrutura de Pastas no Drive
+```
+SGE_NOVO/                           # Pasta raiz (ID em NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID)
+└── SGE Diário Digital/
+    ├── Fotos/
+    │   └── Alunos/                 # Fotos de perfil dos alunos
+    ├── Ocorrencias/
+    │   └── [Ano]/                  # Anexos de ocorrências por ano
+    ├── Mensagens/
+    │   └── [Ano]/
+    │       └── [Mes]/              # Mídias de mensagens por mês
+    ├── Exports/                    # Relatórios exportados
+    └── Comunicados/                # Documentos de comunicados
+```
+
+### Upload de Foto do Aluno
+```typescript
+// hooks/useStudentPhoto.ts
+const { uploadPhoto, isUploading } = useStudentPhoto();
+
+// Upload para Drive com URL embeddable
+const photoUrl = await uploadPhoto(alunoId, file);
+// Retorna: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
+```
+
+### Configuração de Shared Drive
+O sistema usa Google Shared Drive (Drive Compartilhado) para armazenamento:
+
+```typescript
+// Parâmetros obrigatórios para Shared Drive
+const params = {
+  supportsAllDrives: 'true',
+  includeItemsFromAllDrives: 'true',
+  corpora: 'drive',
+  driveId: SHARED_DRIVE_ID,
+};
 ```
 
 ### Drive Store (Zustand)
@@ -722,6 +775,46 @@ EmojiPicker            // Seletor de emojis com categorias
 
 ---
 
+## Autenticação e Domínio
+
+### Restrição de Domínio
+O login com Google é restrito ao domínio `@christmaster.com.br`:
+
+```typescript
+// src/lib/permissions.ts
+export const ALLOWED_DOMAIN = 'christmaster.com.br';
+
+export function isAllowedDomain(email: string | null): boolean {
+  if (!email) return false;
+  return email.toLowerCase().endsWith(`@${ALLOWED_DOMAIN}`);
+}
+```
+
+### Google Provider Configuration
+```typescript
+// src/hooks/auth/authConstants.ts
+export const googleProvider = new GoogleAuthProvider();
+
+// Escopo do Google Drive (acesso completo para Shared Drives)
+googleProvider.addScope('https://www.googleapis.com/auth/drive');
+
+// Limita ao domínio permitido (só mostra contas @christmaster.com.br)
+googleProvider.setCustomParameters({
+  prompt: 'consent',
+  hd: 'christmaster.com.br', // Hosted domain
+});
+```
+
+### Fluxo de Autenticação
+1. Usuário clica em "Entrar com Google"
+2. Popup mostra apenas contas `@christmaster.com.br`
+3. Após login, valida domínio novamente (dupla proteção)
+4. Se domínio inválido: logout automático + mensagem de erro
+5. Token do Drive é capturado e armazenado no `driveStore`
+6. Pastas do Drive são inicializadas em background
+
+---
+
 ## Sistema de Permissões
 
 ```typescript
@@ -760,9 +853,14 @@ if (!can('mensagens:send')) return <AccessDenied />;
 
 ### Configuração (.env.local)
 ```env
+# Evolution API (WhatsApp)
 EVOLUTION_API_URL=http://163.176.239.167:8080
 EVOLUTION_API_KEY=B6D711FCDE4D4FD5936544120E713976
 EVOLUTION_INSTANCE_NAME=christmaster
+
+# Google Drive (Shared Drive)
+NEXT_PUBLIC_SHARED_DRIVE_ID=0APjN-eFge5YuUk9PVA
+NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID=1MLrHoHK-rb__WI2__T78n_4kg1rbZOUl
 ```
 
 ### Limitação Conhecida (v2.2.3)
@@ -863,4 +961,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.5.0 | Última atualização: 21/01/2026*
+*Versão: 2.6.0 | Última atualização: 21/01/2026*
