@@ -4,7 +4,7 @@
  * Componente para gerenciar professores conselheiros por turma.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -24,8 +24,11 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Button,
+  Divider,
 } from '@mui/material';
-import { Save, Clear } from '@mui/icons-material';
+import { Clear, MergeType } from '@mui/icons-material';
+import { deleteField } from 'firebase/firestore';
 import { Turma, Usuario } from '@/types';
 import { turmaService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
@@ -41,6 +44,8 @@ export function ConselheiroManager({ professores, turmas, loading, onReload }: C
   const { addToast } = useUIStore();
   const [saving, setSaving] = useState<string | null>(null);
   const [ano, setAno] = useState(new Date().getFullYear());
+  const [merging, setMerging] = useState(false);
+  const [duplicateCount, setDuplicateCount] = useState<number | null>(null);
 
   // Filtrar turmas ativas do ano selecionado
   const turmasFiltradas = useMemo(() => {
@@ -64,9 +69,16 @@ export function ConselheiroManager({ professores, turmas, loading, onReload }: C
   const handleSetConselheiro = async (turmaId: string, professorId: string | null) => {
     setSaving(turmaId);
     try {
-      await turmaService.update(turmaId, {
-        professorConselheiroId: professorId || undefined,
-      });
+      if (professorId) {
+        await turmaService.update(turmaId, {
+          professorConselheiroId: professorId,
+        });
+      } else {
+        // Use deleteField() to remove the field from Firestore
+        await turmaService.update(turmaId, {
+          professorConselheiroId: deleteField() as any,
+        });
+      }
       addToast('Conselheiro atualizado com sucesso!', 'success');
       onReload();
     } catch (error) {
@@ -76,6 +88,49 @@ export function ConselheiroManager({ professores, turmas, loading, onReload }: C
       setSaving(null);
     }
   };
+
+  const checkDuplicates = async () => {
+    try {
+      const response = await fetch('/api/usuarios/duplicates');
+      const data = await response.json();
+      if (data.success) {
+        // Count unique duplicates by name only
+        const byName = data.duplicates.filter((d: any) => d.field === 'nome');
+        setDuplicateCount(byName.length);
+      }
+    } catch (error) {
+      console.error('Error checking duplicates:', error);
+    }
+  };
+
+  const handleMerge = async () => {
+    setMerging(true);
+    try {
+      const response = await fetch('/api/usuarios/duplicates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ autoMergeAll: true }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        addToast(`Merge concluído! ${data.totalDeleted} duplicados removidos.`, 'success');
+        setDuplicateCount(0);
+        onReload();
+      } else {
+        addToast(data.error || 'Erro ao fazer merge', 'error');
+      }
+    } catch (error) {
+      console.error('Error merging:', error);
+      addToast('Erro ao fazer merge', 'error');
+    } finally {
+      setMerging(false);
+    }
+  };
+
+  // Check for duplicates on mount
+  useEffect(() => {
+    checkDuplicates();
+  }, []);
 
   if (loading) {
     return (
@@ -185,6 +240,45 @@ export function ConselheiroManager({ professores, turmas, loading, onReload }: C
           </Table>
         </TableContainer>
       )}
+
+      {/* Seção de Merge de Duplicados */}
+      <Divider sx={{ my: 3 }} />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h6" fontWeight={600}>
+            Gerenciar Duplicados
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {duplicateCount === null
+              ? 'Verificando duplicados...'
+              : duplicateCount === 0
+              ? 'Nenhum usuário duplicado encontrado.'
+              : `${duplicateCount} usuário(s) duplicado(s) encontrado(s).`}
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={checkDuplicates}
+            disabled={merging}
+          >
+            Verificar
+          </Button>
+          {duplicateCount !== null && duplicateCount > 0 && (
+            <Button
+              variant="contained"
+              color="warning"
+              size="small"
+              startIcon={merging ? <CircularProgress size={16} color="inherit" /> : <MergeType />}
+              onClick={handleMerge}
+              disabled={merging}
+            >
+              {merging ? 'Mesclando...' : 'Mesclar Duplicados'}
+            </Button>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }
