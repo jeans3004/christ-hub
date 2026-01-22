@@ -5,21 +5,27 @@
  * Acesso: professor (view), coordenador+ (edit)
  */
 
-import { Box, Typography, CircularProgress, Alert, Paper } from '@mui/material';
-import { Schedule } from '@mui/icons-material';
+import { useState } from 'react';
+import { Box, Typography, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup } from '@mui/material';
+import { Schedule, ViewModule, ViewList } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useHorariosData } from './hooks';
 import {
   HorariosFilters,
   HorarioGrid,
+  HorarioGridByTurno,
   HorarioModal,
   WhatsAppSendButton,
 } from './components';
+import { DiaSemana, HorarioSlot } from '@/types';
+
+type GridViewType = 'individual' | 'grade';
 
 export default function HorariosPage() {
   const { can } = usePermissions();
   const canView = can('horarios:view');
+  const [gridViewType, setGridViewType] = useState<GridViewType>('grade');
 
   const {
     // Filtros
@@ -57,6 +63,7 @@ export default function HorariosPage() {
     sendScheduleToWhatsApp,
     saving,
     sending,
+    refetch,
   } = useHorariosData();
 
   // Verificar permissao
@@ -74,6 +81,20 @@ export default function HorariosPage() {
 
   const selectedProfessor = professores.find(p => p.id === professorId);
   const hasSelection = viewMode === 'turma' ? !!turmaId : !!professorId;
+
+  // Handler para click na grade por turno (passa turmaId adicional)
+  const handleGridByTurnoClick = (
+    horario?: typeof horarios[0],
+    slot?: { dia: DiaSemana; slot: HorarioSlot; turmaId: string }
+  ) => {
+    if (slot) {
+      // Setar a turma selecionada antes de abrir o modal
+      setTurmaId(slot.turmaId);
+      openModal(horario, { dia: slot.dia, slot: slot.slot });
+    } else {
+      openModal(horario);
+    }
+  };
 
   return (
     <MainLayout title="Horarios">
@@ -96,17 +117,34 @@ export default function HorariosPage() {
             </Typography>
           </Box>
 
-          {/* WhatsApp button para visualizacao de professor */}
-          {viewMode === 'professor' && selectedProfessor && horarios.length > 0 && (
-            <WhatsAppSendButton
-              professor={selectedProfessor}
-              horarios={horarios}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              onSend={sendScheduleToWhatsApp}
-              sending={sending}
-            />
-          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            {/* Toggle de visualizacao */}
+            <ToggleButtonGroup
+              value={gridViewType}
+              exclusive
+              onChange={(_, value) => value && setGridViewType(value)}
+              size="small"
+            >
+              <ToggleButton value="grade" title="Grade por Turno">
+                <ViewModule />
+              </ToggleButton>
+              <ToggleButton value="individual" title="Individual">
+                <ViewList />
+              </ToggleButton>
+            </ToggleButtonGroup>
+
+            {/* WhatsApp button para visualizacao de professor */}
+            {gridViewType === 'individual' && viewMode === 'professor' && selectedProfessor && horarios.length > 0 && (
+              <WhatsAppSendButton
+                professor={selectedProfessor}
+                horarios={horarios}
+                turmas={turmas}
+                disciplinas={disciplinas}
+                onSend={sendScheduleToWhatsApp}
+                sending={sending}
+              />
+            )}
+          </Box>
         </Box>
 
         {/* Erro */}
@@ -116,48 +154,115 @@ export default function HorariosPage() {
           </Alert>
         )}
 
-        {/* Filtros */}
-        <HorariosFilters
-          ano={ano}
-          setAno={setAno}
-          turmaId={turmaId}
-          setTurmaId={setTurmaId}
-          professorId={professorId}
-          setProfessorId={setProfessorId}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          turmas={turmas}
-          professores={professores}
-          loading={loading}
-        />
+        {/* Visualizacao por Grade (Matutino/Vespertino) */}
+        {gridViewType === 'grade' ? (
+          <>
+            {/* Filtro de ano apenas */}
+            <Paper sx={{ p: 2, mb: 3 }}>
+              <HorariosFilters
+                ano={ano}
+                setAno={setAno}
+                turmaId={turmaId}
+                setTurmaId={setTurmaId}
+                professorId={professorId}
+                setProfessorId={setProfessorId}
+                viewMode={viewMode}
+                setViewMode={setViewMode}
+                turmas={turmas}
+                professores={professores}
+                loading={loading}
+                showOnlyAno
+              />
+            </Paper>
 
-        {/* Conteudo Principal */}
-        {!hasSelection ? (
-          <Paper sx={{ p: 6, textAlign: 'center' }}>
-            <Schedule sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary">
-              Selecione {viewMode === 'turma' ? 'uma turma' : 'um professor'} para visualizar os horarios
-            </Typography>
-          </Paper>
-        ) : loading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-            <CircularProgress />
-          </Box>
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {/* Matutino */}
+                <Box>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%' }} />
+                    Matutino
+                  </Typography>
+                  <HorarioGridByTurno
+                    turno="Matutino"
+                    horarios={horarios}
+                    turmas={turmas}
+                    disciplinas={disciplinas}
+                    professores={professores}
+                    canEdit={canEdit}
+                    onCellClick={handleGridByTurnoClick}
+                  />
+                </Box>
+
+                {/* Vespertino */}
+                <Box>
+                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%' }} />
+                    Vespertino
+                  </Typography>
+                  <HorarioGridByTurno
+                    turno="Vespertino"
+                    horarios={horarios}
+                    turmas={turmas}
+                    disciplinas={disciplinas}
+                    professores={professores}
+                    canEdit={canEdit}
+                    onCellClick={handleGridByTurnoClick}
+                  />
+                </Box>
+              </Box>
+            )}
+          </>
         ) : (
-          <Paper sx={{ p: 2, overflow: 'auto' }}>
-            <HorarioGrid
-              horarios={horarios}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professores={professores}
-              timeSlots={timeSlots}
-              sextaVespertinoSlots={sextaVespertinoSlots}
-              isVespertino={isVespertino}
-              canEdit={canEdit}
-              onCellClick={openModal}
+          <>
+            {/* Filtros completos para visualizacao individual */}
+            <HorariosFilters
+              ano={ano}
+              setAno={setAno}
+              turmaId={turmaId}
+              setTurmaId={setTurmaId}
+              professorId={professorId}
+              setProfessorId={setProfessorId}
               viewMode={viewMode}
+              setViewMode={setViewMode}
+              turmas={turmas}
+              professores={professores}
+              loading={loading}
             />
-          </Paper>
+
+            {/* Conteudo Principal */}
+            {!hasSelection ? (
+              <Paper sx={{ p: 6, textAlign: 'center' }}>
+                <Schedule sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  Selecione {viewMode === 'turma' ? 'uma turma' : 'um professor'} para visualizar os horarios
+                </Typography>
+              </Paper>
+            ) : loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+                <CircularProgress />
+              </Box>
+            ) : (
+              <Paper sx={{ p: 2, overflow: 'auto' }}>
+                <HorarioGrid
+                  horarios={horarios}
+                  turmas={turmas}
+                  disciplinas={disciplinas}
+                  professores={professores}
+                  timeSlots={timeSlots}
+                  sextaVespertinoSlots={sextaVespertinoSlots}
+                  isVespertino={isVespertino}
+                  canEdit={canEdit}
+                  onCellClick={openModal}
+                  viewMode={viewMode}
+                />
+              </Paper>
+            )}
+          </>
         )}
 
         {/* Modal de Formulario */}
@@ -172,7 +277,13 @@ export default function HorariosPage() {
           ano={ano}
           selectedSlot={selectedSlot}
           saving={saving}
-          onClose={closeModal}
+          onClose={() => {
+            closeModal();
+            // Recarregar dados ao fechar modal na visualizacao de grade
+            if (gridViewType === 'grade') {
+              refetch();
+            }
+          }}
           onCreate={createHorario}
           onUpdate={updateHorario}
           onDelete={deleteHorario}

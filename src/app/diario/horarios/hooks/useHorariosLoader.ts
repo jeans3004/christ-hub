@@ -90,7 +90,8 @@ export function useHorariosLoader({
       } else if (professorId) {
         horariosData = await horarioService.getByProfessor(professorId, ano);
       } else {
-        horariosData = [];
+        // Carregar todos os horarios do ano (para visualizacao de grade)
+        horariosData = await horarioService.getByAno(ano);
       }
 
       setHorarios(horariosData);
@@ -103,13 +104,8 @@ export function useHorariosLoader({
   }, [ano, turmaId, professorId]);
 
   useEffect(() => {
-    if (turmaId || professorId) {
-      fetchHorarios();
-    } else {
-      setHorarios([]);
-      setLoading(false);
-    }
-  }, [fetchHorarios, turmaId, professorId]);
+    fetchHorarios();
+  }, [fetchHorarios]);
 
   return {
     horarios,

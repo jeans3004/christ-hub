@@ -30,6 +30,7 @@ interface HorariosFiltersProps {
   turmas: Turma[];
   professores: Usuario[];
   loading: boolean;
+  showOnlyAno?: boolean;
 }
 
 const currentYear = new Date().getFullYear();
@@ -47,7 +48,29 @@ export function HorariosFilters({
   turmas,
   professores,
   loading,
+  showOnlyAno = false,
 }: HorariosFiltersProps) {
+  // Modo simplificado: apenas ano
+  if (showOnlyAno) {
+    return (
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          Ano letivo:
+        </Typography>
+        <FormControl size="small" sx={{ minWidth: 100 }}>
+          <Select
+            value={ano}
+            onChange={(e) => setAno(Number(e.target.value))}
+          >
+            {years.map((y) => (
+              <MenuItem key={y} value={y}>{y}</MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      </Box>
+    );
+  }
+
   return (
     <Paper sx={{ p: 2, mb: 2 }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
