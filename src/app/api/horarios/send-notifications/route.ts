@@ -37,6 +37,51 @@ interface NotificationResult {
   error?: string;
 }
 
+// Funcao para enviar teste para todos os professores
+async function sendTestToAll() {
+  try {
+    const allUsuarios = await usuarioService.getAll();
+    const professores = allUsuarios.filter(u => u.celular && u.ativo);
+
+    const results: NotificationResult[] = [];
+
+    for (const professor of professores) {
+      const mensagem = `🔔 *Teste de Notificação*\n\nOlá ${professor.nome?.split(' ')[0]}, este é um teste do sistema de notificações de horários.\n\nSe você recebeu esta mensagem, o sistema está funcionando corretamente! ✅`;
+
+      try {
+        const result = await whatsappService.sendText(professor.celular!, mensagem);
+        results.push({
+          professorId: professor.id,
+          professorNome: professor.nome,
+          success: result.success,
+          error: result.error,
+        });
+      } catch (error) {
+        results.push({
+          professorId: professor.id,
+          professorNome: professor.nome,
+          success: false,
+          error: error instanceof Error ? error.message : 'Erro desconhecido',
+        });
+      }
+    }
+
+    const successCount = results.filter(r => r.success).length;
+
+    return NextResponse.json({
+      success: true,
+      message: `Teste enviado: ${successCount}/${results.length} professores`,
+      notifications: results,
+    });
+  } catch (error) {
+    console.error('[Test All] Error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Erro interno' },
+      { status: 500 }
+    );
+  }
+}
+
 // Suportar GET para compatibilidade com servicos de cron
 export async function GET(request: NextRequest) {
   return handleNotification(request);
@@ -77,8 +122,14 @@ async function handleNotification(request: NextRequest) {
     const testDay = url.searchParams.get('testDay')
       ? parseInt(url.searchParams.get('testDay')!) as DiaSemana
       : body.testDay as DiaSemana | undefined;
+    const testAll = url.searchParams.get('testAll') === 'true' || body.testAll === true;
     const timeToCheck = testTime || currentTime;
     const dayToCheck = testDay !== undefined ? testDay : currentDay;
+
+    // Modo teste para todos os professores
+    if (testAll) {
+      return await sendTestToAll();
+    }
 
     console.log(`[Horarios Notification] Checking time: ${timeToCheck}, day: ${dayToCheck} (${DiasSemanaNomes[dayToCheck]})`);
 
