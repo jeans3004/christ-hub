@@ -9,3 +9,4 @@ export { StudentList } from './StudentList';
 export { ModoToolbar } from './ModoToolbar';
 export { ModoInstrucoes } from './ModoInstrucoes';
 export { TouchDragProvider, useTouchDrag } from './TouchDragContext';
+export { ProfessorTabs } from './ProfessorTabs';

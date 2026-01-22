@@ -2,8 +2,13 @@
  * Tipos para os hooks de mapeamento.
  */
 
-import { Turma, Aluno, LayoutSala, Disciplina } from '@/types';
+import { Turma, Aluno, LayoutSala, Disciplina, MapeamentoSala } from '@/types';
 import { CelulaMapa, AlunoMapa, ModoEdicao } from '../types';
+
+export interface MapeamentoComProfessor extends MapeamentoSala {
+  professorNome?: string;
+  isConselheiro?: boolean;
+}
 
 export interface UseMapeamentoDataReturn {
   // Dados basicos
@@ -33,6 +38,12 @@ export interface UseMapeamentoDataReturn {
   // Modo de edicao
   modoEdicao: ModoEdicao;
   setModoEdicao: (modo: ModoEdicao) => void;
+
+  // Mapeamentos de outros professores (para visualização)
+  mapeamentosDaTurma: MapeamentoComProfessor[];
+  professorIdVisualizando: string | null;
+  setProfessorIdVisualizando: (professorId: string | null) => void;
+  conselheiroId: string | null;
 
   // Acoes
   atualizarLayout: (layout: LayoutSala) => void;

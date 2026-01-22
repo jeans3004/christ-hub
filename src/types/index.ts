@@ -96,6 +96,7 @@ export interface Turma {
   turma: string;                        // Ex: "A", "B", "C"
   turno: Turno;                         // Ex: "Matutino", "Vespertino"
   ano: number;                          // Ano letivo (2026)
+  professorConselheiroId?: string;      // ID do professor conselheiro da turma
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;

@@ -17,6 +17,7 @@ class TurmaRepositoryClass extends BaseRepository<Turma> {
       turma: data.turma || 'A',
       turno: data.turno || 'Matutino',
       ano: data.ano || new Date().getFullYear(),
+      professorConselheiroId: data.professorConselheiroId || undefined,
       ativo: data.ativo ?? true,
       createdAt: this.convertTimestamp(data.createdAt),
       updatedAt: this.convertTimestamp(data.updatedAt),

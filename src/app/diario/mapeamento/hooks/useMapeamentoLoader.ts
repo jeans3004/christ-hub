@@ -6,9 +6,10 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { usePermissions } from '@/hooks/usePermissions';
-import { turmaService, alunoService, mapeamentoSalaService, disciplinaService } from '@/services/firestore';
-import { Aluno, Turma, Disciplina, LayoutSala } from '@/types';
+import { turmaService, alunoService, mapeamentoSalaService, disciplinaService, usuarioService } from '@/services/firestore';
+import { Aluno, Turma, Disciplina, LayoutSala, MapeamentoSala } from '@/types';
 import { CelulaMapa, DEFAULT_LAYOUT, getIniciais, gerarLayoutInicial } from '../types';
+import { MapeamentoComProfessor } from './mapeamentoTypes';
 
 interface UseMapeamentoLoaderReturn {
   turmas: Turma[];
@@ -24,6 +25,9 @@ interface UseMapeamentoLoaderReturn {
   setCelulas: React.Dispatch<React.SetStateAction<CelulaMapa[]>>;
   isDirty: boolean;
   setIsDirty: (isDirty: boolean) => void;
+  // Novos campos para visualização de outros professores
+  mapeamentosDaTurma: MapeamentoComProfessor[];
+  conselheiroId: string | null;
 }
 
 export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: string): UseMapeamentoLoaderReturn {
@@ -41,6 +45,8 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
   const [layout, setLayout] = useState<LayoutSala>(DEFAULT_LAYOUT);
   const [celulas, setCelulas] = useState<CelulaMapa[]>([]);
   const [isDirty, setIsDirty] = useState(false);
+  const [mapeamentosDaTurma, setMapeamentosDaTurma] = useState<MapeamentoComProfessor[]>([]);
+  const [conselheiroId, setConselheiroId] = useState<string | null>(null);
 
   // Carregar turmas e disciplinas
   useEffect(() => {
@@ -99,6 +105,8 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
         setCelulas(gerarLayoutInicial(DEFAULT_LAYOUT));
         setLayout(DEFAULT_LAYOUT);
         setIsDirty(false);
+        setMapeamentosDaTurma([]);
+        setConselheiroId(null);
         return;
       }
 
@@ -106,7 +114,8 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
       setLoadingMapeamento(true);
 
       try {
-        const [alunosData, mapeamento] = await Promise.all([
+        // Buscar dados em paralelo
+        const [alunosData, mapeamento, todosMapeamentos, turmaData] = await Promise.all([
           alunoService.getByTurma(turmaId),
           mapeamentoSalaService.getByTurmaProfessorDisciplinaAno(
             turmaId,
@@ -114,11 +123,38 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
             ano,
             disciplinaId || undefined
           ),
+          mapeamentoSalaService.getByTurmaAno(turmaId, ano),
+          turmaService.get(turmaId),
         ]);
 
         if (!isMounted) return;
 
         setAlunos(alunosData);
+        setConselheiroId(turmaData?.professorConselheiroId || null);
+
+        // Enriquecer mapeamentos com nomes de professores
+        const professoresIds = [...new Set(todosMapeamentos.map(m => m.professorId))];
+        const professoresMap = new Map<string, string>();
+
+        // Buscar nomes dos professores
+        for (const profId of professoresIds) {
+          try {
+            const prof = await usuarioService.get(profId);
+            if (prof) {
+              professoresMap.set(profId, prof.nome);
+            }
+          } catch {
+            // Ignora erro se professor não encontrado
+          }
+        }
+
+        const mapeamentosEnriquecidos: MapeamentoComProfessor[] = todosMapeamentos.map(m => ({
+          ...m,
+          professorNome: professoresMap.get(m.professorId) || 'Professor desconhecido',
+          isConselheiro: m.professorId === turmaData?.professorConselheiroId,
+        }));
+
+        setMapeamentosDaTurma(mapeamentosEnriquecidos);
 
         if (mapeamento) {
           setLayout(mapeamento.layout);
@@ -172,5 +208,7 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
     setCelulas,
     isDirty,
     setIsDirty,
+    mapeamentosDaTurma,
+    conselheiroId,
   };
 }

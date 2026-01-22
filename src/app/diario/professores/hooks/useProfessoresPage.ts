@@ -21,6 +21,7 @@ export function useProfessoresPage() {
     loading: loader.loading,
     filtro: loader.filtro,
     setFiltro: loader.setFiltro,
+    reload: loader.reload,
 
     // Formulario
     form: actions.form,

@@ -12,7 +12,7 @@ import { DataTable, ConfirmDialog, FormModal } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { Usuario } from '@/types';
 import { useProfessoresPage } from './hooks';
-import { FilterBar, ProfessorFormContent } from './components';
+import { FilterBar, ProfessorFormContent, ConselheiroManager } from './components';
 import { ProfessorTableRow } from './types';
 
 export default function ProfessoresPage() {
@@ -20,12 +20,14 @@ export default function ProfessoresPage() {
   const canAccess = hasMinRole('coordenador');
 
   const {
+    professores,
     professoresTable,
     disciplinas,
     turmas,
     loading,
     filtro,
     setFiltro,
+    reload,
     form,
     setForm,
     saving,
@@ -173,6 +175,13 @@ export default function ProfessoresPage() {
           loading={loading}
           rowKey="id"
           emptyMessage="Nenhum professor encontrado"
+        />
+
+        <ConselheiroManager
+          professores={professores}
+          turmas={turmas}
+          loading={loading}
+          onReload={reload}
         />
       </Box>
 
