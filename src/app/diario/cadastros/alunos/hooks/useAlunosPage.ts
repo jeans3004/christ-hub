@@ -48,6 +48,8 @@ export function useAlunosPage(canAccess: boolean) {
 
   const handleOpenModal = useCallback((aluno?: Aluno) => {
     if (aluno) {
+      // Buscar a turma para extrair ensino, serie, turma (letra) e turno
+      const turma = turmas.find(t => t.id === aluno.turmaId);
       setForm({
         nome: aluno.nome,
         cpf: aluno.cpf || '',
@@ -56,13 +58,26 @@ export function useAlunosPage(canAccess: boolean) {
           : '',
         turmaId: aluno.turmaId,
         matricula: aluno.matricula || '',
+        ensino: turma?.ensino || 'Ensino Fundamental II',
+        serie: turma?.serie || '6º Ano',
+        turmaLetra: turma?.turma || 'A',
+        turno: turma?.turno || 'Matutino',
       });
       formModal.open(aluno);
     } else {
-      setForm({ ...initialForm, turmaId: filterTurmaId });
+      // Se há filtro de turma, preencher os campos da turma filtrada
+      const turmaFiltrada = turmas.find(t => t.id === filterTurmaId);
+      setForm({
+        ...initialForm,
+        turmaId: filterTurmaId,
+        ensino: turmaFiltrada?.ensino || 'Ensino Fundamental II',
+        serie: turmaFiltrada?.serie || '6º Ano',
+        turmaLetra: turmaFiltrada?.turma || 'A',
+        turno: turmaFiltrada?.turno || 'Matutino',
+      });
       formModal.open();
     }
-  }, [formModal, filterTurmaId]);
+  }, [formModal, filterTurmaId, turmas]);
 
   const handleCloseModal = useCallback(() => {
     formModal.close();
@@ -71,18 +86,26 @@ export function useAlunosPage(canAccess: boolean) {
 
   const handleSave = useCallback(async () => {
     if (!form.nome || !form.turmaId) {
-      addToast('Preencha nome e turma', 'error');
+      addToast('Preencha nome e selecione uma turma válida', 'error');
       return;
     }
 
     setSaving(true);
     try {
+      // Buscar turma para desnormalizar dados
+      const turma = turmas.find(t => t.id === form.turmaId);
+
       const alunoData = {
         nome: form.nome,
         cpf: form.cpf || undefined,
         dataNascimento: form.dataNascimento ? new Date(form.dataNascimento) : undefined,
         turmaId: form.turmaId,
         matricula: form.matricula || undefined,
+        // Dados desnormalizados da turma
+        turma: turma?.nome || undefined,
+        serie: turma?.serie || form.serie || undefined,
+        ensino: turma?.ensino || form.ensino || undefined,
+        turno: turma?.turno || form.turno || undefined,
         ativo: true,
       };
 
@@ -101,7 +124,7 @@ export function useAlunosPage(canAccess: boolean) {
     } finally {
       setSaving(false);
     }
-  }, [form, formModal.data, addToast, handleCloseModal, loadData]);
+  }, [form, formModal.data, addToast, handleCloseModal, loadData, turmas]);
 
   const handleDelete = useCallback(async () => {
     if (!deleteModal.data) return;

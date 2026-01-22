@@ -151,11 +151,22 @@ export async function POST(request: NextRequest) {
     // Buscar turmas existentes para mapear nome -> id
     const turmasRef = collection(db, 'turmas');
     const turmasSnapshot = await getDocs(turmasRef);
-    const turmasMap = new Map<string, { id: string; serie: string; turno: string }>();
+    const turmasMap = new Map<string, { id: string; serie: string; ensino: string; turma: string; turno: string }>();
     turmasSnapshot.docs.forEach(doc => {
       const data = doc.data();
-      turmasMap.set(data.nome, { id: doc.id, serie: data.serie, turno: data.turno });
+      turmasMap.set(data.nome, {
+        id: doc.id,
+        serie: data.serie,
+        ensino: data.ensino,
+        turma: data.turma,
+        turno: data.turno,
+      });
     });
+
+    // Função para gerar nome da turma no formato esperado
+    function generateTurmaNome(serie: string, turmaLetra: string, turno: string): string {
+      return `${serie} ${turmaLetra} - ${turno}`;
+    }
 
     const alunosRef = collection(db, 'alunos');
     const now = Timestamp.now();
@@ -198,20 +209,30 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Buscar turma
-      const turmaNome = alunoData.turma;
+      // Buscar turma - construir nome completo a partir de Serie + Turma + Turno
+      const turmaLetra = alunoData.turma;  // "A", "B", "C"
+      const serie = alunoData.serie;       // "6º Ano", "1ª Série", etc.
+      const turno = alunoData.turno;       // "Matutino", "Vespertino"
+      const ensino = alunoData.ensino;     // "Ensino Fundamental II", "Ensino Médio"
       let turmaId = '';
-      let serie = alunoData.serie;
-      let turno = alunoData.turno;
+      let turmaNome = '';
 
-      if (turmaNome && turmasMap.has(turmaNome)) {
-        const turmaInfo = turmasMap.get(turmaNome)!;
-        turmaId = turmaInfo.id;
-        serie = serie || turmaInfo.serie;
-        turno = turno || turmaInfo.turno;
-      } else if (turmaNome) {
-        // Turma não encontrada, criar uma nova ou pular
-        errors.push(`Linha ${rowIndex + 2}: Turma "${turmaNome}" não encontrada`);
+      if (serie && turmaLetra && turno) {
+        // Gerar nome da turma no formato: "6º Ano A - Matutino"
+        turmaNome = generateTurmaNome(serie, turmaLetra, turno);
+
+        if (turmasMap.has(turmaNome)) {
+          const turmaInfo = turmasMap.get(turmaNome)!;
+          turmaId = turmaInfo.id;
+        } else {
+          // Turma não encontrada
+          errors.push(`Linha ${rowIndex + 2}: Turma "${turmaNome}" não encontrada`);
+          skipped++;
+          continue;
+        }
+      } else {
+        // Dados insuficientes para determinar a turma
+        errors.push(`Linha ${rowIndex + 2}: Dados de turma incompletos (Serie: ${serie}, Turma: ${turmaLetra}, Turno: ${turno})`);
         skipped++;
         continue;
       }
@@ -228,10 +249,10 @@ export async function POST(request: NextRequest) {
         naturalidade: alunoData.naturalidade || undefined,
         uf: alunoData.uf || undefined,
         turmaId,
-        turma: turmaNome || undefined,
-        serie: serie || undefined,
-        ensino: alunoData.ensino || undefined,
-        turno: turno as any || undefined,
+        turma: turmaNome,
+        serie: serie,
+        ensino: ensino || undefined,
+        turno: turno as any,
         responsavelNome: alunoData.responsavelNome || undefined,
         responsavelTelefone: alunoData.responsavelTelefone || undefined,
         responsavelCpf: alunoData.responsavelCpf || undefined,
