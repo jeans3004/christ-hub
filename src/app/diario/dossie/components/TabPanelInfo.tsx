@@ -2,15 +2,30 @@
  * Aba de informacoes pessoais do aluno.
  */
 
-import { Box, Typography, Grid, Divider, Paper } from '@mui/material';
-import { Person, School, Home, Phone, Badge } from '@mui/icons-material';
+import { Box, Typography, Grid, Divider, Paper, Link } from '@mui/material';
+import { Person, School, Home, Badge, Email } from '@mui/icons-material';
 import { AlunoDossie } from '../types';
 import { PhotoUpload } from './PhotoUpload';
+import { UserRole } from '@/types';
 
 interface TabPanelInfoProps {
   dossie: AlunoDossie;
   canEdit: boolean;
+  userRole?: UserRole;
   onPhotoChange: (newUrl: string | null) => void;
+}
+
+// Gera o e-mail do aluno baseado na matrícula
+function generateStudentEmail(matricula?: string): string | null {
+  if (!matricula) return null;
+  // Formato: 00MATRICULA@christmaster.com.br
+  const paddedMatricula = matricula.padStart(6, '0');
+  return `${paddedMatricula}@christmaster.com.br`;
+}
+
+// Verifica se o usuário pode ver dados sensíveis (coordenador ou admin)
+function canViewSensitiveData(role?: UserRole): boolean {
+  return role === 'coordenador' || role === 'administrador';
 }
 
 interface InfoItemProps {
@@ -56,7 +71,7 @@ function Section({ title, icon, children }: SectionProps) {
   );
 }
 
-export function TabPanelInfo({ dossie, canEdit, onPhotoChange }: TabPanelInfoProps) {
+export function TabPanelInfo({ dossie, canEdit, userRole, onPhotoChange }: TabPanelInfoProps) {
   const formatDate = (date?: Date) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('pt-BR');
@@ -75,6 +90,8 @@ export function TabPanelInfo({ dossie, canEdit, onPhotoChange }: TabPanelInfoPro
   };
 
   const age = calculateAge(dossie.dataNascimento);
+  const showSensitiveData = canViewSensitiveData(userRole);
+  const studentEmail = generateStudentEmail(dossie.matricula);
 
   return (
     <Box sx={{ p: 2 }}>
@@ -108,6 +125,14 @@ export function TabPanelInfo({ dossie, canEdit, onPhotoChange }: TabPanelInfoPro
               Matrícula: {dossie.matricula}
             </Typography>
           )}
+          {studentEmail && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+              <Email fontSize="small" color="action" />
+              <Link href={`mailto:${studentEmail}`} underline="hover" variant="body2">
+                {studentEmail}
+              </Link>
+            </Box>
+          )}
           {dossie.inep && (
             <Typography variant="body2" color="text.secondary">
               INEP: {dossie.inep}
@@ -133,12 +158,16 @@ export function TabPanelInfo({ dossie, canEdit, onPhotoChange }: TabPanelInfoPro
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <InfoItem label="Naturalidade" value={dossie.naturalidade && dossie.uf ? `${dossie.naturalidade}/${dossie.uf}` : dossie.naturalidade} />
           </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <InfoItem label="CPF" value={dossie.cpf} />
-          </Grid>
-          <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-            <InfoItem label="RG" value={dossie.rg} />
-          </Grid>
+          {showSensitiveData && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <InfoItem label="CPF" value={dossie.cpf} />
+            </Grid>
+          )}
+          {showSensitiveData && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <InfoItem label="RG" value={dossie.rg} />
+            </Grid>
+          )}
           <Grid size={{ xs: 12, sm: 6, md: 4 }}>
             <InfoItem
               label="Status"
@@ -188,9 +217,11 @@ export function TabPanelInfo({ dossie, canEdit, onPhotoChange }: TabPanelInfoPro
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <InfoItem label="Telefone" value={dossie.responsavelTelefone} />
             </Grid>
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <InfoItem label="CPF" value={dossie.responsavelCpf} />
-            </Grid>
+            {showSensitiveData && (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                <InfoItem label="CPF" value={dossie.responsavelCpf} />
+              </Grid>
+            )}
             <Grid size={{ xs: 12, sm: 6, md: 4 }}>
               <InfoItem label="Email" value={dossie.responsavelEmail} />
             </Grid>

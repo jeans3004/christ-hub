@@ -20,6 +20,7 @@ export {
   mensagemLogService,
   templateMensagemService,
   eventoService,
+  relatorioService,
   extractVariables,
   replaceVariables,
   getDocument,

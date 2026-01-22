@@ -3,16 +3,17 @@
  */
 
 import { Tabs, Tab } from '@mui/material';
-import { Person, Assessment, ReportProblem, CalendarMonth } from '@mui/icons-material';
+import { Person, Assessment, ReportProblem, CalendarMonth, Description } from '@mui/icons-material';
 import { AlunoDossie } from '../../types';
 
 interface ModalTabsProps {
   value: number;
   dossie: AlunoDossie;
+  relatoriosCount?: number;
   onChange: (event: React.SyntheticEvent, newValue: number) => void;
 }
 
-export function ModalTabs({ value, dossie, onChange }: ModalTabsProps) {
+export function ModalTabs({ value, dossie, relatoriosCount = 0, onChange }: ModalTabsProps) {
   return (
     <Tabs
       value={value}
@@ -28,25 +29,31 @@ export function ModalTabs({ value, dossie, onChange }: ModalTabsProps) {
       <Tab
         icon={<Person />}
         iconPosition="start"
-        label="Informacoes"
+        label="Informações"
         sx={{ minHeight: 56 }}
       />
       <Tab
         icon={<Assessment />}
         iconPosition="start"
-        label={`Avaliacoes (${dossie.avaliacoes.length})`}
+        label={`Avaliações (${dossie.avaliacoes.length})`}
         sx={{ minHeight: 56 }}
       />
       <Tab
         icon={<ReportProblem />}
         iconPosition="start"
-        label={`Ocorrencias (${dossie.ocorrencias.length})`}
+        label={`Ocorrências (${dossie.ocorrencias.length})`}
         sx={{ minHeight: 56 }}
       />
       <Tab
         icon={<CalendarMonth />}
         iconPosition="start"
-        label="Frequencia"
+        label="Frequência"
+        sx={{ minHeight: 56 }}
+      />
+      <Tab
+        icon={<Description />}
+        iconPosition="start"
+        label={`Relatórios${relatoriosCount > 0 ? ` (${relatoriosCount})` : ''}`}
         sx={{ minHeight: 56 }}
       />
     </Tabs>

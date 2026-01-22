@@ -11,3 +11,4 @@ export { TabPanelInfo } from './TabPanelInfo';
 export { TabPanelAvaliacoes } from './TabPanelAvaliacoes';
 export { TabPanelOcorrencias } from './TabPanelOcorrencias';
 export { TabPanelFrequencia } from './TabPanelFrequencia';
+export { TabPanelRelatorios } from './TabPanelRelatorios';

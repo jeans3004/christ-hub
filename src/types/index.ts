@@ -322,6 +322,24 @@ export interface OcorrenciaAnexoRef {
   uploadedBy: string;
 }
 
+// Relatório do Professor sobre o Aluno
+export interface RelatorioAluno {
+  id: string;
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;
+  professorId: string;
+  professorNome: string;
+  disciplinaId?: string;
+  disciplinaNome?: string;
+  titulo: string;
+  conteudo: string;
+  ano: number;
+  bimestre?: 1 | 2 | 3 | 4;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Aniversariantes
 export interface Aniversariante {
   id: string;
