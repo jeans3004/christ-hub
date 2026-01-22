@@ -10,10 +10,10 @@ export const googleProvider = new GoogleAuthProvider();
 // Necessário para acessar pastas existentes no Drive Compartilhado
 googleProvider.addScope('https://www.googleapis.com/auth/drive');
 
-// Forcar consent para obter refresh token
+// Forcar consent e limitar ao dominio permitido
 googleProvider.setCustomParameters({
   prompt: 'consent',
-  access_type: 'offline',
+  hd: 'christmaster.com.br', // Hosted domain - só mostra contas desse domínio
 });
 
 // Escopos do Drive
