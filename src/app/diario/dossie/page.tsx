@@ -72,6 +72,7 @@ export default function DossiePage() {
         canEdit={canEdit}
         usuario={usuario}
         ano={ano}
+        initialTab={modalState.initialTab}
         onClose={closeModal}
         onPhotoChange={handlePhotoChange}
       />

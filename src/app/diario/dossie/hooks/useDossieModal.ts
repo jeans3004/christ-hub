@@ -14,7 +14,7 @@ import { calcularFrequencia, enriquecerAvaliacoes } from './dossieUtils';
 interface UseDossieModalReturn {
   modalState: ModalState;
   dossieData: AlunoDossie | null;
-  openModal: (alunoId: string) => void;
+  openModal: (alunoId: string, tabIndex?: number) => void;
   closeModal: () => void;
 }
 
@@ -33,6 +33,7 @@ export function useDossieModal({ alunos, turmas, rubricas, disciplinas, ano }: U
     open: false,
     alunoId: null,
     loading: false,
+    initialTab: 0,
   });
   const [dossieData, setDossieData] = useState<AlunoDossie | null>(null);
 
@@ -65,8 +66,8 @@ export function useDossieModal({ alunos, turmas, rubricas, disciplinas, ano }: U
     }
   }, [alunos, turmas, rubricas, disciplinas, ano]);
 
-  const openModal = useCallback(async (alunoId: string) => {
-    setModalState({ open: true, alunoId, loading: true });
+  const openModal = useCallback(async (alunoId: string, tabIndex: number = 0) => {
+    setModalState({ open: true, alunoId, loading: true, initialTab: tabIndex });
     setDossieData(null);
 
     try {
@@ -80,7 +81,7 @@ export function useDossieModal({ alunos, turmas, rubricas, disciplinas, ano }: U
   }, [loadDossieCompleto, addToast]);
 
   const closeModal = useCallback(() => {
-    setModalState({ open: false, alunoId: null, loading: false });
+    setModalState({ open: false, alunoId: null, loading: false, initialTab: 0 });
     setDossieData(null);
   }, []);
 

@@ -40,6 +40,7 @@ export interface ModalState {
   open: boolean;
   alunoId: string | null;
   loading: boolean;
+  initialTab: number;
 }
 
 /**

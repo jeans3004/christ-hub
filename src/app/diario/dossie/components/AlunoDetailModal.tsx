@@ -22,6 +22,7 @@ interface AlunoDetailModalProps {
   canEdit: boolean;
   usuario: Usuario | null;
   ano: number;
+  initialTab?: number;
   onClose: () => void;
   onPhotoChange: (newUrl: string | null) => void;
 }
@@ -33,14 +34,22 @@ export function AlunoDetailModal({
   canEdit,
   usuario,
   ano,
+  initialTab = 0,
   onClose,
   onPhotoChange,
 }: AlunoDetailModalProps) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(initialTab);
   const [exporting, setExporting] = useState(false);
   const [relatoriosCount, setRelatoriosCount] = useState(0);
+
+  // Sincronizar tab com initialTab quando modal abre
+  useEffect(() => {
+    if (open) {
+      setTabValue(initialTab);
+    }
+  }, [open, initialTab]);
 
   // Carregar contagem de relatórios quando o dossie muda
   useEffect(() => {

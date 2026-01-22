@@ -11,7 +11,7 @@ interface AlunoCardListProps {
   alunos: Aluno[];
   loading: boolean;
   turmaId: string;
-  onCardClick: (alunoId: string) => void;
+  onCardClick: (alunoId: string, tabIndex?: number) => void;
 }
 
 export function AlunoCardList({
@@ -108,7 +108,7 @@ export function AlunoCardList({
           <AlunoCard
             key={aluno.id}
             aluno={aluno}
-            onClick={() => onCardClick(aluno.id)}
+            onClick={(tabIndex) => onCardClick(aluno.id, tabIndex)}
           />
         ))}
       </Box>

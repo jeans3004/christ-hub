@@ -4,7 +4,7 @@
  * Componente de abas para visualizar mapeamentos de diferentes professores.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
 import { Box, Tabs, Tab, Chip, Typography, Tooltip } from '@mui/material';
 import { Star, Edit } from '@mui/icons-material';
 import { MapeamentoComProfessor } from '../hooks/mapeamentoTypes';
@@ -46,12 +46,27 @@ export function ProfessorTabs({
     });
   }, [mapeamentos, usuarioId]);
 
+  // Verificar se o professor selecionado ainda existe na lista
+  const professorIdsValidos = useMemo(() =>
+    new Set(professoresUnicos.map(p => p.id)),
+    [professoresUnicos]
+  );
+
+  // Reset para "meu" se o professor selecionado não existe mais
+  useEffect(() => {
+    if (professorIdVisualizando && !professorIdsValidos.has(professorIdVisualizando)) {
+      onProfessorChange(null);
+    }
+  }, [professorIdVisualizando, professorIdsValidos, onProfessorChange]);
+
   if (professoresUnicos.length === 0) {
     return null;
   }
 
-  // Valor atual: null = "Meu mapeamento", string = ID do professor
-  const tabValue = professorIdVisualizando || 'meu';
+  // Valor atual: null ou ID inválido = "Meu mapeamento", string válido = ID do professor
+  const tabValue = (professorIdVisualizando && professorIdsValidos.has(professorIdVisualizando))
+    ? professorIdVisualizando
+    : 'meu';
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: string) => {
     if (newValue === 'meu') {
