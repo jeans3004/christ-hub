@@ -2,11 +2,13 @@
  * Tipos e constantes para a pagina de turmas.
  */
 
-import { Turno } from '@/types';
+import { Turno, TipoEnsino } from '@/types';
 
 export interface TurmaForm {
   nome: string;
   serie: string;
+  ensino: TipoEnsino;
+  turma: string;
   turno: Turno;
   ano: number;
 }
@@ -14,23 +16,23 @@ export interface TurmaForm {
 export const initialForm: TurmaForm = {
   nome: '',
   serie: '',
+  ensino: 'Ensino Fundamental II',
+  turma: 'A',
   turno: 'Matutino',
   ano: new Date().getFullYear(),
 };
 
-export const turnos: Turno[] = ['Matutino', 'Vespertino', 'Noturno'];
+export const turnos: Turno[] = ['Matutino', 'Vespertino'];
 
-export const series = [
-  '6o Ano - Ensino Fundamental II',
-  '7o Ano - Ensino Fundamental II',
-  '8o Ano - Ensino Fundamental II',
-  '9o Ano - Ensino Fundamental II',
-  '1a Serie - Ensino Medio',
-  '2a Serie - Ensino Medio',
-  '3a Serie - Ensino Medio',
-];
+export const turmasLetras = ['A', 'B', 'C'];
 
-export function generateNome(serie: string, turno: Turno): string {
-  const turnoLetter = turno.charAt(0);
-  return `${serie} [ ${turno} ${turnoLetter} ]`;
+export const tiposEnsino: TipoEnsino[] = ['Ensino Fundamental II', 'Ensino Médio'];
+
+export const seriesPorEnsino: Record<TipoEnsino, string[]> = {
+  'Ensino Fundamental II': ['6º Ano', '7º Ano', '8º Ano', '9º Ano'],
+  'Ensino Médio': ['1ª Série', '2ª Série', '3ª Série'],
+};
+
+export function generateNome(serie: string, turma: string, turno: string): string {
+  return `${serie} ${turma} - ${turno}`;
 }

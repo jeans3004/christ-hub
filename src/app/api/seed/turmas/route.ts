@@ -1,158 +1,200 @@
 /**
- * API Route para popular turmas do sistema.
- * Cria turmas para todas as séries e turnos disponíveis.
+ * API Route para configurar turmas do sistema.
+ * DELETE: Remove todas as turmas
+ * POST: Cria turmas com a estrutura padrão
  *
- * ATENÇÃO: Esta rota deve ser removida ou protegida em produção.
+ * Estrutura:
+ * - Serie: 6º Ano, 7º Ano, 8º Ano, 9º Ano (Fund. II), 1ª Série, 2ª Série, 3ª Série (Médio)
+ * - Ensino: Ensino Fundamental II, Ensino Médio
+ * - Turma: A, B, C
+ * - Turno: Matutino, Vespertino
  */
 
-import { NextResponse } from 'next/server';
-import { turmaService } from '@/services/firestore';
-import { Series, Turnos, Turma } from '@/types';
+import { NextRequest, NextResponse } from 'next/server';
+import { collection, getDocs, deleteDoc, doc, addDoc, writeBatch, Timestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { TipoEnsino, Turno } from '@/types';
 
-// Configuração de turmas por série
-// Formato: { série: { quantidadeTurmasPorTurno, turnosAtivos } }
-const configTurmas: Record<string, { qtdPorTurno: number; turnos: string[] }> = {
-  '6o Ano - Ensino Fundamental II': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '7o Ano - Ensino Fundamental II': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '8o Ano - Ensino Fundamental II': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '9o Ano - Ensino Fundamental II': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '1a Série - Ensino Médio': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '2a Série - Ensino Médio': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-  '3a Série - Ensino Médio': { qtdPorTurno: 2, turnos: ['Matutino', 'Vespertino'] },
-};
+// Configuração das séries
+const SERIES_CONFIG: { serie: string; ensino: TipoEnsino }[] = [
+  // Ensino Fundamental II
+  { serie: '6º Ano', ensino: 'Ensino Fundamental II' },
+  { serie: '7º Ano', ensino: 'Ensino Fundamental II' },
+  { serie: '8º Ano', ensino: 'Ensino Fundamental II' },
+  { serie: '9º Ano', ensino: 'Ensino Fundamental II' },
+  // Ensino Médio
+  { serie: '1ª Série', ensino: 'Ensino Médio' },
+  { serie: '2ª Série', ensino: 'Ensino Médio' },
+  { serie: '3ª Série', ensino: 'Ensino Médio' },
+];
 
-// Letras para identificar turmas (A, B, C, ...)
-const letras = 'ABCDEFGHIJ'.split('');
+// Turmas disponíveis
+const TURMAS = ['A', 'B', 'C'];
 
-// Abreviação dos turnos
-const turnoAbrev: Record<string, string> = {
-  Matutino: 'M',
-  Vespertino: 'V',
-  Noturno: 'N',
-};
+// Turnos disponíveis
+const TURNOS: Turno[] = ['Matutino', 'Vespertino'];
 
-// Gera nome da turma: "6A-M" (6º ano, turma A, Matutino)
-function gerarNomeTurma(serie: string, letra: string, turno: string): string {
-  // Extrai o número/série (6o, 7o, 8o, 9o, 1a, 2a, 3a)
-  const match = serie.match(/^(\d)[oa]/);
-  if (!match) return `${letra}-${turnoAbrev[turno]}`;
-
-  const numero = match[1];
-  return `${numero}${letra}-${turnoAbrev[turno]}`;
+// Gera nome da turma: "6º Ano A - Matutino"
+function gerarNomeTurma(serie: string, turma: string, turno: string): string {
+  return `${serie} ${turma} - ${turno}`;
 }
 
-export async function POST(request: Request) {
+// DELETE - Remove todas as turmas
+export async function DELETE() {
+  try {
+    const turmasRef = collection(db, 'turmas');
+    const snapshot = await getDocs(turmasRef);
+
+    if (snapshot.empty) {
+      return NextResponse.json({
+        success: true,
+        message: 'Nenhuma turma encontrada para deletar',
+        deleted: 0,
+      });
+    }
+
+    // Deletar em batches
+    const batchSize = 500;
+    let deleted = 0;
+    let batch = writeBatch(db);
+    let batchCount = 0;
+
+    for (const docSnap of snapshot.docs) {
+      batch.delete(doc(db, 'turmas', docSnap.id));
+      batchCount++;
+      deleted++;
+
+      if (batchCount >= batchSize) {
+        await batch.commit();
+        batch = writeBatch(db);
+        batchCount = 0;
+      }
+    }
+
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: `${deleted} turmas deletadas com sucesso`,
+      deleted,
+    });
+  } catch (error: any) {
+    console.error('Error deleting turmas:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Erro ao deletar turmas' },
+      { status: 500 }
+    );
+  }
+}
+
+// POST - Cria todas as turmas
+export async function POST(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const forceRecreate = searchParams.get('force') === 'true';
     const anoLetivo = parseInt(searchParams.get('ano') || String(new Date().getFullYear()), 10);
+    const deleteFirst = searchParams.get('clean') === 'true';
 
-    // Buscar turmas existentes
-    const turmasExistentes = await turmaService.getAll();
-    const turmasExistentesMap = new Map<string, Turma>();
+    // Se clean=true, deletar todas primeiro
+    if (deleteFirst) {
+      const turmasRef = collection(db, 'turmas');
+      const snapshot = await getDocs(turmasRef);
+      const batch = writeBatch(db);
+      snapshot.docs.forEach(docSnap => batch.delete(doc(db, 'turmas', docSnap.id)));
+      if (!snapshot.empty) {
+        await batch.commit();
+      }
+    }
 
-    turmasExistentes.forEach(t => {
-      const key = `${t.nome}_${t.serie}_${t.turno}_${t.ano}`;
-      turmasExistentesMap.set(key, t);
-    });
-
+    const turmasRef = collection(db, 'turmas');
+    const now = Timestamp.now();
     const turmasCriadas: string[] = [];
-    const turmasIgnoradas: string[] = [];
 
-    // Para cada série configurada
-    for (const serie of Series) {
-      const config = configTurmas[serie];
-      if (!config) continue;
+    // Criar todas as combinações
+    for (const { serie, ensino } of SERIES_CONFIG) {
+      for (const turma of TURMAS) {
+        for (const turno of TURNOS) {
+          const nome = gerarNomeTurma(serie, turma, turno);
 
-      // Para cada turno ativo nessa série
-      for (const turno of config.turnos) {
-        // Para cada turma nesse turno (A, B, C...)
-        for (let i = 0; i < config.qtdPorTurno; i++) {
-          const letra = letras[i];
-          const nomeTurma = gerarNomeTurma(serie, letra, turno);
-
-          const key = `${nomeTurma}_${serie}_${turno}_${anoLetivo}`;
-          const turmaExistente = turmasExistentesMap.get(key);
-
-          if (turmaExistente && !forceRecreate) {
-            turmasIgnoradas.push(`${nomeTurma} (${serie}) - já existe`);
-            continue;
-          }
-
-          // Se force=true e existe, deletar primeiro
-          if (turmaExistente && forceRecreate) {
-            await turmaService.delete(turmaExistente.id);
-          }
-
-          // Criar turma
-          await turmaService.create({
-            nome: nomeTurma,
+          await addDoc(turmasRef, {
+            nome,
             serie,
-            turno: turno as typeof Turnos[number],
+            ensino,
+            turma,
+            turno,
             ano: anoLetivo,
             ativo: true,
+            createdAt: now,
+            updatedAt: now,
           });
 
-          turmasCriadas.push(`${nomeTurma} (${serie} - ${turno})`);
+          turmasCriadas.push(nome);
         }
       }
     }
 
     return NextResponse.json({
       success: true,
+      message: `${turmasCriadas.length} turmas criadas para o ano ${anoLetivo}`,
       anoLetivo,
-      message: `${turmasCriadas.length} turmas criadas, ${turmasIgnoradas.length} ignoradas`,
-      turmasCriadas,
-      turmasIgnoradas: turmasIgnoradas.length > 0 ? turmasIgnoradas : undefined,
+      total: turmasCriadas.length,
+      turmas: turmasCriadas,
+      estrutura: {
+        series: SERIES_CONFIG.map(s => s.serie),
+        turmas: TURMAS,
+        turnos: TURNOS,
+      },
     });
-
-  } catch (error) {
-    console.error('Erro ao popular turmas:', error);
-    return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-    }, { status: 500 });
+  } catch (error: any) {
+    console.error('Error creating turmas:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Erro ao criar turmas' },
+      { status: 500 }
+    );
   }
 }
 
+// GET - Lista turmas existentes
 export async function GET() {
   try {
-    const turmasExistentes = await turmaService.getAll();
+    const turmasRef = collection(db, 'turmas');
+    const snapshot = await getDocs(turmasRef);
+
+    const turmas = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
     // Agrupar por série
-    const porSerie: Record<string, { nome: string; turno: string; ativo: boolean }[]> = {};
-
-    for (const turma of turmasExistentes) {
-      if (!porSerie[turma.serie]) {
-        porSerie[turma.serie] = [];
+    const porSerie: Record<string, any[]> = {};
+    turmas.forEach((t: any) => {
+      if (!porSerie[t.serie]) {
+        porSerie[t.serie] = [];
       }
-      porSerie[turma.serie].push({
-        nome: turma.nome,
-        turno: turma.turno,
-        ativo: turma.ativo,
+      porSerie[t.serie].push({
+        id: t.id,
+        nome: t.nome,
+        turma: t.turma,
+        turno: t.turno,
+        ensino: t.ensino,
       });
-    }
-
-    // Identificar séries sem turmas
-    const seriesSemTurmas = Series.filter(s => !porSerie[s] || porSerie[s].length === 0);
-
-    return NextResponse.json({
-      message: 'Use POST para criar turmas. GET mostra turmas existentes.',
-      totalTurmas: turmasExistentes.length,
-      seriesSemTurmas,
-      turmasPorSerie: porSerie,
-      config: {
-        series: Series,
-        turnos: Turnos,
-        parametros: '?force=true para recriar turmas existentes, ?ano=2025 para especificar ano',
-      },
     });
 
-  } catch (error) {
-    console.error('Erro ao listar turmas:', error);
     return NextResponse.json({
-      success: false,
-      error: error instanceof Error ? error.message : 'Erro desconhecido',
-    }, { status: 500 });
+      success: true,
+      total: turmas.length,
+      turmasPorSerie: porSerie,
+      endpoints: {
+        POST: '/api/seed/turmas?ano=2026&clean=true - Cria turmas (clean=true deleta existentes)',
+        DELETE: '/api/seed/turmas - Deleta todas as turmas',
+      },
+    });
+  } catch (error: any) {
+    console.error('Error listing turmas:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Erro ao listar turmas' },
+      { status: 500 }
+    );
   }
 }

@@ -40,18 +40,20 @@ export function useTurmasPage(canAccess: boolean) {
     }
   }, [canAccess, loadTurmas]);
 
-  // Auto-generate name when serie or turno changes
+  // Auto-generate name when serie, turma or turno changes
   useEffect(() => {
-    if (form.serie && form.turno) {
-      setForm(prev => ({ ...prev, nome: generateNome(prev.serie, prev.turno) }));
+    if (form.serie && form.turma && form.turno) {
+      setForm(prev => ({ ...prev, nome: generateNome(prev.serie, prev.turma, prev.turno) }));
     }
-  }, [form.serie, form.turno]);
+  }, [form.serie, form.turma, form.turno]);
 
   const handleOpenModal = useCallback((turma?: Turma) => {
     if (turma) {
       setForm({
         nome: turma.nome,
         serie: turma.serie,
+        ensino: turma.ensino || 'Ensino Fundamental II',
+        turma: turma.turma || 'A',
         turno: turma.turno,
         ano: turma.ano,
       });
@@ -68,18 +70,28 @@ export function useTurmasPage(canAccess: boolean) {
   }, [formModal]);
 
   const handleSave = useCallback(async () => {
-    if (!form.nome || !form.serie) {
-      addToast('Preencha todos os campos obrigatorios', 'error');
+    if (!form.nome || !form.serie || !form.ensino || !form.turma) {
+      addToast('Preencha todos os campos obrigatórios', 'error');
       return;
     }
 
     setSaving(true);
     try {
+      const turmaData = {
+        nome: form.nome,
+        serie: form.serie,
+        ensino: form.ensino,
+        turma: form.turma,
+        turno: form.turno,
+        ano: form.ano,
+        ativo: true,
+      };
+
       if (formModal.data) {
-        await turmaService.update(formModal.data.id, { ...form, ativo: true });
+        await turmaService.update(formModal.data.id, turmaData);
         addToast('Turma atualizada com sucesso!', 'success');
       } else {
-        await turmaService.create({ ...form, ativo: true });
+        await turmaService.create(turmaData);
         addToast('Turma criada com sucesso!', 'success');
       }
       handleCloseModal();

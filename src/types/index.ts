@@ -84,13 +84,18 @@ export interface Professor {
   updatedAt: Date;
 }
 
+// Tipos de Ensino
+export type TipoEnsino = 'Ensino Fundamental II' | 'Ensino Médio';
+
 // Turma
 export interface Turma {
   id: string;
-  nome: string;
-  serie: string;
-  turno: Turno;
-  ano: number;
+  nome: string;                         // Ex: "6º Ano A - Matutino"
+  serie: string;                        // Ex: "6º Ano", "1ª Série"
+  ensino: TipoEnsino;                   // Ex: "Ensino Fundamental II"
+  turma: string;                        // Ex: "A", "B", "C"
+  turno: Turno;                         // Ex: "Matutino", "Vespertino"
+  ano: number;                          // Ano letivo (2026)
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;

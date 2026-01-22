@@ -13,6 +13,8 @@ class TurmaRepositoryClass extends BaseRepository<Turma> {
       id,
       nome: data.nome || '',
       serie: data.serie || '',
+      ensino: data.ensino || 'Ensino Fundamental II',
+      turma: data.turma || 'A',
       turno: data.turno || 'Matutino',
       ano: data.ano || new Date().getFullYear(),
       ativo: data.ativo ?? true,

@@ -5,8 +5,8 @@
  */
 
 import { Box, TextField, FormControl, InputLabel, Select, MenuItem } from '@mui/material';
-import { Turno } from '@/types';
-import { TurmaForm, turnos, series } from '../types';
+import { Turno, TipoEnsino } from '@/types';
+import { TurmaForm, turnos, turmasLetras, tiposEnsino, seriesPorEnsino } from '../types';
 
 interface TurmaFormContentProps {
   form: TurmaForm;
@@ -14,17 +14,54 @@ interface TurmaFormContentProps {
 }
 
 export function TurmaFormContent({ form, setForm }: TurmaFormContentProps) {
+  const seriesDisponiveis = seriesPorEnsino[form.ensino] || [];
+
+  const handleEnsinoChange = (ensino: TipoEnsino) => {
+    const seriesDoEnsino = seriesPorEnsino[ensino];
+    setForm(prev => ({
+      ...prev,
+      ensino,
+      serie: seriesDoEnsino[0] || '',
+    }));
+  };
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       <FormControl fullWidth>
-        <InputLabel>Serie</InputLabel>
+        <InputLabel>Ensino</InputLabel>
+        <Select
+          value={form.ensino}
+          label="Ensino"
+          onChange={(e) => handleEnsinoChange(e.target.value as TipoEnsino)}
+        >
+          {tiposEnsino.map((ensino) => (
+            <MenuItem key={ensino} value={ensino}>{ensino}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl fullWidth>
+        <InputLabel>Série</InputLabel>
         <Select
           value={form.serie}
-          label="Serie"
+          label="Série"
           onChange={(e) => setForm(prev => ({ ...prev, serie: e.target.value }))}
         >
-          {series.map((serie) => (
+          {seriesDisponiveis.map((serie) => (
             <MenuItem key={serie} value={serie}>{serie}</MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+
+      <FormControl fullWidth>
+        <InputLabel>Turma</InputLabel>
+        <Select
+          value={form.turma}
+          label="Turma"
+          onChange={(e) => setForm(prev => ({ ...prev, turma: e.target.value }))}
+        >
+          {turmasLetras.map((turma) => (
+            <MenuItem key={turma} value={turma}>{turma}</MenuItem>
           ))}
         </Select>
       </FormControl>
@@ -43,7 +80,7 @@ export function TurmaFormContent({ form, setForm }: TurmaFormContentProps) {
       </FormControl>
 
       <TextField
-        label="Ano"
+        label="Ano Letivo"
         type="number"
         value={form.ano}
         onChange={(e) => setForm(prev => ({ ...prev, ano: parseInt(e.target.value) }))}
