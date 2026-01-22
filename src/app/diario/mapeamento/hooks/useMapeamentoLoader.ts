@@ -132,27 +132,29 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
         setAlunos(alunosData);
         setConselheiroId(turmaData?.professorConselheiroId || null);
 
-        // Enriquecer mapeamentos com nomes de professores
-        const professoresIds = [...new Set(todosMapeamentos.map(m => m.professorId))];
+        // Buscar todos os professores para mapear nomes
+        const todosProfessores = await usuarioService.getProfessores();
         const professoresMap = new Map<string, string>();
+        const professoresIdSet = new Set<string>();
 
-        // Buscar nomes dos professores
-        for (const profId of professoresIds) {
-          try {
-            const prof = await usuarioService.get(profId);
-            if (prof) {
-              professoresMap.set(profId, prof.nome);
-            }
-          } catch {
-            // Ignora erro se professor não encontrado
+        // Mapear por ID e também por googleUid (para casos de merge)
+        todosProfessores.forEach(p => {
+          professoresMap.set(p.id, p.nome);
+          professoresIdSet.add(p.id);
+          if (p.googleUid) {
+            professoresMap.set(p.googleUid, p.nome);
+            professoresIdSet.add(p.googleUid);
           }
-        }
+        });
 
-        const mapeamentosEnriquecidos: MapeamentoComProfessor[] = todosMapeamentos.map(m => ({
-          ...m,
-          professorNome: professoresMap.get(m.professorId) || 'Professor desconhecido',
-          isConselheiro: m.professorId === turmaData?.professorConselheiroId,
-        }));
+        // Filtrar mapeamentos válidos e enriquecer com nomes
+        const mapeamentosEnriquecidos: MapeamentoComProfessor[] = todosMapeamentos
+          .filter(m => professoresIdSet.has(m.professorId)) // Só mapeamentos de professores existentes
+          .map(m => ({
+            ...m,
+            professorNome: professoresMap.get(m.professorId) || 'Professor',
+            isConselheiro: m.professorId === turmaData?.professorConselheiroId,
+          }));
 
         setMapeamentosDaTurma(mapeamentosEnriquecidos);
 
