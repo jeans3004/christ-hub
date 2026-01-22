@@ -39,6 +39,7 @@
     "node_modules",
     "MODELO_IGNORAR",
     "novoSISTEMAbase",
-    "scripts"
+    "scripts",
+    "functions"
   ]
 }
