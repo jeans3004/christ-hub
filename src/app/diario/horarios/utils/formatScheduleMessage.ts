@@ -15,6 +15,21 @@ const DAY_EMOJIS: Record<DiaSemana, string> = {
   6: '☀️',
 };
 
+// Mapeamento de horário inicial para número do tempo
+const TEMPO_MAP: Record<string, number> = {
+  // Matutino
+  '07:00': 1, '07:45': 2, '08:30': 3, '09:15': 4, '10:00': 5, '10:45': 6, '11:30': 7,
+  // Vespertino
+  '13:00': 1, '13:45': 2, '14:30': 3, '15:15': 4, '16:00': 5, '16:45': 6, '17:30': 7,
+  // Sexta Vespertino (horários diferentes)
+  '13:35': 2, '14:10': 3, '14:45': 4, '15:20': 5, '15:55': 6, '16:30': 7,
+};
+
+function getTempoNumber(horaInicio: string): string {
+  const tempo = TEMPO_MAP[horaInicio];
+  return tempo ? `${tempo}º` : '';
+}
+
 interface FormatOptions {
   professorName: string;
   professorEmail?: string;
@@ -105,13 +120,14 @@ export function formatWeeklySchedule({
 
           const turmaName = turma?.nome || 'N/A';
           const sala = h.sala ? ` 📍${h.sala}` : '';
+          const tempo = getTempoNumber(h.horaInicio);
 
           // Se todas disciplinas iguais, nao repetir o nome
           if (sameDiscipline) {
-            lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` *${turmaName}*${sala}`);
+            lines.push(`  *${tempo}* - \`${h.horaInicio}\` às \`${h.horaFim}\` *${turmaName}*${sala}`);
           } else {
             const disc = disciplina?.nome || 'N/A';
-            lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` ${disc} • *${turmaName}*${sala}`);
+            lines.push(`  *${tempo}* - \`${h.horaInicio}\` às \`${h.horaFim}\` ${disc} • *${turmaName}*${sala}`);
           }
         });
 

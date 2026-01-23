@@ -11,6 +11,21 @@ import { horarioService, usuarioService, turmaService, disciplinaService } from 
 import { whatsappService } from '@/services/whatsappService';
 import { DiaSemana, DiasSemanaNomes, HorarioAula, Turma, Disciplina, Usuario } from '@/types';
 
+// Mapeamento de horário inicial para número do tempo
+const TEMPO_MAP: Record<string, number> = {
+  // Matutino
+  '07:00': 1, '07:45': 2, '08:30': 3, '09:15': 4, '10:00': 5, '10:45': 6, '11:30': 7,
+  // Vespertino
+  '13:00': 1, '13:45': 2, '14:30': 3, '15:15': 4, '16:00': 5, '16:45': 6, '17:30': 7,
+  // Sexta Vespertino (horários diferentes)
+  '13:35': 2, '14:10': 3, '14:45': 4, '15:20': 5, '15:55': 6, '16:30': 7,
+};
+
+function getTempoNumber(horaInicio: string): string {
+  const tempo = TEMPO_MAP[horaInicio];
+  return tempo ? `${tempo}º` : '';
+}
+
 /**
  * Formata mensagem de teste.
  */
@@ -72,11 +87,12 @@ function formatNextClassNotification(
     const turma = turmasMap.get(h.turmaId);
     const disciplina = disciplinasMap.get(h.disciplinaId);
     const sala = h.sala ? ` 📍${h.sala}` : '';
+    const tempo = getTempoNumber(h.horaInicio);
 
     if (sameDiscipline) {
-      lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  *${tempo}* - \`${h.horaInicio}\` às \`${h.horaFim}\` *${turma?.nome || 'N/A'}*${sala}`);
     } else {
-      lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  *${tempo}* - \`${h.horaInicio}\` às \`${h.horaFim}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
     }
   });
 
