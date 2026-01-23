@@ -383,6 +383,33 @@ interface Assento {
 }
 ```
 
+### HorarioAula
+```typescript
+interface HorarioAula {
+  id: string;
+  professorId: string;
+  professorIds?: string[];           // Para disciplinas com múltiplos professores (ex: Trilhas)
+  turmaId: string;
+  disciplinaId: string;
+  diaSemana: DiaSemana;              // 0=Dom, 1=Seg, ..., 6=Sab
+  horaInicio: string;                // "07:00"
+  horaFim: string;                   // "07:45"
+  sala?: string;
+  ano: number;
+  ativo: boolean;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+type DiaSemana = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
+interface HorarioSlot {
+  horaInicio: string;
+  horaFim: string;
+  label: string;                     // "1º Tempo", "2º Tempo", etc
+}
+```
+
 ### MensagemLog
 ```typescript
 interface MensagemLog {
@@ -444,9 +471,107 @@ interface TemplateMensagem {
 | `/diario/agenda` | Agenda escolar | todos |
 | `/diario/aniversariantes` | Relatório de aniversários | todos |
 | `/diario/senha` | Alteração de senha | todos |
+| `/diario/horarios` | Grade de horários por turno | horarios:view |
 | `/cadastros/turmas` | CRUD de turmas | turmas:view |
 | `/cadastros/alunos` | CRUD de alunos | alunos:view |
 | `/cadastros/disciplinas` | Hierarquia de disciplinas | coordenador+ |
+
+---
+
+## Módulo de Horários (Detalhado)
+
+### Estrutura de Arquivos
+```
+src/app/diario/horarios/
+├── page.tsx                       # Página principal com toggle grade/individual
+├── types.ts                       # Tipos locais (HorarioCellProps, HorarioFormData)
+├── components/
+│   ├── index.ts
+│   ├── HorariosFilters.tsx       # Filtros (ano, turma, professor)
+│   ├── HorarioGrid.tsx           # Grade por turma/professor (visão individual)
+│   ├── HorarioGridByTurno.tsx    # Grade por turno (Matutino/Vespertino)
+│   ├── HorarioCell.tsx           # Célula individual com disciplina/professor
+│   ├── HorarioModal.tsx          # Form criar/editar (multi-professor para Trilhas)
+│   └── WhatsAppSendButton.tsx    # Botão envio WhatsApp
+└── hooks/
+    ├── index.ts
+    ├── useHorariosLoader.ts      # Carrega horários, turmas, disciplinas, professores
+    ├── useHorariosActions.ts     # CRUD + envio WhatsApp
+    └── useHorariosData.ts        # Composição de hooks
+```
+
+### Visualizações
+```typescript
+// Dois modos de visualização
+type GridViewType = 'grade' | 'individual';
+
+// Grade: Colunas = Turmas, Linhas = Dias × Tempos (7 tempos × 5 dias = 35 linhas)
+// Separado por turno (Matutino/Vespertino)
+
+// Individual: Grade por turma ou professor selecionado
+```
+
+### Time Slots
+```typescript
+// Matutino (45 min cada)
+const MATUTINO_SLOTS = [
+  { horaInicio: '07:00', horaFim: '07:45', label: '1º' },
+  { horaInicio: '07:45', horaFim: '08:30', label: '2º' },
+  { horaInicio: '08:30', horaFim: '09:15', label: '3º' },
+  { horaInicio: '09:15', horaFim: '10:00', label: '4º' },
+  { horaInicio: '10:00', horaFim: '10:45', label: '5º' },
+  { horaInicio: '10:45', horaFim: '11:30', label: '6º' },
+  { horaInicio: '11:30', horaFim: '12:15', label: '7º' },
+];
+
+// Vespertino (45 min, exceto sexta-feira)
+const VESPERTINO_SLOTS = [
+  { horaInicio: '13:00', horaFim: '13:45', label: '1º' },
+  // ... até 7º tempo
+];
+
+// Sexta Vespertino (35 min - horário especial)
+const SEXTA_VESPERTINO_SLOTS = [
+  { horaInicio: '13:00', horaFim: '13:35', label: '1º' },
+  // ... até 7º tempo
+];
+```
+
+### Multi-Professor (Trilhas)
+```typescript
+// Disciplinas com múltiplos professores
+const DISCIPLINAS_MULTIPLOS_PROFESSORES = ['trilhas', 'trilha'];
+
+// HorarioAula.professorIds contém array de IDs
+// Modal detecta automaticamente pelo nome da disciplina
+```
+
+### Ordenação de Turmas
+```typescript
+// Ordem: Ensino Fundamental II → Ensino Médio
+// Dentro de cada ensino: por série (6º, 7º, 8º, 9º | 1ª, 2ª, 3ª)
+// Mesma série: por turma (A, B, C)
+
+const ensinoOrder = {
+  'Ensino Fundamental II': 1,
+  'Ensino Médio': 2,
+};
+```
+
+### API de Notificações Automáticas
+```
+GET/POST /api/horarios/send-notifications
+
+Query Parameters:
+- dia: DiaSemana (1-5, padrão: dia atual)
+- secret: string (autenticação)
+- testAll: boolean (teste para todos professores)
+
+Uso:
+- Integração com cron-job.org para disparo automático
+- Envia horário do dia para cada professor via WhatsApp
+- Formato: Lista de aulas com turma, disciplina, horário e sala
+```
 
 ---
 
@@ -613,6 +738,7 @@ rubricaService         // getAll(), getAtivas(), create(), update()
 avaliacaoRubricaService // getByTurma(), getByAluno(), create(), update()
 ocorrenciaService      // getByStatus(), getByAluno(), create(), update()
 mapeamentoSalaService  // getByTurmaProfessorAno(), create(), update()
+horarioService         // getByAno(), getByTurma(), getByProfessor(), checkConflict(), create(), update(), deactivate()
 templateMensagemService // getAll(), create(), update(), incrementUsage(), processTemplate()
 mensagemLogService     // getByPeriodo(), create(), update()
 ```
@@ -835,6 +961,8 @@ type Permission =
   | 'conceitos:view' | 'conceitos:edit'
   // Ocorrências
   | 'ocorrencias:view' | 'ocorrencias:create' | 'ocorrencias:edit' | 'ocorrencias:delete'
+  // Horários
+  | 'horarios:view' | 'horarios:create' | 'horarios:edit' | 'horarios:delete'
   // Mensagens
   | 'mensagens:view' | 'mensagens:send' | 'mensagens:templates'
   // Relatórios
@@ -876,6 +1004,9 @@ POST /api/whatsapp/send-bulk  # Enviar para múltiplos
 POST /api/whatsapp/send-group # Enviar para grupo (⚠️ SessionError temporário)
 POST /api/whatsapp/send-poll  # Enviar enquete
 GET  /api/whatsapp/groups     # Listar grupos
+
+# Notificações Automáticas (Cron)
+GET/POST /api/horarios/send-notifications  # Envia horário do dia para professores
 ```
 
 ### Servidor Evolution API
@@ -961,4 +1092,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.6.0 | Última atualização: 21/01/2026*
+*Versão: 2.7.0 | Última atualização: 22/01/2026*
