@@ -34,6 +34,32 @@ export const chamadaService = {
     ]);
   },
 
+  getByProfessorData: async (professorId: string, data: Date) => {
+    const startOfDay = new Date(data);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(data);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    return getDocuments<Chamada>(COLLECTION, [
+      where('professorId', '==', professorId),
+      where('data', '>=', Timestamp.fromDate(startOfDay)),
+      where('data', '<=', Timestamp.fromDate(endOfDay)),
+    ]);
+  },
+
+  getByProfessorPeriodo: async (professorId: string, dataInicio: Date, dataFim: Date) => {
+    const start = new Date(dataInicio);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(dataFim);
+    end.setHours(23, 59, 59, 999);
+
+    return getDocuments<Chamada>(COLLECTION, [
+      where('professorId', '==', professorId),
+      where('data', '>=', Timestamp.fromDate(start)),
+      where('data', '<=', Timestamp.fromDate(end)),
+    ]);
+  },
+
   create: (data: Omit<Chamada, 'id' | 'createdAt' | 'updatedAt'>) => createDocument(COLLECTION, data),
   update: (id: string, data: Partial<Chamada>) => updateDocument(COLLECTION, id, data),
   delete: (id: string) => deleteDocument(COLLECTION, id),
