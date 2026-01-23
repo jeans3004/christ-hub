@@ -71,13 +71,12 @@ function formatNextClassNotification(
   nextClasses.forEach(h => {
     const turma = turmasMap.get(h.turmaId);
     const disciplina = disciplinasMap.get(h.disciplinaId);
-    const horario = `${h.horaInicio}-${h.horaFim}`;
     const sala = h.sala ? ` 📍${h.sala}` : '';
 
     if (sameDiscipline) {
-      lines.push(`  \`${horario}\` *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` *${turma?.nome || 'N/A'}*${sala}`);
     } else {
-      lines.push(`  \`${horario}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
     }
   });
 

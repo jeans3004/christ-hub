@@ -103,16 +103,15 @@ export function formatWeeklySchedule({
           const turma = turmasMap.get(h.turmaId);
           const disciplina = disciplinasMap.get(h.disciplinaId);
 
-          const horario = `${h.horaInicio}-${h.horaFim}`;
           const turmaName = turma?.nome || 'N/A';
           const sala = h.sala ? ` 📍${h.sala}` : '';
 
           // Se todas disciplinas iguais, nao repetir o nome
           if (sameDiscipline) {
-            lines.push(`  \`${horario}\` *${turmaName}*${sala}`);
+            lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` *${turmaName}*${sala}`);
           } else {
             const disc = disciplina?.nome || 'N/A';
-            lines.push(`  \`${horario}\` ${disc} • *${turmaName}*${sala}`);
+            lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` ${disc} • *${turmaName}*${sala}`);
           }
         });
 
