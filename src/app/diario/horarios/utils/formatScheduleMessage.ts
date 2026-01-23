@@ -17,10 +17,23 @@ const DAY_EMOJIS: Record<DiaSemana, string> = {
 
 interface FormatOptions {
   professorName: string;
+  professorEmail?: string;
   horarios: HorarioAula[];
   turmas: Turma[];
   disciplinas: Disciplina[];
   dia?: DiaSemana;
+  senderName?: string;
+  senderEmail?: string;
+}
+
+/**
+ * Retorna o nome para exibir na assinatura.
+ */
+function getDisplayName(name: string, email?: string): string {
+  if (email === 'suportecoord2@christmaster.com.br') {
+    return 'Super Admin';
+  }
+  return name || 'Sistema';
 }
 
 /**
@@ -32,6 +45,8 @@ export function formatWeeklySchedule({
   turmas,
   disciplinas,
   dia,
+  senderName,
+  senderEmail,
 }: FormatOptions): string {
   const firstName = professorName.split(' ')[0];
 
@@ -62,36 +77,52 @@ export function formatWeeklySchedule({
   lines.push(`Olá *${firstName}*!`);
   lines.push('');
 
-  // Dias da semana - formato compacto em tabela
+  // Dias da semana
   Object.entries(byDay)
     .sort(([a], [b]) => Number(a) - Number(b))
     .forEach(([diaNum, horariosDia]) => {
       const diaKey = Number(diaNum) as DiaSemana;
       const emoji = DAY_EMOJIS[diaKey];
 
-      lines.push(`${emoji} *${DiasSemanaNomes[diaKey]}*`);
+      // Verificar se todas as aulas do dia sao da mesma disciplina
+      const disciplinaIds = [...new Set(horariosDia.map(h => h.disciplinaId))];
+      const sameDiscipline = disciplinaIds.length === 1;
+      const disciplinaUnica = sameDiscipline ? disciplinasMap.get(disciplinaIds[0]) : null;
 
-      // Ordenar por horario e formatar em linhas compactas
+      // Titulo do dia (com disciplina se todas forem iguais)
+      if (sameDiscipline && disciplinaUnica) {
+        lines.push(`${emoji} *${DiasSemanaNomes[diaKey]}* - ${disciplinaUnica.nome}`);
+      } else {
+        lines.push(`${emoji} *${DiasSemanaNomes[diaKey]}*`);
+      }
+
+      // Ordenar por horario e formatar
       horariosDia
         .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
         .forEach(h => {
           const turma = turmasMap.get(h.turmaId);
           const disciplina = disciplinasMap.get(h.disciplinaId);
 
-          const horario = h.horaInicio.substring(0, 5);
-          const disc = (disciplina?.nome || 'N/A').substring(0, 12);
+          const horario = `${h.horaInicio}-${h.horaFim}`;
           const turmaName = turma?.nome || 'N/A';
           const sala = h.sala ? ` 📍${h.sala}` : '';
 
-          // Formato compacto: 07:00 │ Matemática │ 6ºA │ S.101
-          lines.push(`\`${horario}\` ${disc} • *${turmaName}*${sala}`);
+          // Se todas disciplinas iguais, nao repetir o nome
+          if (sameDiscipline) {
+            lines.push(`  \`${horario}\` *${turmaName}*${sala}`);
+          } else {
+            const disc = disciplina?.nome || 'N/A';
+            lines.push(`  \`${horario}\` ${disc} • *${turmaName}*${sala}`);
+          }
         });
 
       lines.push('');
     });
 
-  // Footer
-  lines.push('_Christ Master School_');
+  // Footer com assinatura
+  lines.push('─────────────────');
+  lines.push(`_${getDisplayName(senderName || '', senderEmail)}_`);
+  lines.push('_Centro de Educação Integral Christ Master_');
 
   return lines.join('\n');
 }
@@ -99,7 +130,11 @@ export function formatWeeklySchedule({
 /**
  * Formata mensagem de teste.
  */
-export function formatTestMessage(professorName: string): string {
+export function formatTestMessage(
+  professorName: string,
+  senderName?: string,
+  senderEmail?: string
+): string {
   const firstName = professorName.split(' ')[0];
 
   return [
@@ -111,6 +146,8 @@ export function formatTestMessage(professorName: string): string {
     '',
     '✅ Sistema funcionando!',
     '',
-    '_Christ Master School_',
+    '─────────────────',
+    `_${getDisplayName(senderName || '', senderEmail)}_`,
+    '_Centro de Educação Integral Christ Master_',
   ].join('\n');
 }

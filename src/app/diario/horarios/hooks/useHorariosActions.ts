@@ -179,6 +179,8 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
         turmas,
         disciplinas,
         dia,
+        senderName: usuario.nome,
+        senderEmail: usuario.email,
       });
 
       const response = await fetch('/api/whatsapp/send', {

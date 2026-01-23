@@ -25,7 +25,9 @@ function formatTestMessage(professorName: string): string {
     '',
     '✅ Sistema funcionando!',
     '',
-    '_Christ Master School_',
+    '─────────────────',
+    '_Sistema Automático_',
+    '_Centro de Educação Integral Christ Master_',
   ].join('\n');
 }
 
@@ -50,8 +52,17 @@ function formatNextClassNotification(
 
   const lines: string[] = [];
 
+  // Verificar se todas as aulas são da mesma disciplina
+  const disciplinaIds = [...new Set(nextClasses.map(h => h.disciplinaId))];
+  const sameDiscipline = disciplinaIds.length === 1;
+  const disciplinaUnica = sameDiscipline ? disciplinasMap.get(disciplinaIds[0]) : null;
+
   // Header compacto
-  lines.push(`🔔 *PRÓXIMO TEMPO* \`${nextStartTime}\``);
+  if (sameDiscipline && disciplinaUnica) {
+    lines.push(`🔔 *PRÓXIMO TEMPO* - ${disciplinaUnica.nome}`);
+  } else {
+    lines.push('🔔 *PRÓXIMO TEMPO*');
+  }
   lines.push(`Olá *${firstName}*!`);
   lines.push('');
 
@@ -60,8 +71,14 @@ function formatNextClassNotification(
   nextClasses.forEach(h => {
     const turma = turmasMap.get(h.turmaId);
     const disciplina = disciplinasMap.get(h.disciplinaId);
+    const horario = `${h.horaInicio}-${h.horaFim}`;
     const sala = h.sala ? ` 📍${h.sala}` : '';
-    lines.push(`• *${turma?.nome || 'N/A'}* - ${disciplina?.nome || 'N/A'}${sala}`);
+
+    if (sameDiscipline) {
+      lines.push(`  \`${horario}\` *${turma?.nome || 'N/A'}*${sala}`);
+    } else {
+      lines.push(`  \`${horario}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
+    }
   });
 
   // Info de quem assume as turmas anteriores
@@ -70,15 +87,17 @@ function formatNextClassNotification(
     lines.push('🔄 *Quem assume sua turma:*');
     replacements.forEach(r => {
       if (r.nextProfessorName) {
-        lines.push(`• ${r.turmaNome} → *${r.nextProfessorName}*`);
+        lines.push(`  ${r.turmaNome} → *${r.nextProfessorName}*`);
       } else {
-        lines.push(`• ${r.turmaNome} → _sem professor_`);
+        lines.push(`  ${r.turmaNome} → _sem professor_`);
       }
     });
   }
 
   lines.push('');
-  lines.push('_Christ Master School_');
+  lines.push('─────────────────');
+  lines.push('_Sistema Automático_');
+  lines.push('_Centro de Educação Integral Christ Master_');
 
   return lines.join('\n');
 }
