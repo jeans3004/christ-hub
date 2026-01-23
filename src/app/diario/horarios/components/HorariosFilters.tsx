@@ -149,6 +149,9 @@ export function HorariosFilters({
                   <MenuItem value="">
                     <em>Selecione um professor</em>
                   </MenuItem>
+                  <MenuItem value="todos">
+                    <strong>Todos os Professores</strong>
+                  </MenuItem>
                   {professores.map((professor) => (
                     <MenuItem key={professor.id} value={professor.id}>
                       {professor.nome}

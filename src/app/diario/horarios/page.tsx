@@ -62,6 +62,7 @@ export default function HorariosPage() {
     updateHorario,
     deleteHorario,
     sendScheduleToWhatsApp,
+    sendScheduleToAllProfessors,
     saving,
     sending,
     refetch,
@@ -81,7 +82,8 @@ export default function HorariosPage() {
   }
 
   const selectedProfessor = professores.find(p => p.id === professorId);
-  const hasSelection = viewMode === 'turma' ? !!turmaId : !!professorId;
+  const isAllProfessors = professorId === 'todos';
+  const hasSelection = viewMode === 'turma' ? !!turmaId : (!!professorId || isAllProfessors);
 
   // Handler para click na grade por turno (passa turmaId adicional)
   const handleGridByTurnoClick = (
@@ -135,13 +137,15 @@ export default function HorariosPage() {
             </ToggleButtonGroup>
 
             {/* WhatsApp button para visualizacao de professor (apenas coordenadores+) */}
-            {canSendWhatsApp && gridViewType === 'individual' && viewMode === 'professor' && selectedProfessor && horarios.length > 0 && (
+            {canSendWhatsApp && gridViewType === 'individual' && viewMode === 'professor' && (selectedProfessor || isAllProfessors) && horarios.length > 0 && (
               <WhatsAppSendButton
-                professor={selectedProfessor}
+                professor={isAllProfessors ? null : selectedProfessor}
+                allProfessors={isAllProfessors ? professores : undefined}
                 horarios={horarios}
                 turmas={turmas}
                 disciplinas={disciplinas}
                 onSend={sendScheduleToWhatsApp}
+                onSendToAll={sendScheduleToAllProfessors}
                 sending={sending}
               />
             )}

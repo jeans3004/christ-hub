@@ -10,17 +10,20 @@ import {
   ListItemIcon,
   ListItemText,
   CircularProgress,
+  Divider,
 } from '@mui/material';
 import {
   WhatsApp as WhatsAppIcon,
   Today as TodayIcon,
   DateRange as WeekIcon,
   ArrowDropDown as ArrowIcon,
+  Groups as GroupsIcon,
 } from '@mui/icons-material';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, DiasSemanaNomes } from '@/types';
 
 interface WhatsAppSendButtonProps {
-  professor: Usuario;
+  professor?: Usuario | null;
+  allProfessors?: Usuario[];
   horarios: HorarioAula[];
   turmas: Turma[];
   disciplinas: Disciplina[];
@@ -31,6 +34,12 @@ interface WhatsAppSendButtonProps {
     disciplinas: Disciplina[],
     dia?: DiaSemana
   ) => Promise<boolean>;
+  onSendToAll?: (
+    allHorarios: HorarioAula[],
+    professores: Usuario[],
+    turmas: Turma[],
+    disciplinas: Disciplina[]
+  ) => Promise<{ success: number; failed: number }>;
   sending: boolean;
 }
 
@@ -41,14 +50,18 @@ function getCurrentDayOfWeek(): DiaSemana {
 
 export function WhatsAppSendButton({
   professor,
+  allProfessors,
   horarios,
   turmas,
   disciplinas,
   onSend,
+  onSendToAll,
   sending,
 }: WhatsAppSendButtonProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+
+  const isAllMode = !professor && !!allProfessors;
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -58,20 +71,52 @@ export function WhatsAppSendButton({
     setAnchorEl(null);
   };
 
+  // Handlers para professor individual
   const handleSendToday = async () => {
+    if (!professor) return;
     handleClose();
     await onSend(professor, horarios, turmas, disciplinas, getCurrentDayOfWeek());
   };
 
   const handleSendWeek = async () => {
+    if (!professor) return;
     handleClose();
     await onSend(professor, horarios, turmas, disciplinas);
   };
 
   const handleSendDay = async (dia: DiaSemana) => {
+    if (!professor) return;
     handleClose();
     await onSend(professor, horarios, turmas, disciplinas, dia);
   };
+
+  // Handler para todos os professores
+  const handleSendToAllProfessors = async () => {
+    if (!onSendToAll || !allProfessors) return;
+    handleClose();
+    await onSendToAll(horarios, allProfessors, turmas, disciplinas);
+  };
+
+  // Modo: Enviar para todos os professores
+  if (isAllMode) {
+    const professoresComCelular = allProfessors?.filter(p => p.celular && p.ativo) || [];
+
+    return (
+      <Button
+        variant="contained"
+        color="success"
+        startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <GroupsIcon />}
+        onClick={handleSendToAllProfessors}
+        disabled={sending || horarios.length === 0 || professoresComCelular.length === 0}
+        size="small"
+      >
+        {sending ? 'Enviando...' : `Enviar para Todos (${professoresComCelular.length})`}
+      </Button>
+    );
+  }
+
+  // Modo: Enviar para professor individual
+  if (!professor) return null;
 
   // Verificar se professor tem celular
   if (!professor.celular) {
@@ -123,7 +168,9 @@ export function WhatsAppSendButton({
           <ListItemText primary="Semana Completa" secondary="Segunda a Sexta" />
         </MenuItem>
 
-        <MenuItem divider disabled sx={{ opacity: 0.7 }}>
+        <Divider />
+
+        <MenuItem disabled sx={{ opacity: 0.7 }}>
           <ListItemText primary="Dia especifico:" />
         </MenuItem>
 

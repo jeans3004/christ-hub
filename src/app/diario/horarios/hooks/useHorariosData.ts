@@ -65,7 +65,7 @@ export function useHorariosData() {
 
   // Carregar dados
   // Na visualizacao de grade, sempre carregar todos os horarios (sem filtro)
-  // Na visualizacao individual, filtrar por turma ou professor
+  // Na visualizacao individual, filtrar por turma ou professor (exceto "todos")
   const {
     horarios,
     turmas,
@@ -77,7 +77,7 @@ export function useHorariosData() {
   } = useHorariosLoader({
     ano,
     turmaId: gridViewType === 'individual' && viewMode === 'turma' ? turmaId : undefined,
-    professorId: gridViewType === 'individual' && viewMode === 'professor' ? professorId : undefined,
+    professorId: gridViewType === 'individual' && viewMode === 'professor' && professorId !== 'todos' ? professorId : undefined,
   });
 
   // Acoes

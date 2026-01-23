@@ -24,6 +24,12 @@ interface UseHorariosActionsReturn {
     disciplinas: Disciplina[],
     dia?: DiaSemana
   ) => Promise<boolean>;
+  sendScheduleToAllProfessors: (
+    allHorarios: HorarioAula[],
+    professores: Usuario[],
+    turmas: Turma[],
+    disciplinas: Disciplina[]
+  ) => Promise<{ success: number; failed: number }>;
 }
 
 export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsReturn {
@@ -214,6 +220,87 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
     }
   }, [addToast, usuario]);
 
+  const sendScheduleToAllProfessors = useCallback(async (
+    allHorarios: HorarioAula[],
+    professores: Usuario[],
+    turmas: Turma[],
+    disciplinas: Disciplina[]
+  ): Promise<{ success: number; failed: number }> => {
+    if (!usuario) {
+      addToast('Usuario nao autenticado', 'error');
+      return { success: 0, failed: 0 };
+    }
+
+    setSending(true);
+    let success = 0;
+    let failed = 0;
+
+    try {
+      // Filtrar professores com celular
+      const professoresComCelular = professores.filter(p => p.celular && p.ativo);
+
+      if (professoresComCelular.length === 0) {
+        addToast('Nenhum professor com celular cadastrado', 'warning');
+        return { success: 0, failed: 0 };
+      }
+
+      for (const professor of professoresComCelular) {
+        // Filtrar horarios do professor
+        const horariosProf = allHorarios.filter(h =>
+          h.professorId === professor.id ||
+          (h.professorIds && h.professorIds.includes(professor.id))
+        );
+
+        if (horariosProf.length === 0) {
+          continue; // Pular professores sem horarios
+        }
+
+        // Formatar mensagem
+        const mensagem = formatWeeklySchedule({
+          professorName: professor.nome,
+          horarios: horariosProf,
+          turmas,
+          disciplinas,
+          senderName: usuario.nome,
+          senderEmail: usuario.email,
+        });
+
+        try {
+          const response = await fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              destinatarioId: professor.id,
+              destinatarioNome: professor.nome,
+              numero: professor.celular,
+              mensagem,
+              enviadoPorId: usuario.id,
+              enviadoPorNome: usuario.nome,
+            }),
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            success++;
+          } else {
+            failed++;
+          }
+        } catch {
+          failed++;
+        }
+      }
+
+      addToast(`Horarios enviados: ${success} sucesso, ${failed} falhas`, success > 0 ? 'success' : 'error');
+      return { success, failed };
+    } catch (error) {
+      console.error('Erro ao enviar WhatsApp para todos:', error);
+      addToast('Erro ao enviar mensagens', 'error');
+      return { success, failed };
+    } finally {
+      setSending(false);
+    }
+  }, [addToast, usuario]);
+
   return {
     saving,
     sending,
@@ -221,5 +308,6 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
     updateHorario,
     deleteHorario,
     sendScheduleToWhatsApp,
+    sendScheduleToAllProfessors,
   };
 }
