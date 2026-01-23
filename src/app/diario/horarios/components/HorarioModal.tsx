@@ -36,6 +36,7 @@ interface HorarioModalProps {
   ano: number;
   selectedSlot: { dia: DiaSemana; slot: HorarioSlot } | null;
   saving: boolean;
+  readOnly?: boolean; // Modo somente leitura para professores
   onClose: () => void;
   onCreate: (data: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   onUpdate: (id: string, data: Partial<HorarioAula>) => Promise<boolean>;
@@ -58,6 +59,7 @@ export function HorarioModal({
   ano,
   selectedSlot,
   saving,
+  readOnly = false,
   onClose,
   onCreate,
   onUpdate,
@@ -196,9 +198,9 @@ export function HorarioModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>{isEditing ? 'Editar Horario' : 'Novo Horario'}</span>
+        <span>{readOnly ? 'Visualizar Horario' : isEditing ? 'Editar Horario' : 'Novo Horario'}</span>
         <Box>
-          {isEditing && (
+          {isEditing && !readOnly && (
             <IconButton onClick={handleDelete} color="error" size="small" sx={{ mr: 1 }}>
               <DeleteIcon />
             </IconButton>
@@ -212,7 +214,7 @@ export function HorarioModal({
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {/* Turma */}
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" disabled={readOnly}>
             <InputLabel>Turma *</InputLabel>
             <Select
               value={turmaId}
@@ -229,13 +231,13 @@ export function HorarioModal({
           </FormControl>
 
           {/* Disciplina */}
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" disabled={readOnly}>
             <InputLabel>Disciplina *</InputLabel>
             <Select
               value={disciplinaId}
               label="Disciplina *"
               onChange={(e) => setDisciplinaId(e.target.value)}
-              disabled={!turmaId}
+              disabled={readOnly || !turmaId}
             >
               {disciplinasFiltradas.map((d) => (
                 <MenuItem key={d.id} value={d.id}>{d.nome}</MenuItem>
@@ -245,7 +247,7 @@ export function HorarioModal({
 
           {/* Professor(es) */}
           {allowsMultipleProfessors ? (
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" disabled={readOnly}>
               <InputLabel>Professores *</InputLabel>
               <Select
                 multiple
@@ -280,7 +282,7 @@ export function HorarioModal({
               </Select>
             </FormControl>
           ) : (
-            <FormControl fullWidth size="small">
+            <FormControl fullWidth size="small" disabled={readOnly}>
               <InputLabel>Professor *</InputLabel>
               <Select
                 value={professorId}
@@ -295,7 +297,7 @@ export function HorarioModal({
           )}
 
           {/* Dia da Semana */}
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" disabled={readOnly}>
             <InputLabel>Dia da Semana *</InputLabel>
             <Select
               value={diaSemana}
@@ -318,6 +320,7 @@ export function HorarioModal({
               value={horaInicio}
               onChange={(e) => setHoraInicio(e.target.value)}
               InputLabelProps={{ shrink: true }}
+              disabled={readOnly}
             />
             <TextField
               label="Hora Fim *"
@@ -327,6 +330,7 @@ export function HorarioModal({
               value={horaFim}
               onChange={(e) => setHoraFim(e.target.value)}
               InputLabelProps={{ shrink: true }}
+              disabled={readOnly}
             />
           </Box>
 
@@ -338,22 +342,31 @@ export function HorarioModal({
             value={sala}
             onChange={(e) => setSala(e.target.value)}
             placeholder="Ex: 101, Lab 1, Quadra"
+            disabled={readOnly}
           />
         </Box>
       </DialogContent>
 
       <DialogActions sx={{ px: 3, pb: 2 }}>
-        <Button onClick={onClose} disabled={saving}>
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={!isValid || saving}
-          startIcon={saving && <CircularProgress size={16} color="inherit" />}
-        >
-          {saving ? 'Salvando...' : isEditing ? 'Atualizar' : 'Criar'}
-        </Button>
+        {readOnly ? (
+          <Button onClick={onClose} variant="contained">
+            Fechar
+          </Button>
+        ) : (
+          <>
+            <Button onClick={onClose} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleSubmit}
+              disabled={!isValid || saving}
+              startIcon={saving && <CircularProgress size={16} color="inherit" />}
+            >
+              {saving ? 'Salvando...' : isEditing ? 'Atualizar' : 'Criar'}
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );

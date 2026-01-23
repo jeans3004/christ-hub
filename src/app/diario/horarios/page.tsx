@@ -278,6 +278,7 @@ export default function HorariosPage() {
           ano={ano}
           selectedSlot={selectedSlot}
           saving={saving}
+          readOnly={!canEdit}
           onClose={() => {
             closeModal();
             // Recarregar dados ao fechar modal na visualizacao de grade
