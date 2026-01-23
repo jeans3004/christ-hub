@@ -69,17 +69,17 @@ export function useTrilhasLoader({ ano, dataChamada }: UseTrilhasLoaderParams): 
       const areasData: AreaData[] = AREAS_CONHECIMENTO.map(area => {
         const series: SerieData[] = SERIES_ENSINO_MEDIO.map(serie => {
           // Filtrar alunos desta area e serie
+          // Apenas alunos que foram ATRIBUIDOS a esta area especifica
           const alunosSerie = alunosAtivos
             .filter(aluno => {
               const turma = turmasMap.get(aluno.turmaId);
               if (!turma) return false;
+              // Verificar se aluno foi atribuido a esta area
+              if (aluno.areaConhecimentoId !== area.id) return false;
               // Verificar se aluno pertence a esta serie
-              // Normalizar para comparacao: "1ª Série" ou "1a Série" -> "1 serie"
               const normalizar = (s: string) => s.toLowerCase().replace(/[ªºa]/g, '').replace(/\s+/g, ' ').trim();
               const serieMatch = normalizar(turma.serie) === normalizar(serie);
-              // Verificar area (se aluno tem areaConhecimentoId definido)
-              const areaMatch = !aluno.areaConhecimentoId || aluno.areaConhecimentoId === area.id;
-              return serieMatch && areaMatch;
+              return serieMatch;
             })
             .map(aluno => ({
               ...aluno,

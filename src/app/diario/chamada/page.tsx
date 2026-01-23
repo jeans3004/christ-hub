@@ -13,7 +13,7 @@ import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig } from './components';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -209,12 +209,16 @@ export default function ChamadaPage() {
 
       {/* Tab: Trilhas */}
       {activeTab === 2 && (
-        <TrilhasView
-          ano={ano}
-          dataChamada={dataChamada}
-          setDataChamada={setDataChamada}
-          professor={usuario}
-        />
+        usuario?.tipo === 'professor' ? (
+          <TrilhasView
+            ano={ano}
+            dataChamada={dataChamada}
+            setDataChamada={setDataChamada}
+            professor={usuario}
+          />
+        ) : (
+          <TrilhasConfig ano={ano} />
+        )
       )}
 
       {/* Conteudo Modal */}

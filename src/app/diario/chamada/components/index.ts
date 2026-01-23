@@ -10,4 +10,4 @@ export { EspelhoChamada } from './EspelhoChamada';
 export { RelatoriosChamada } from './RelatoriosChamada';
 
 // Trilhas
-export { TrilhasView } from './trilhas';
+export { TrilhasView, TrilhasConfig } from './trilhas';
