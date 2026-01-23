@@ -44,15 +44,21 @@ export const SEXTA_VESPERTINO_SLOTS: HorarioSlot[] = [
 ];
 
 export type ViewMode = 'turma' | 'professor';
+export type GridViewType = 'individual' | 'grade';
 
 export function useHorariosData() {
   const { ano, setAno } = useFilterStore();
-  const { isCoordinatorOrAbove } = usePermissions();
+  const { isCoordinatorOrAbove, isProfessor, usuario } = usePermissions();
+
+  // Determinar se usuario e professor (para definir padroes)
+  const userIsProfessor = isProfessor() && !isCoordinatorOrAbove();
 
   // Estado local para filtros da pagina
+  // Professor ve por padrao a visualizacao individual/professor, outros veem grade/turma
+  const [gridViewType, setGridViewType] = useState<GridViewType>(() => userIsProfessor ? 'individual' : 'grade');
   const [turmaId, setTurmaId] = useState('');
-  const [professorId, setProfessorId] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('turma');
+  const [professorId, setProfessorId] = useState(() => userIsProfessor && usuario?.id ? usuario.id : '');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => userIsProfessor ? 'professor' : 'turma');
   const [editingHorario, setEditingHorario] = useState<HorarioAula | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ dia: DiaSemana; slot: HorarioSlot } | null>(null);
@@ -136,6 +142,9 @@ export function useHorariosData() {
   }, []);
 
   return {
+    // Visualizacao
+    gridViewType,
+    setGridViewType,
     // Filtros
     ano,
     setAno,
@@ -169,6 +178,8 @@ export function useHorariosData() {
 
     // Permissoes
     canEdit,
+    canSendWhatsApp: isCoordinatorOrAbove(),
+    userIsProfessor,
 
     // Acoes
     ...actions,

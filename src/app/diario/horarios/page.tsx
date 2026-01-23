@@ -5,7 +5,6 @@
  * Acesso: professor (view), coordenador+ (edit)
  */
 
-import { useState } from 'react';
 import { Box, Typography, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup } from '@mui/material';
 import { Schedule, ViewModule, ViewList } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
@@ -20,14 +19,14 @@ import {
 } from './components';
 import { DiaSemana, HorarioSlot } from '@/types';
 
-type GridViewType = 'individual' | 'grade';
-
 export default function HorariosPage() {
   const { can } = usePermissions();
   const canView = can('horarios:view');
-  const [gridViewType, setGridViewType] = useState<GridViewType>('grade');
 
   const {
+    // Visualizacao
+    gridViewType,
+    setGridViewType,
     // Filtros
     ano,
     setAno,
@@ -56,6 +55,8 @@ export default function HorariosPage() {
     closeModal,
     // Permissoes
     canEdit,
+    canSendWhatsApp,
+    userIsProfessor,
     // Acoes
     createHorario,
     updateHorario,
@@ -133,8 +134,8 @@ export default function HorariosPage() {
               </ToggleButton>
             </ToggleButtonGroup>
 
-            {/* WhatsApp button para visualizacao de professor */}
-            {gridViewType === 'individual' && viewMode === 'professor' && selectedProfessor && horarios.length > 0 && (
+            {/* WhatsApp button para visualizacao de professor (apenas coordenadores+) */}
+            {canSendWhatsApp && gridViewType === 'individual' && viewMode === 'professor' && selectedProfessor && horarios.length > 0 && (
               <WhatsAppSendButton
                 professor={selectedProfessor}
                 horarios={horarios}
