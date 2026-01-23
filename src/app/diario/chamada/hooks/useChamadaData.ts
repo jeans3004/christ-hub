@@ -64,7 +64,7 @@ export function useChamadaData({
 
       setLoading(true);
       try {
-        const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada));
+        const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada + 'T12:00:00'));
         const chamada = chamadas.find(c => c.disciplinaId === disciplinaId);
 
         if (chamada) {
@@ -157,11 +157,12 @@ export function useChamadaData({
       if (existingChamada) {
         await chamadaService.update(existingChamada.id, chamadaData);
       } else {
+        // Usar T12:00:00 para evitar problemas de timezone
         await chamadaService.create({
           turmaId: serieId,
           disciplinaId,
           professorId: usuario.id,
-          data: new Date(dataChamada),
+          data: new Date(dataChamada + 'T12:00:00'),
           tempo: 1,
           ...chamadaData,
         });
