@@ -119,22 +119,43 @@ export function useChamadaData({
 
     setSaving(true);
     try {
-      const presencasList: PresencaAluno[] = alunos.map(aluno => ({
-        alunoId: aluno.id,
-        alunoNome: aluno.nome,
-        presente: presencas[aluno.id] ?? true,
-        justificativa: observacoes[aluno.id] || undefined,
-      }));
+      const presencasList: PresencaAluno[] = alunos.map(aluno => {
+        const presenca: PresencaAluno = {
+          alunoId: aluno.id,
+          alunoNome: aluno.nome,
+          presente: presencas[aluno.id] ?? true,
+        };
+        // Só adiciona justificativa se existir (Firestore não aceita undefined)
+        if (observacoes[aluno.id]) {
+          presenca.justificativa = observacoes[aluno.id];
+        }
+        return presenca;
+      });
 
       // Check if chamada already exists
       const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada));
       const existingChamada = chamadas.find(c => c.disciplinaId === disciplinaId);
 
+      // Dados base da chamada (sem campos undefined)
+      const chamadaData: {
+        presencas: PresencaAluno[];
+        conteudo?: string;
+        turmaId?: string;
+        disciplinaId?: string;
+        professorId?: string;
+        data?: Date;
+        tempo?: 1 | 2;
+      } = {
+        presencas: presencasList,
+      };
+
+      // Só adiciona conteudo se existir
+      if (conteudo && conteudo.trim()) {
+        chamadaData.conteudo = conteudo;
+      }
+
       if (existingChamada) {
-        await chamadaService.update(existingChamada.id, {
-          presencas: presencasList,
-          conteudo,
-        });
+        await chamadaService.update(existingChamada.id, chamadaData);
       } else {
         await chamadaService.create({
           turmaId: serieId,
@@ -142,8 +163,7 @@ export function useChamadaData({
           professorId: usuario.id,
           data: new Date(dataChamada),
           tempo: 1,
-          presencas: presencasList,
-          conteudo,
+          ...chamadaData,
         });
       }
 
