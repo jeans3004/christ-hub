@@ -64,6 +64,8 @@ export function useHorariosData() {
   const [selectedSlot, setSelectedSlot] = useState<{ dia: DiaSemana; slot: HorarioSlot } | null>(null);
 
   // Carregar dados
+  // Na visualizacao de grade, sempre carregar todos os horarios (sem filtro)
+  // Na visualizacao individual, filtrar por turma ou professor
   const {
     horarios,
     turmas,
@@ -74,8 +76,8 @@ export function useHorariosData() {
     refetch,
   } = useHorariosLoader({
     ano,
-    turmaId: viewMode === 'turma' ? turmaId : undefined,
-    professorId: viewMode === 'professor' ? professorId : undefined,
+    turmaId: gridViewType === 'individual' && viewMode === 'turma' ? turmaId : undefined,
+    professorId: gridViewType === 'individual' && viewMode === 'professor' ? professorId : undefined,
   });
 
   // Acoes
