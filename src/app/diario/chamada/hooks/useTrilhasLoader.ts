@@ -53,10 +53,12 @@ export function useTrilhasLoader({ ano, dataChamada }: UseTrilhasLoaderParams): 
       const turmas = await turmaService.getByAno(ano);
       const turmasEM = turmas.filter(t => t.ensino === 'Ensino Médio' && t.ativo);
       const turmasMap = new Map(turmasEM.map(t => [t.id, t]));
+      const turmaIds = Array.from(turmasMap.keys());
 
-      // Buscar alunos do Ensino Medio
-      const alunos = await alunoService.getEnsinoMedio();
-      const alunosAtivos = alunos.filter(a => turmasMap.has(a.turmaId));
+      // Buscar alunos de todas as turmas do Ensino Medio
+      const alunosPromises = turmaIds.map(turmaId => alunoService.getByTurma(turmaId));
+      const alunosArrays = await Promise.all(alunosPromises);
+      const alunosAtivos = alunosArrays.flat();
 
       // Buscar chamadas existentes para a data
       const data = new Date(dataChamada + 'T12:00:00');
@@ -72,8 +74,9 @@ export function useTrilhasLoader({ ano, dataChamada }: UseTrilhasLoaderParams): 
               const turma = turmasMap.get(aluno.turmaId);
               if (!turma) return false;
               // Verificar se aluno pertence a esta serie
-              const alunoSerie = turma.serie;
-              const serieMatch = alunoSerie === serie.replace('ª ', 'a '); // "1ª Série" -> "1a Série"
+              // Normalizar para comparacao: "1ª Série" ou "1a Série" -> "1 serie"
+              const normalizar = (s: string) => s.toLowerCase().replace(/[ªºa]/g, '').replace(/\s+/g, ' ').trim();
+              const serieMatch = normalizar(turma.serie) === normalizar(serie);
               // Verificar area (se aluno tem areaConhecimentoId definido)
               const areaMatch = !aluno.areaConhecimentoId || aluno.areaConhecimentoId === area.id;
               return serieMatch && areaMatch;
