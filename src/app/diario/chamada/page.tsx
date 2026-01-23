@@ -34,12 +34,22 @@ export default function ChamadaPage() {
     : todasTurmas;
 
   // Filter disciplinas by selected turma AND professor's vinculos
+  // Also includes child disciplinas of the ones professor is linked to
   const disciplinas = serieId
     ? todasDisciplinas.filter(d => {
         const isLinkedToTurma = d.turmaIds?.includes(serieId);
-        const isProfessor = usuario?.tipo === 'professor';
-        const isLinkedToProfessor = !isProfessor || usuario.disciplinaIds?.includes(d.id);
-        return isLinkedToTurma && isLinkedToProfessor;
+        if (!isLinkedToTurma) return false;
+
+        // Coordenadores e admins veem todas
+        if (usuario?.tipo !== 'professor') return true;
+
+        const profDisciplinas = usuario.disciplinaIds || [];
+        // Disciplina diretamente vinculada ao professor
+        if (profDisciplinas.includes(d.id)) return true;
+        // Disciplina filha de uma vinculada ao professor
+        if (d.parentId && profDisciplinas.includes(d.parentId)) return true;
+
+        return false;
       })
     : [];
 
@@ -181,7 +191,11 @@ export default function ChamadaPage() {
             professor={usuario}
             turmas={turmas}
             disciplinas={usuario?.tipo === 'professor'
-              ? todasDisciplinas.filter(d => usuario.disciplinaIds?.includes(d.id))
+              ? todasDisciplinas.filter(d => {
+                  const profDisciplinas = usuario.disciplinaIds || [];
+                  return profDisciplinas.includes(d.id) ||
+                    (d.parentId && profDisciplinas.includes(d.parentId));
+                })
               : todasDisciplinas}
           />
         </Paper>
