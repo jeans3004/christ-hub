@@ -9,93 +9,76 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { horarioService, usuarioService, turmaService, disciplinaService } from '@/services/firestore';
 import { whatsappService } from '@/services/whatsappService';
-import { DiaSemana, DiasSemanaNomes, HorarioAula, Turma, Disciplina } from '@/types';
-
-// Emojis para turnos
-const TURNO_EMOJI = {
-  matutino: '🌅',
-  vespertino: '🌇',
-};
+import { DiaSemana, DiasSemanaNomes, HorarioAula, Turma, Disciplina, Usuario } from '@/types';
 
 /**
- * Formata mensagem de teste elegante.
+ * Formata mensagem de teste.
  */
 function formatTestMessage(professorName: string): string {
   const firstName = professorName?.split(' ')[0] || 'Professor';
   return [
-    '╔══════════════════════════╗',
-    '║   🔔 *TESTE DE SISTEMA*',
-    '╚══════════════════════════╝',
+    '🔔 *TESTE DO SISTEMA*',
     '',
     `Olá *${firstName}*!`,
     '',
-    'Este é um teste do sistema de notificações de horários.',
+    'Este é um teste do sistema de notificações.',
     '',
-    '✅ Se você recebeu esta mensagem, o sistema está funcionando corretamente!',
+    '✅ Sistema funcionando!',
     '',
-    '━━━━━━━━━━━━━━━━━━',
-    '_SGE Diário Digital_',
     '_Christ Master School_',
   ].join('\n');
 }
 
+interface ReplacementInfo {
+  turmaId: string;
+  turmaNome: string;
+  nextProfessorName: string | null;
+}
+
 /**
- * Formata notificacao do proximo tempo.
+ * Formata notificacao do proximo tempo com info de quem assume a turma anterior.
  */
 function formatNextClassNotification(
   professorName: string,
-  horarios: HorarioAula[],
+  nextClasses: HorarioAula[],
   turmasMap: Map<string, Turma>,
   disciplinasMap: Map<string, Disciplina>,
-  nextStartTime: string
+  nextStartTime: string,
+  replacements: ReplacementInfo[]
 ): string {
   const firstName = professorName?.split(' ')[0] || 'Professor';
-  const turnoEmoji = nextStartTime < '12:00' ? TURNO_EMOJI.matutino : TURNO_EMOJI.vespertino;
 
   const lines: string[] = [];
 
-  // Header
-  lines.push('🔔 *PRÓXIMO TEMPO*');
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('');
+  // Header compacto
+  lines.push(`🔔 *PRÓXIMO TEMPO* \`${nextStartTime}\``);
   lines.push(`Olá *${firstName}*!`);
   lines.push('');
-  lines.push(`${turnoEmoji} Horário: *${nextStartTime}*`);
-  lines.push('');
 
-  if (horarios.length === 1) {
-    const h = horarios[0];
+  // Proximas aulas
+  lines.push('📚 *Você vai para:*');
+  nextClasses.forEach(h => {
     const turma = turmasMap.get(h.turmaId);
     const disciplina = disciplinasMap.get(h.disciplinaId);
+    const sala = h.sala ? ` 📍${h.sala}` : '';
+    lines.push(`• *${turma?.nome || 'N/A'}* - ${disciplina?.nome || 'N/A'}${sala}`);
+  });
 
-    lines.push('📚 *Sua próxima aula:*');
+  // Info de quem assume as turmas anteriores
+  if (replacements.length > 0) {
     lines.push('');
-    lines.push(`   📖 *${disciplina?.nome || 'N/A'}*`);
-    lines.push(`   🎓 ${turma?.nome || 'N/A'}`);
-    if (h.sala) {
-      lines.push(`   📍 Sala ${h.sala}`);
-    }
-  } else {
-    lines.push('📚 *Suas próximas aulas:*');
-    lines.push('');
-
-    horarios.forEach((h, index) => {
-      const turma = turmasMap.get(h.turmaId);
-      const disciplina = disciplinasMap.get(h.disciplinaId);
-      const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][index] || '▪️';
-
-      lines.push(`${numEmoji} *${disciplina?.nome || 'N/A'}*`);
-      lines.push(`   🎓 ${turma?.nome || 'N/A'}`);
-      if (h.sala) {
-        lines.push(`   📍 Sala ${h.sala}`);
+    lines.push('🔄 *Quem assume sua turma:*');
+    replacements.forEach(r => {
+      if (r.nextProfessorName) {
+        lines.push(`• ${r.turmaNome} → *${r.nextProfessorName}*`);
+      } else {
+        lines.push(`• ${r.turmaNome} → _sem professor_`);
       }
-      lines.push('');
     });
   }
 
   lines.push('');
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('_SGE Diário Digital_');
+  lines.push('_Christ Master School_');
 
   return lines.join('\n');
 }
@@ -290,6 +273,25 @@ async function handleNotification(request: NextRequest) {
     const turmasMap = new Map(allTurmas.map(t => [t.id, t]));
     const disciplinasMap = new Map(allDisciplinas.map(d => [d.id, d]));
 
+    // Buscar horarios que estao terminando agora (turmas que os professores estao saindo)
+    const endingHorarios = allHorarios.filter(
+      h => h.diaSemana === dayToCheck && h.horaFim === timeToCheck
+    );
+
+    // Mapear: professor -> turmas que ele esta saindo
+    const professorLeavingTurmas = new Map<string, string[]>();
+    for (const h of endingHorarios) {
+      const existing = professorLeavingTurmas.get(h.professorId) || [];
+      existing.push(h.turmaId);
+      professorLeavingTurmas.set(h.professorId, existing);
+    }
+
+    // Mapear: turma -> proximo professor (no proximo slot)
+    const nextProfessorByTurma = new Map<string, string>();
+    for (const h of horarios) {
+      nextProfessorByTurma.set(h.turmaId, h.professorId);
+    }
+
     // Agrupar por professor
     const horariosByProfessor = new Map<string, typeof horarios>();
     for (const h of horarios) {
@@ -324,13 +326,28 @@ async function handleNotification(request: NextRequest) {
         continue;
       }
 
+      // Buscar turmas que o professor esta saindo e quem vai assumir
+      const leavingTurmas = professorLeavingTurmas.get(professorId) || [];
+      const replacements: ReplacementInfo[] = leavingTurmas.map(turmaId => {
+        const turma = turmasMap.get(turmaId);
+        const nextProfId = nextProfessorByTurma.get(turmaId);
+        const nextProf = nextProfId ? professoresMap.get(nextProfId) : null;
+
+        return {
+          turmaId,
+          turmaNome: turma?.nome || 'Turma desconhecida',
+          nextProfessorName: nextProf?.nome?.split(' ')[0] || null,
+        };
+      });
+
       // Montar mensagem formatada
       const mensagem = formatNextClassNotification(
         professor.nome,
         profHorarios,
         turmasMap,
         disciplinasMap,
-        nextStartTime
+        nextStartTime,
+        replacements
       );
 
       try {

@@ -15,24 +15,16 @@ const DAY_EMOJIS: Record<DiaSemana, string> = {
   6: '☀️',
 };
 
-// Emojis para turnos
-const TURNO_EMOJI = {
-  matutino: '🌅',
-  vespertino: '🌇',
-};
-
 interface FormatOptions {
   professorName: string;
   horarios: HorarioAula[];
   turmas: Turma[];
   disciplinas: Disciplina[];
-  dia?: DiaSemana; // Se especificado, formata apenas para um dia
-  includeHeader?: boolean;
-  includeFooter?: boolean;
+  dia?: DiaSemana;
 }
 
 /**
- * Formata o horario semanal de forma elegante para WhatsApp.
+ * Formata o horario semanal de forma compacta e elegante para WhatsApp.
  */
 export function formatWeeklySchedule({
   professorName,
@@ -40,8 +32,6 @@ export function formatWeeklySchedule({
   turmas,
   disciplinas,
   dia,
-  includeHeader = true,
-  includeFooter = true,
 }: FormatOptions): string {
   const firstName = professorName.split(' ')[0];
 
@@ -65,24 +55,14 @@ export function formatWeeklySchedule({
   const turmasMap = new Map(turmas.map(t => [t.id, t]));
   const disciplinasMap = new Map(disciplinas.map(d => [d.id, d]));
 
-  // Construir mensagem
   const lines: string[] = [];
 
-  // Header
-  if (includeHeader) {
-    lines.push('╔══════════════════════════╗');
-    if (dia !== undefined) {
-      lines.push(`║   📅 *HORÁRIO DE ${DiasSemanaNomes[dia].toUpperCase()}*`);
-    } else {
-      lines.push('║   📅 *HORÁRIO SEMANAL*');
-    }
-    lines.push('╚══════════════════════════╝');
-    lines.push('');
-    lines.push(`Olá *${firstName}*! ${dia !== undefined ? 'Segue seu horário:' : 'Segue sua grade semanal:'}`);
-    lines.push('');
-  }
+  // Header compacto
+  lines.push('📅 *HORÁRIO SEMANAL*');
+  lines.push(`Olá *${firstName}*!`);
+  lines.push('');
 
-  // Dias da semana
+  // Dias da semana - formato compacto em tabela
   Object.entries(byDay)
     .sort(([a], [b]) => Number(a) - Number(b))
     .forEach(([diaNum, horariosDia]) => {
@@ -90,103 +70,28 @@ export function formatWeeklySchedule({
       const emoji = DAY_EMOJIS[diaKey];
 
       lines.push(`${emoji} *${DiasSemanaNomes[diaKey]}*`);
-      lines.push('─────────────────────');
 
-      // Ordenar por horario
+      // Ordenar por horario e formatar em linhas compactas
       horariosDia
         .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
         .forEach(h => {
           const turma = turmasMap.get(h.turmaId);
           const disciplina = disciplinasMap.get(h.disciplinaId);
 
-          const turnoEmoji = h.horaInicio < '12:00' ? TURNO_EMOJI.matutino : TURNO_EMOJI.vespertino;
-          const horario = `${h.horaInicio}-${h.horaFim}`;
-          const disciplinaNome = disciplina?.nome || 'N/A';
-          const turmaNome = turma?.nome || 'N/A';
+          const horario = h.horaInicio.substring(0, 5);
+          const disc = (disciplina?.nome || 'N/A').substring(0, 12);
+          const turmaName = turma?.nome || 'N/A';
+          const sala = h.sala ? ` 📍${h.sala}` : '';
 
-          // Formato: ⏰ 07:00-07:45
-          lines.push(`${turnoEmoji} \`${horario}\``);
-          lines.push(`   📚 ${disciplinaNome}`);
-          lines.push(`   🎓 ${turmaNome}`);
-          if (h.sala) {
-            lines.push(`   📍 Sala ${h.sala}`);
-          }
-          lines.push('');
+          // Formato compacto: 07:00 │ Matemática │ 6ºA │ S.101
+          lines.push(`\`${horario}\` ${disc} • *${turmaName}*${sala}`);
         });
+
+      lines.push('');
     });
 
   // Footer
-  if (includeFooter) {
-    lines.push('─────────────────────');
-    lines.push('_SGE Diário Digital_');
-    lines.push('_Christ Master School_');
-  }
-
-  return lines.join('\n');
-}
-
-/**
- * Formata a notificacao do proximo tempo de forma elegante.
- */
-export function formatNextClassNotification({
-  professorName,
-  horarios,
-  turmas,
-  disciplinas,
-  nextStartTime,
-}: {
-  professorName: string;
-  horarios: HorarioAula[];
-  turmas: Turma[];
-  disciplinas: Disciplina[];
-  nextStartTime: string;
-}): string {
-  const firstName = professorName.split(' ')[0];
-  const turmasMap = new Map(turmas.map(t => [t.id, t]));
-  const disciplinasMap = new Map(disciplinas.map(d => [d.id, d]));
-
-  const lines: string[] = [];
-
-  // Header
-  lines.push('🔔 *PRÓXIMO TEMPO*');
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('');
-  lines.push(`Olá *${firstName}*!`);
-  lines.push('');
-  lines.push(`⏰ Horário: *${nextStartTime}*`);
-  lines.push('');
-
-  if (horarios.length === 1) {
-    const h = horarios[0];
-    const turma = turmasMap.get(h.turmaId);
-    const disciplina = disciplinasMap.get(h.disciplinaId);
-
-    lines.push('📚 *Sua próxima aula:*');
-    lines.push('');
-    lines.push(`   • Disciplina: *${disciplina?.nome || 'N/A'}*`);
-    lines.push(`   • Turma: *${turma?.nome || 'N/A'}*`);
-    if (h.sala) {
-      lines.push(`   • Sala: *${h.sala}*`);
-    }
-  } else {
-    lines.push('📚 *Suas próximas aulas:*');
-    lines.push('');
-
-    horarios.forEach((h, index) => {
-      const turma = turmasMap.get(h.turmaId);
-      const disciplina = disciplinasMap.get(h.disciplinaId);
-
-      lines.push(`${index + 1}️⃣ *${disciplina?.nome || 'N/A'}*`);
-      lines.push(`   🎓 ${turma?.nome || 'N/A'}`);
-      if (h.sala) {
-        lines.push(`   📍 Sala ${h.sala}`);
-      }
-      lines.push('');
-    });
-  }
-
-  lines.push('━━━━━━━━━━━━━━━━━━');
-  lines.push('_SGE Diário Digital_');
+  lines.push('_Christ Master School_');
 
   return lines.join('\n');
 }
@@ -198,18 +103,14 @@ export function formatTestMessage(professorName: string): string {
   const firstName = professorName.split(' ')[0];
 
   return [
-    '╔══════════════════════════╗',
-    '║   🔔 *TESTE DE SISTEMA*',
-    '╚══════════════════════════╝',
+    '🔔 *TESTE DO SISTEMA*',
     '',
     `Olá *${firstName}*!`,
     '',
-    'Este é um teste do sistema de notificações de horários.',
+    'Este é um teste do sistema de notificações.',
     '',
-    '✅ Se você recebeu esta mensagem, o sistema está funcionando corretamente!',
+    '✅ Sistema funcionando!',
     '',
-    '━━━━━━━━━━━━━━━━━━',
-    '_SGE Diário Digital_',
     '_Christ Master School_',
   ].join('\n');
 }
