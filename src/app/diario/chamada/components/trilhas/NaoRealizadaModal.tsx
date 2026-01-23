@@ -47,8 +47,8 @@ export function NaoRealizadaModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h6">Marcar como Não Realizada</Typography>
-        <Typography variant="body2" color="text.secondary">
+        Marcar como Não Realizada
+        <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
           {areaNome} - {serie}
         </Typography>
       </DialogTitle>

@@ -55,8 +55,8 @@ export function TrilhaConteudoModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle>
-        <Typography variant="h6">Conteúdo Ministrado</Typography>
-        <Typography variant="body2" color="text.secondary">
+        Conteúdo Ministrado
+        <Typography variant="body2" color="text.secondary" component="span" sx={{ display: 'block' }}>
           {areaNome} - {serie}
         </Typography>
       </DialogTitle>
