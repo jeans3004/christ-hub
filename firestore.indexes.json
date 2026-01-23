@@ -62,6 +62,14 @@
       ]
     },
     {
+      "collectionGroup": "chamadas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "professorId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "conceitos",
       "queryScope": "COLLECTION",
       "fields": [
