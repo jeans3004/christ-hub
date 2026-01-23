@@ -459,7 +459,7 @@ interface TemplateMensagem {
 | Rota | Descrição | Permissão |
 |------|-----------|-----------|
 | `/diario/menu` | Dashboard inicial | todos |
-| `/diario/chamada` | Registro de presença + Relatórios | chamada:view |
+| `/diario/chamada` | Registro de presença + Relatórios + Trilhas | chamada:view |
 | `/diario/notas` | Notas com composição | notas:view |
 | `/diario/conceitos` | Avaliações por rubricas | conceitos:view |
 | `/diario/dossie` | Dossiê completo do aluno | alunos:view |
@@ -739,6 +739,134 @@ const getFrequenciaColor = (freq: number) => {
 
 ---
 
+## Módulo de Trilhas - Novo Ensino Médio (Detalhado)
+
+### Conceito
+Trilhas são itinerários formativos do Novo Ensino Médio onde alunos são agrupados por **Área do Conhecimento** (BNCC) e **Série**, não por turma tradicional.
+
+### Áreas do Conhecimento (BNCC)
+```typescript
+// src/constants/areasConhecimento.ts
+const AREAS_CONHECIMENTO = [
+  { id: 'linguagens', nome: 'Linguagens e suas Tecnologias', cor: '#4CAF50', sigla: 'LIN' },
+  { id: 'matematica', nome: 'Matemática e suas Tecnologias', cor: '#2196F3', sigla: 'MAT' },
+  { id: 'ciencias_natureza', nome: 'Ciências da Natureza e suas Tecnologias', cor: '#FF9800', sigla: 'CNT' },
+  { id: 'ciencias_humanas', nome: 'Ciências Humanas e Sociais Aplicadas', cor: '#9C27B0', sigla: 'CHS' },
+  { id: 'formacao_tecnica', nome: 'Formação Técnica e Profissional', cor: '#795548', sigla: 'FTP' },
+];
+
+const SERIES_ENSINO_MEDIO = ['1ª Série', '2ª Série', '3ª Série'];
+
+type AreaConhecimentoId = 'linguagens' | 'matematica' | 'ciencias_natureza' | 'ciencias_humanas' | 'formacao_tecnica';
+```
+
+### Estrutura de Arquivos
+```
+src/app/diario/chamada/
+├── components/trilhas/
+│   ├── index.ts
+│   ├── TrilhasConfig.tsx      # Configuração (coordenador/admin)
+│   ├── TrilhasView.tsx        # Chamada (professor)
+│   ├── AreaCard.tsx           # Card expansível por área
+│   ├── SerieGroup.tsx         # Grupo de alunos por série
+│   ├── TrilhaStatusBadge.tsx  # Badge de status
+│   ├── TrilhaConteudoModal.tsx
+│   └── NaoRealizadaModal.tsx
+├── hooks/
+│   ├── useTrilhasLoader.ts    # Carrega alunos por área/série
+│   └── useTrilhasActions.ts   # Ações de chamada
+```
+
+### Fluxo de Uso
+
+#### 1. Coordenador/Admin (TrilhasConfig)
+```typescript
+// Atribuição de alunos às áreas
+- Lista todos alunos do Ensino Médio por série
+- Permite selecionar múltiplos alunos
+- Dropdown para escolher área do conhecimento
+- Salva areaConhecimentoId no registro do aluno
+- Mostra resumo de alunos por área
+```
+
+#### 2. Professor (TrilhasView)
+```typescript
+// Chamada por área/série
+- Vê apenas alunos atribuídos às áreas
+- Accordions por área (cores distintas)
+- Dentro de cada área: séries com lista de alunos
+- Marcar presença, conteúdo, "não realizada"
+- Salvar em batch todas as chamadas
+```
+
+### Entidades
+
+```typescript
+// Aluno (campo adicionado)
+interface Aluno {
+  // ... campos existentes
+  areaConhecimentoId?: string;  // Área do conhecimento para Trilhas
+}
+
+// Chamada de Trilha
+interface ChamadaTrilha {
+  id: string;                    // formato: ano_areaId_serie_data
+  data: Date;
+  ano: number;
+  areaConhecimentoId: string;
+  serie: '1ª Série' | '2ª Série' | '3ª Série';
+  professorId: string;
+  professorNome: string;
+  presencas: PresencaAlunoTrilha[];
+  conteudo?: string;
+  realizada: boolean;
+  observacao?: string;           // Motivo se não realizada
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+interface PresencaAlunoTrilha {
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;               // Turma de origem
+  turmaNome: string;
+  presente: boolean;
+  justificativa?: string;
+}
+```
+
+### Serviço Firestore
+```typescript
+// chamadaTrilhaService (services/firestore/chamadaTrilhaService.ts)
+chamadaTrilhaService.get(id)
+chamadaTrilhaService.getByData(data, ano)
+chamadaTrilhaService.getByAreaData(areaId, data, ano)
+chamadaTrilhaService.getByPeriodo(inicio, fim, ano)
+chamadaTrilhaService.getByProfessorPeriodo(professorId, inicio, fim)
+chamadaTrilhaService.upsert(input)           // Criar/atualizar
+chamadaTrilhaService.upsertBatch(inputs)     // Batch para múltiplas séries
+chamadaTrilhaService.marcarNaoRealizada(areaId, serie, data, ano, professorId, professorNome, observacao?)
+```
+
+### Índices Firestore
+```json
+// chamadaTrilhas
+{ "ano": "ASC", "data": "ASC" }
+{ "areaConhecimentoId": "ASC", "ano": "ASC", "data": "ASC" }
+{ "professorId": "ASC", "data": "ASC" }
+```
+
+### Helpers
+```typescript
+import { getAreaById, getAreaColor, getAreaSigla, getAreaNome } from '@/constants';
+
+getAreaById('linguagens')     // { id, nome, cor, sigla }
+getAreaColor('matematica')    // '#2196F3'
+getAreaSigla('ciencias_natureza') // 'CNT'
+```
+
+---
+
 ## Módulo de Mensagens WhatsApp (Detalhado)
 
 ### Estrutura de Arquivos
@@ -897,6 +1025,7 @@ turmaService           // getByAno(), getAll(), create(), update(), delete()
 disciplinaService      // getSelectable(), getSelectableByTurma(), getAtivas(), getByParent()
 usuarioService         // getProfessores(), getByGoogleEmail(), linkUidToEmail(), checkEmailExists()
 chamadaService         // getByTurmaData(), getByTurmaAno(), getByProfessorData(), getByProfessorPeriodo(), create(), update()
+chamadaTrilhaService   // getByData(), getByAreaData(), getByPeriodo(), upsert(), upsertBatch(), marcarNaoRealizada()
 notaService            // getByAlunoTurmaDisciplina(), create(), update()
 rubricaService         // getAll(), getAtivas(), create(), update()
 avaliacaoRubricaService // getByTurma(), getByAluno(), create(), update()
@@ -1256,4 +1385,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.9.0 | Última atualização: 23/01/2026*
+*Versão: 2.10.0 | Última atualização: 23/01/2026*
