@@ -638,6 +638,37 @@ type TabChamada = 'registrar' | 'relatorios';
 type TipoRelatorio = 'dia' | 'periodo' | 'faltas' | 'turma' | 'consolidado';
 ```
 
+### Filtro por Vínculo do Professor
+```typescript
+// Professores veem apenas turmas e disciplinas vinculadas
+// Coordenadores e admins veem todas
+
+// Filtro de turmas (professor)
+const turmas = usuario?.tipo === 'professor'
+  ? todasTurmas.filter(t => usuario.turmaIds?.includes(t.id))
+  : todasTurmas;
+
+// Filtro de disciplinas (professor)
+// Inclui disciplinas diretamente vinculadas + disciplinas filhas (via parentId)
+const disciplinas = todasDisciplinas.filter(d => {
+  const profDisciplinas = usuario.disciplinaIds || [];
+  return profDisciplinas.includes(d.id) ||
+    (d.parentId && profDisciplinas.includes(d.parentId));
+});
+```
+
+### Tratamento de Timezone
+```typescript
+// IMPORTANTE: Usar T12:00:00 para evitar problemas de timezone
+// new Date('2026-01-23') cria UTC meia-noite, que pode virar dia anterior em GMT-4
+
+// ❌ Errado
+new Date(dataChamada)
+
+// ✅ Correto
+new Date(dataChamada + 'T12:00:00')
+```
+
 ### Tipos de Relatórios
 
 #### 1. Espelho do Dia (`RelatorioDia`)
@@ -1225,4 +1256,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.8.0 | Última atualização: 23/01/2026*
+*Versão: 2.9.0 | Última atualização: 23/01/2026*
