@@ -459,7 +459,7 @@ interface TemplateMensagem {
 | Rota | Descrição | Permissão |
 |------|-----------|-----------|
 | `/diario/menu` | Dashboard inicial | todos |
-| `/diario/chamada` | Registro de presença | chamada:view |
+| `/diario/chamada` | Registro de presença + Relatórios | chamada:view |
 | `/diario/notas` | Notas com composição | notas:view |
 | `/diario/conceitos` | Avaliações por rubricas | conceitos:view |
 | `/diario/dossie` | Dossiê completo do aluno | alunos:view |
@@ -558,6 +558,25 @@ const ensinoOrder = {
 };
 ```
 
+### Envio de Horários via WhatsApp
+```typescript
+// Opções de envio
+- Por dia específico (Segunda, Terça, etc)
+- Semana completa
+- Todos os professores de uma vez ("Enviar para Todos")
+
+// Formato da mensagem
+// Inclui: tempo, horário início/fim, turma, sala
+// Rodapé com nome do remetente e escola
+// Suporte a "Super Admin" para email específico
+```
+
+### Responsividade Mobile
+- Scroll horizontal touch em tabelas (WebkitOverflowScrolling)
+- Sticky columns para primeira coluna
+- Filtros adaptáveis com breakpoints
+- Toggle buttons com apenas ícones em mobile
+
 ### API de Notificações Automáticas
 ```
 GET/POST /api/horarios/send-notifications
@@ -571,6 +590,120 @@ Uso:
 - Integração com cron-job.org para disparo automático
 - Envia horário do dia para cada professor via WhatsApp
 - Formato: Lista de aulas com turma, disciplina, horário e sala
+```
+
+---
+
+## Módulo de Chamada (Detalhado)
+
+### Estrutura de Arquivos
+```
+src/app/diario/chamada/
+├── page.tsx                       # Página principal com abas (Chamada/Relatórios)
+├── types.ts                       # Tipos locais (cores de avatar)
+├── components/
+│   ├── index.ts
+│   ├── ChamadaFilters.tsx        # Filtros (ano, turma, disciplina, data)
+│   ├── ChamadaList.tsx           # Lista de alunos com checkbox de presença
+│   ├── ConteudoModal.tsx         # Modal para registrar conteúdo ministrado
+│   ├── ObservacaoPopover.tsx     # Popover para justificativa de falta
+│   ├── EspelhoChamada.tsx        # Componente legado (ainda disponível)
+│   ├── RelatoriosChamada.tsx     # Seletor de tipos de relatório
+│   └── relatorios/               # Sub-componentes de relatórios
+│       ├── index.ts
+│       ├── utils.ts              # Utilitários (formatação, impressão)
+│       ├── RelatorioDia.tsx      # Espelho do dia
+│       ├── RelatorioPeriodo.tsx  # Resumo por período
+│       ├── RelatorioFaltas.tsx   # Alunos com mais faltas
+│       ├── RelatorioTurma.tsx    # Histórico por turma
+│       └── RelatorioConsolidado.tsx # Visão geral de todas as turmas
+└── hooks/
+    ├── index.ts
+    └── useChamadaData.ts         # Hook principal de chamada
+```
+
+### Funcionalidades Principais
+```typescript
+// Duas abas na página
+type TabChamada = 'registrar' | 'relatorios';
+
+// Registro de chamada
+- Seleção de turma, disciplina e data
+- Lista de alunos com checkbox (presente/ausente)
+- Botões "Todos Presentes" / "Todos Ausentes"
+- Observações por aluno (justificativa de falta)
+- Conteúdo ministrado na aula
+
+// Relatórios disponíveis
+type TipoRelatorio = 'dia' | 'periodo' | 'faltas' | 'turma' | 'consolidado';
+```
+
+### Tipos de Relatórios
+
+#### 1. Espelho do Dia (`RelatorioDia`)
+- Todas as chamadas de um dia específico
+- Lista detalhada de alunos com status (P/F)
+- Conteúdo ministrado em cada aula
+- Resumo com totais de presença/falta
+
+#### 2. Relatório por Período (`RelatorioPeriodo`)
+- Resumo de chamadas em um período (semana, mês)
+- Tabela com estatísticas diárias
+- Frequência geral do período
+- Detalhes por turma/disciplina
+
+#### 3. Relatório de Faltas (`RelatorioFaltas`)
+- Alunos ordenados por quantidade de faltas
+- Alertas visuais para frequência crítica (<75%) e alerta (75-85%)
+- Barra de progresso de frequência individual
+- Justificativas registradas
+
+#### 4. Relatório por Turma (`RelatorioTurma`)
+- Histórico completo de uma turma específica
+- Grade com P/F por data para cada aluno
+- Colunas com todas as datas de aula do período
+- Frequência individual de cada aluno
+
+#### 5. Relatório Consolidado (`RelatorioConsolidado`)
+- Visão geral de todas as turmas
+- Cards com métricas (turmas, chamadas, presenças, faltas)
+- Frequência média geral com destaque da melhor/pior turma
+- Tabela comparativa entre turmas
+
+### Funções de Impressão
+```typescript
+// utils.ts - Função genérica de impressão
+printReport({
+  title: 'Título do Relatório',
+  subtitle?: 'Subtítulo',
+  professor?: 'Nome do Professor',
+  periodo?: 'DD/MM/YYYY a DD/MM/YYYY',
+  content: htmlContent,
+  showSignature?: true,  // Linha para assinatura
+});
+```
+
+### Serviço de Chamada
+```typescript
+// chamadaService (services/firestore/chamadaService.ts)
+chamadaService.get(id)
+chamadaService.getByTurmaData(turmaId, data)
+chamadaService.getByTurmaAno(turmaId, ano)
+chamadaService.getByProfessorData(professorId, data)       // Para relatórios
+chamadaService.getByProfessorPeriodo(professorId, inicio, fim)  // Para relatórios
+chamadaService.create(data)
+chamadaService.update(id, data)
+chamadaService.delete(id)
+```
+
+### Indicadores Visuais
+```typescript
+// Cores de frequência
+const getFrequenciaColor = (freq: number) => {
+  if (freq < 75) return 'error';    // Crítico (vermelho)
+  if (freq < 85) return 'warning';  // Alerta (amarelo)
+  return 'success';                  // OK (verde)
+};
 ```
 
 ---
@@ -732,7 +865,7 @@ alunoService           // getByTurma(), getAll(), create(), update(), delete()
 turmaService           // getByAno(), getAll(), create(), update(), delete()
 disciplinaService      // getSelectable(), getSelectableByTurma(), getAtivas(), getByParent()
 usuarioService         // getProfessores(), getByGoogleEmail(), linkUidToEmail(), checkEmailExists()
-chamadaService         // getByTurmaData(), getByTurmaAno(), getByAlunoAno(), create(), update()
+chamadaService         // getByTurmaData(), getByTurmaAno(), getByProfessorData(), getByProfessorPeriodo(), create(), update()
 notaService            // getByAlunoTurmaDisciplina(), create(), update()
 rubricaService         // getAll(), getAtivas(), create(), update()
 avaliacaoRubricaService // getByTurma(), getByAluno(), create(), update()
@@ -1092,4 +1225,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.7.0 | Última atualização: 22/01/2026*
+*Versão: 2.8.0 | Última atualização: 23/01/2026*
