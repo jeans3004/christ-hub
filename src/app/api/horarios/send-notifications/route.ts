@@ -74,9 +74,9 @@ function formatNextClassNotification(
     const sala = h.sala ? ` 📍${h.sala}` : '';
 
     if (sameDiscipline) {
-      lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` *${turma?.nome || 'N/A'}*${sala}`);
     } else {
-      lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
+      lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` ${disciplina?.nome || 'N/A'} • *${turma?.nome || 'N/A'}*${sala}`);
     }
   });
 

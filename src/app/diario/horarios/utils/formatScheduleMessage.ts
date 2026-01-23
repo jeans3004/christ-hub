@@ -108,10 +108,10 @@ export function formatWeeklySchedule({
 
           // Se todas disciplinas iguais, nao repetir o nome
           if (sameDiscipline) {
-            lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` *${turmaName}*${sala}`);
+            lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` *${turmaName}*${sala}`);
           } else {
             const disc = disciplina?.nome || 'N/A';
-            lines.push(`  \`${h.horaInicio}\`-\`${h.horaFim}\` ${disc} • *${turmaName}*${sala}`);
+            lines.push(`  \`${h.horaInicio}\` às \`${h.horaFim}\` ${disc} • *${turmaName}*${sala}`);
           }
         });
 
