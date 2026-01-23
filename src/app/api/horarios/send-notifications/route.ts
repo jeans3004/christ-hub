@@ -9,7 +9,96 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { horarioService, usuarioService, turmaService, disciplinaService } from '@/services/firestore';
 import { whatsappService } from '@/services/whatsappService';
-import { DiaSemana, DiasSemanaNomes } from '@/types';
+import { DiaSemana, DiasSemanaNomes, HorarioAula, Turma, Disciplina } from '@/types';
+
+// Emojis para turnos
+const TURNO_EMOJI = {
+  matutino: '🌅',
+  vespertino: '🌇',
+};
+
+/**
+ * Formata mensagem de teste elegante.
+ */
+function formatTestMessage(professorName: string): string {
+  const firstName = professorName?.split(' ')[0] || 'Professor';
+  return [
+    '╔══════════════════════════╗',
+    '║   🔔 *TESTE DE SISTEMA*',
+    '╚══════════════════════════╝',
+    '',
+    `Olá *${firstName}*!`,
+    '',
+    'Este é um teste do sistema de notificações de horários.',
+    '',
+    '✅ Se você recebeu esta mensagem, o sistema está funcionando corretamente!',
+    '',
+    '━━━━━━━━━━━━━━━━━━',
+    '_SGE Diário Digital_',
+    '_Christ Master School_',
+  ].join('\n');
+}
+
+/**
+ * Formata notificacao do proximo tempo.
+ */
+function formatNextClassNotification(
+  professorName: string,
+  horarios: HorarioAula[],
+  turmasMap: Map<string, Turma>,
+  disciplinasMap: Map<string, Disciplina>,
+  nextStartTime: string
+): string {
+  const firstName = professorName?.split(' ')[0] || 'Professor';
+  const turnoEmoji = nextStartTime < '12:00' ? TURNO_EMOJI.matutino : TURNO_EMOJI.vespertino;
+
+  const lines: string[] = [];
+
+  // Header
+  lines.push('🔔 *PRÓXIMO TEMPO*');
+  lines.push('━━━━━━━━━━━━━━━━━━');
+  lines.push('');
+  lines.push(`Olá *${firstName}*!`);
+  lines.push('');
+  lines.push(`${turnoEmoji} Horário: *${nextStartTime}*`);
+  lines.push('');
+
+  if (horarios.length === 1) {
+    const h = horarios[0];
+    const turma = turmasMap.get(h.turmaId);
+    const disciplina = disciplinasMap.get(h.disciplinaId);
+
+    lines.push('📚 *Sua próxima aula:*');
+    lines.push('');
+    lines.push(`   📖 *${disciplina?.nome || 'N/A'}*`);
+    lines.push(`   🎓 ${turma?.nome || 'N/A'}`);
+    if (h.sala) {
+      lines.push(`   📍 Sala ${h.sala}`);
+    }
+  } else {
+    lines.push('📚 *Suas próximas aulas:*');
+    lines.push('');
+
+    horarios.forEach((h, index) => {
+      const turma = turmasMap.get(h.turmaId);
+      const disciplina = disciplinasMap.get(h.disciplinaId);
+      const numEmoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][index] || '▪️';
+
+      lines.push(`${numEmoji} *${disciplina?.nome || 'N/A'}*`);
+      lines.push(`   🎓 ${turma?.nome || 'N/A'}`);
+      if (h.sala) {
+        lines.push(`   📍 Sala ${h.sala}`);
+      }
+      lines.push('');
+    });
+  }
+
+  lines.push('');
+  lines.push('━━━━━━━━━━━━━━━━━━');
+  lines.push('_SGE Diário Digital_');
+
+  return lines.join('\n');
+}
 
 // Horarios de fim de cada tempo (quando enviar notificacao)
 const MATUTINO_END_TIMES = ['07:45', '08:30', '09:15', '10:00', '10:45', '11:30', '12:15'];
@@ -46,7 +135,7 @@ async function sendTestToAll() {
     const results: NotificationResult[] = [];
 
     for (const professor of professores) {
-      const mensagem = `🔔 *Teste de Notificação*\n\nOlá ${professor.nome?.split(' ')[0]}, este é um teste do sistema de notificações de horários.\n\nSe você recebeu esta mensagem, o sistema está funcionando corretamente! ✅`;
+      const mensagem = formatTestMessage(professor.nome);
 
       try {
         const result = await whatsappService.sendText(professor.celular!, mensagem);
@@ -235,17 +324,14 @@ async function handleNotification(request: NextRequest) {
         continue;
       }
 
-      // Montar mensagem
-      const aulaInfo = profHorarios.map(h => {
-        const turma = turmasMap.get(h.turmaId);
-        const disciplina = disciplinasMap.get(h.disciplinaId);
-        const turmaNome = turma?.nome || 'Turma desconhecida';
-        const disciplinaNome = disciplina?.nome || 'Disciplina desconhecida';
-        const salaInfo = h.sala ? ` (${h.sala})` : '';
-        return `• ${disciplinaNome} - ${turmaNome}${salaInfo}`;
-      }).join('\n');
-
-      const mensagem = `📚 *Próximo tempo*\n\nOlá ${professor.nome?.split(' ')[0]}, sua próxima aula:\n\n${aulaInfo}\n\n⏰ ${nextStartTime}`;
+      // Montar mensagem formatada
+      const mensagem = formatNextClassNotification(
+        professor.nome,
+        profHorarios,
+        turmasMap,
+        disciplinasMap,
+        nextStartTime
+      );
 
       try {
         const result = await whatsappService.sendText(celular, mensagem);

@@ -8,7 +8,8 @@ import { useState, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { horarioService } from '@/services/firestore';
-import { HorarioAula, DiaSemana, Usuario, Turma, Disciplina, DiasSemanaNomes } from '@/types';
+import { HorarioAula, DiaSemana, Usuario, Turma, Disciplina } from '@/types';
+import { formatWeeklySchedule } from '../utils';
 
 interface UseHorariosActionsReturn {
   saving: boolean;
@@ -171,37 +172,14 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
         return false;
       }
 
-      // Agrupar por dia
-      const byDay = horariosToSend.reduce((acc, h) => {
-        if (!acc[h.diaSemana]) acc[h.diaSemana] = [];
-        acc[h.diaSemana].push(h);
-        return acc;
-      }, {} as Record<number, HorarioAula[]>);
-
-      // Construir mensagem
-      let mensagem = `Ola ${professor.nome.split(' ')[0]}, `;
-
-      if (dia !== undefined) {
-        mensagem += `seu horario de ${DiasSemanaNomes[dia]} e:\n\n`;
-      } else {
-        mensagem += `segue seu horario semanal:\n\n`;
-      }
-
-      Object.entries(byDay)
-        .sort(([a], [b]) => Number(a) - Number(b))
-        .forEach(([diaNum, horariosDia]) => {
-          mensagem += `*${DiasSemanaNomes[Number(diaNum) as DiaSemana]}:*\n`;
-          horariosDia
-            .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio))
-            .forEach(h => {
-              const turma = turmas.find(t => t.id === h.turmaId);
-              const disciplina = disciplinas.find(d => d.id === h.disciplinaId);
-              mensagem += `${h.horaInicio}-${h.horaFim}: ${disciplina?.nome || 'N/A'} - ${turma?.nome || 'N/A'}`;
-              if (h.sala) mensagem += ` (Sala ${h.sala})`;
-              mensagem += '\n';
-            });
-          mensagem += '\n';
-        });
+      // Formatar mensagem elegante
+      const mensagem = formatWeeklySchedule({
+        professorName: professor.nome,
+        horarios: horariosToSend,
+        turmas,
+        disciplinas,
+        dia,
+      });
 
       const response = await fetch('/api/whatsapp/send', {
         method: 'POST',
