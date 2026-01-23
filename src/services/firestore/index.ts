@@ -20,6 +20,8 @@ export { templateMensagemService, extractVariables, replaceVariables } from './t
 export { eventoService } from './eventoService';
 export { relatorioService } from './relatorioService';
 export { horarioService } from './horarioService';
+export { chamadaTrilhaService } from './chamadaTrilhaService';
+export type { ChamadaTrilhaInput } from './chamadaTrilhaService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';

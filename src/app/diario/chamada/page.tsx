@@ -6,14 +6,14 @@
 
 import { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper } from '@mui/material';
-import { Person, Edit as EditIcon, Assessment as ReportIcon } from '@mui/icons-material';
+import { Person, Edit as EditIcon, Assessment as ReportIcon, Route as TrilhasIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView } from './components';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -119,6 +119,12 @@ export default function ChamadaPage() {
             label="Relatorios"
             sx={{ minHeight: 56 }}
           />
+          <Tab
+            icon={<TrilhasIcon />}
+            iconPosition="start"
+            label="Trilhas"
+            sx={{ minHeight: 56 }}
+          />
         </Tabs>
       </Paper>
 
@@ -199,6 +205,16 @@ export default function ChamadaPage() {
               : todasDisciplinas}
           />
         </Paper>
+      )}
+
+      {/* Tab: Trilhas */}
+      {activeTab === 2 && (
+        <TrilhasView
+          ano={ano}
+          dataChamada={dataChamada}
+          setDataChamada={setDataChamada}
+          professor={usuario}
+        />
       )}
 
       {/* Conteudo Modal */}

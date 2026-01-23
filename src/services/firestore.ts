@@ -10,6 +10,7 @@ export {
   turmaService,
   disciplinaService,
   chamadaService,
+  chamadaTrilhaService,
   notaService,
   conceitoService,
   rubricaService,
@@ -35,4 +36,4 @@ export {
   Timestamp,
 } from './firestore/index';
 
-export type { QueryConstraint } from './firestore/index';
+export type { QueryConstraint, ChamadaTrilhaInput } from './firestore/index';

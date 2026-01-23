@@ -159,6 +159,9 @@ export interface Aluno {
   fotoUrl?: string;
   fotoFileId?: string;                // ID do arquivo no Google Drive
 
+  // Trilhas (Novo Ensino Medio)
+  areaConhecimentoId?: string;        // Area do conhecimento para Trilhas
+
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -195,6 +198,34 @@ export interface Chamada {
 export interface PresencaAluno {
   alunoId: string;
   alunoNome: string;
+  presente: boolean;
+  justificativa?: string;
+}
+
+// Chamada de Trilhas (Novo Ensino Medio)
+export type SerieEnsinoMedioTrilha = '1ª Série' | '2ª Série' | '3ª Série';
+
+export interface ChamadaTrilha {
+  id: string;
+  data: Date;
+  ano: number;
+  areaConhecimentoId: string;
+  serie: SerieEnsinoMedioTrilha;
+  professorId: string;
+  professorNome: string;
+  presencas: PresencaAlunoTrilha[];
+  conteudo?: string;
+  realizada: boolean;
+  observacao?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface PresencaAlunoTrilha {
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;
+  turmaNome: string;
   presente: boolean;
   justificativa?: string;
 }

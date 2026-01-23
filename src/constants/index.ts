@@ -14,3 +14,13 @@ export {
   ROLE_DESCRIPTIONS,
 } from './permissions';
 export type { Permission } from './permissions';
+
+export {
+  AREAS_CONHECIMENTO,
+  SERIES_ENSINO_MEDIO,
+  getAreaById,
+  getAreaColor,
+  getAreaSigla,
+  getAreaNome,
+} from './areasConhecimento';
+export type { AreaConhecimentoId, SerieEnsinoMedio } from './areasConhecimento';

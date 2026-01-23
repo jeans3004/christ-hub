@@ -8,3 +8,6 @@ export { ConteudoModal } from './ConteudoModal';
 export { ObservacaoPopover } from './ObservacaoPopover';
 export { EspelhoChamada } from './EspelhoChamada';
 export { RelatoriosChamada } from './RelatoriosChamada';
+
+// Trilhas
+export { TrilhasView } from './trilhas';
