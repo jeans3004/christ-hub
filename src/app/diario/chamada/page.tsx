@@ -24,13 +24,23 @@ export default function ChamadaPage() {
   const [activeTab, setActiveTab] = useState(0);
 
   // Firebase data hooks
-  const { turmas, loading: loadingTurmas } = useTurmas(ano);
+  const { turmas: todasTurmas, loading: loadingTurmas } = useTurmas(ano);
   const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
 
-  // Filter disciplinas by selected turma
+  // Filter turmas by professor's vinculos (professors only see their turmas)
+  const turmas = usuario?.tipo === 'professor'
+    ? todasTurmas.filter(t => usuario.turmaIds?.includes(t.id))
+    : todasTurmas;
+
+  // Filter disciplinas by selected turma AND professor's vinculos
   const disciplinas = serieId
-    ? todasDisciplinas.filter(d => d.turmaIds?.includes(serieId))
+    ? todasDisciplinas.filter(d => {
+        const isLinkedToTurma = d.turmaIds?.includes(serieId);
+        const isProfessor = usuario?.tipo === 'professor';
+        const isLinkedToProfessor = !isProfessor || usuario.disciplinaIds?.includes(d.id);
+        return isLinkedToTurma && isLinkedToProfessor;
+      })
     : [];
 
   // Local state for date and modal
@@ -170,7 +180,9 @@ export default function ChamadaPage() {
           <RelatoriosChamada
             professor={usuario}
             turmas={turmas}
-            disciplinas={todasDisciplinas}
+            disciplinas={usuario?.tipo === 'professor'
+              ? todasDisciplinas.filter(d => usuario.disciplinaIds?.includes(d.id))
+              : todasDisciplinas}
           />
         </Paper>
       )}
