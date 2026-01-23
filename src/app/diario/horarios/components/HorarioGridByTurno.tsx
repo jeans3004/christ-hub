@@ -144,8 +144,28 @@ export function HorarioGridByTurno({
   });
 
   return (
-    <TableContainer component={Paper} sx={{ maxHeight: 'calc(100vh - 300px)' }}>
-      <Table size="small" stickyHeader>
+    <TableContainer
+      component={Paper}
+      sx={{
+        maxHeight: 'calc(100vh - 300px)',
+        overflowX: 'auto',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        '&::-webkit-scrollbar': {
+          height: 8,
+          width: 8,
+        },
+        '&::-webkit-scrollbar-track': {
+          bgcolor: 'action.hover',
+          borderRadius: 4,
+        },
+        '&::-webkit-scrollbar-thumb': {
+          bgcolor: 'primary.light',
+          borderRadius: 4,
+        },
+      }}
+    >
+      <Table size="small" stickyHeader sx={{ minWidth: 800 }}>
         <TableHead>
           <TableRow>
             <TableCell

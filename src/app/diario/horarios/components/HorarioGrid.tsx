@@ -49,8 +49,24 @@ export function HorarioGrid({
   };
 
   return (
-    <TableContainer>
-      <Table size="small" sx={{ minWidth: 600 }}>
+    <TableContainer
+      sx={{
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        '&::-webkit-scrollbar': {
+          height: 8,
+        },
+        '&::-webkit-scrollbar-track': {
+          bgcolor: 'action.hover',
+          borderRadius: 4,
+        },
+        '&::-webkit-scrollbar-thumb': {
+          bgcolor: 'primary.light',
+          borderRadius: 4,
+        },
+      }}
+    >
+      <Table size="small" sx={{ minWidth: 600, tableLayout: 'fixed' }}>
         <TableHead>
           <TableRow>
             <TableCell

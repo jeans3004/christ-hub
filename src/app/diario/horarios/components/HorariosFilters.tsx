@@ -72,11 +72,19 @@ export function HorariosFilters({
   }
 
   return (
-    <Paper sx={{ p: 2, mb: 2 }}>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+    <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
         {/* Linha 1: Ano e ViewMode */}
-        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          <FormControl size="small" sx={{ minWidth: 100 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            gap: { xs: 1, sm: 2 },
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: { xs: 'space-between', sm: 'flex-start' },
+          }}
+        >
+          <FormControl size="small" sx={{ minWidth: { xs: 80, sm: 100 } }}>
             <InputLabel>Ano</InputLabel>
             <Select
               value={ano}
@@ -90,7 +98,11 @@ export function HorariosFilters({
           </FormControl>
 
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Typography variant="body2" color="text.secondary">
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ display: { xs: 'none', sm: 'block' } }}
+            >
               Visualizar por:
             </Typography>
             <ToggleButtonGroup
@@ -100,12 +112,16 @@ export function HorariosFilters({
               size="small"
             >
               <ToggleButton value="turma">
-                <ViewList sx={{ mr: 0.5, fontSize: 18 }} />
-                Turma
+                <ViewList sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 18 }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Turma
+                </Box>
               </ToggleButton>
               <ToggleButton value="professor">
-                <Person sx={{ mr: 0.5, fontSize: 18 }} />
-                Professor
+                <Person sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: 18 }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Professor
+                </Box>
               </ToggleButton>
             </ToggleButtonGroup>
           </Box>
@@ -114,7 +130,7 @@ export function HorariosFilters({
         {/* Linha 2: Selecao de Turma ou Professor */}
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
           {viewMode === 'turma' ? (
-            <FormControl size="small" sx={{ minWidth: 250, flex: 1, maxWidth: 400 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 250 }, flex: 1, maxWidth: { sm: 400 } }}>
               <InputLabel>Turma</InputLabel>
               {loading ? (
                 <Skeleton variant="rectangular" height={40} />
@@ -136,7 +152,7 @@ export function HorariosFilters({
               )}
             </FormControl>
           ) : (
-            <FormControl size="small" sx={{ minWidth: 250, flex: 1, maxWidth: 400 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 250 }, flex: 1, maxWidth: { sm: 400 } }}>
               <InputLabel>Professor</InputLabel>
               {loading ? (
                 <Skeleton variant="rectangular" height={40} />

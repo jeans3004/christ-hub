@@ -110,17 +110,17 @@ export default function HorariosPage() {
             alignItems: 'center',
             mb: 3,
             flexWrap: 'wrap',
-            gap: 2,
+            gap: { xs: 1, sm: 2 },
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Schedule color="primary" />
-            <Typography variant="h5" fontWeight={600}>
+            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
               Horarios
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
             {/* Toggle de visualizacao */}
             <ToggleButtonGroup
               value={gridViewType}
@@ -185,39 +185,70 @@ export default function HorariosPage() {
                 <CircularProgress />
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 4,
+                  mx: { xs: -2, sm: 0 },
+                }}
+              >
                 {/* Matutino */}
                 <Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    variant="h6"
+                    fontWeight={600}
+                    sx={{
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: { xs: 2, sm: 0 },
+                    }}
+                  >
                     <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%' }} />
                     Matutino
                   </Typography>
-                  <HorarioGridByTurno
-                    turno="Matutino"
-                    horarios={horarios}
-                    turmas={turmas}
-                    disciplinas={disciplinas}
-                    professores={professores}
-                    canEdit={canEdit}
-                    onCellClick={handleGridByTurnoClick}
-                  />
+                  <Box sx={{ borderRadius: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                    <HorarioGridByTurno
+                      turno="Matutino"
+                      horarios={horarios}
+                      turmas={turmas}
+                      disciplinas={disciplinas}
+                      professores={professores}
+                      canEdit={canEdit}
+                      onCellClick={handleGridByTurnoClick}
+                    />
+                  </Box>
                 </Box>
 
                 {/* Vespertino */}
                 <Box>
-                  <Typography variant="h6" fontWeight={600} sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Typography
+                    variant="h6"
+                    fontWeight={600}
+                    sx={{
+                      mb: 2,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      px: { xs: 2, sm: 0 },
+                    }}
+                  >
                     <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%' }} />
                     Vespertino
                   </Typography>
-                  <HorarioGridByTurno
-                    turno="Vespertino"
-                    horarios={horarios}
-                    turmas={turmas}
-                    disciplinas={disciplinas}
-                    professores={professores}
-                    canEdit={canEdit}
-                    onCellClick={handleGridByTurnoClick}
-                  />
+                  <Box sx={{ borderRadius: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                    <HorarioGridByTurno
+                      turno="Vespertino"
+                      horarios={horarios}
+                      turmas={turmas}
+                      disciplinas={disciplinas}
+                      professores={professores}
+                      canEdit={canEdit}
+                      onCellClick={handleGridByTurnoClick}
+                    />
+                  </Box>
                 </Box>
               </Box>
             )}
@@ -252,7 +283,15 @@ export default function HorariosPage() {
                 <CircularProgress />
               </Box>
             ) : (
-              <Paper sx={{ p: 2, overflow: 'auto' }}>
+              <Paper
+                sx={{
+                  p: { xs: 1, sm: 2 },
+                  overflow: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  mx: { xs: -2, sm: 0 },
+                  borderRadius: { xs: 0, sm: 1 },
+                }}
+              >
                 <HorarioGrid
                   horarios={horarios}
                   turmas={turmas}
