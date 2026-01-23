@@ -4,7 +4,7 @@
  * Pagina de chamada - registra presencas dos alunos.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper } from '@mui/material';
 import { Person, Edit as EditIcon, Assessment as ReportIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
@@ -12,10 +12,8 @@ import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
-import { chamadaService } from '@/services/firestore';
-import { Chamada } from '@/types';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, EspelhoChamada } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada } from './components';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -39,35 +37,6 @@ export default function ChamadaPage() {
   const [dataChamada, setDataChamada] = useState(new Date().toISOString().split('T')[0]);
   const [conteudoModalOpen, setConteudoModalOpen] = useState(false);
   const [dataConteudo, setDataConteudo] = useState(new Date().toISOString().split('T')[0]);
-
-  // State for espelho/relatorio
-  const [dataEspelho, setDataEspelho] = useState(new Date().toISOString().split('T')[0]);
-  const [chamadasEspelho, setChamadasEspelho] = useState<Chamada[]>([]);
-  const [loadingEspelho, setLoadingEspelho] = useState(false);
-
-  // Carregar chamadas do professor para o espelho
-  const loadEspelho = useCallback(async () => {
-    if (!usuario?.id || activeTab !== 1) return;
-
-    setLoadingEspelho(true);
-    try {
-      const data = new Date(dataEspelho + 'T12:00:00');
-      const chamadas = await chamadaService.getByProfessorData(usuario.id, data);
-      setChamadasEspelho(chamadas);
-    } catch (error) {
-      console.error('Erro ao carregar espelho:', error);
-      addToast('Erro ao carregar espelho da chamada', 'error');
-    } finally {
-      setLoadingEspelho(false);
-    }
-  }, [usuario?.id, dataEspelho, activeTab, addToast]);
-
-  // Recarregar espelho quando mudar data ou aba
-  useEffect(() => {
-    if (activeTab === 1) {
-      loadEspelho();
-    }
-  }, [activeTab, dataEspelho, loadEspelho]);
 
   // Chamada data hook
   const {
@@ -127,7 +96,7 @@ export default function ChamadaPage() {
           <Tab
             icon={<ReportIcon />}
             iconPosition="start"
-            label="Espelho do Dia"
+            label="Relatorios"
             sx={{ minHeight: 56 }}
           />
         </Tabs>
@@ -195,38 +164,13 @@ export default function ChamadaPage() {
         </Box>
       )}
 
-      {/* Tab: Espelho do Dia */}
+      {/* Tab: Relatorios */}
       {activeTab === 1 && (
         <Paper sx={{ overflow: 'hidden' }}>
-          {/* Filtro de Data */}
-          <Box sx={{ p: 2, bgcolor: 'background.default', borderBottom: 1, borderColor: 'divider' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
-              <Typography variant="body2" color="text.secondary">
-                Data:
-              </Typography>
-              <input
-                type="date"
-                value={dataEspelho}
-                onChange={(e) => setDataEspelho(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '4px',
-                  border: '1px solid #ccc',
-                  fontSize: '14px',
-                }}
-              />
-            </Box>
-          </Box>
-
-          {/* Espelho da Chamada */}
-          <EspelhoChamada
-            chamadas={chamadasEspelho}
+          <RelatoriosChamada
+            professor={usuario}
             turmas={turmas}
             disciplinas={todasDisciplinas}
-            professor={usuario}
-            data={dataEspelho}
-            loading={loadingEspelho}
-            onClose={() => setActiveTab(0)}
           />
         </Paper>
       )}
