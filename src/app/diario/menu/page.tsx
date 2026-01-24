@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Pagina inicial do Diario Digital.
+ * Pagina inicial do Luminar.
  */
 
 import { Box, Typography, Grid } from '@mui/material';
@@ -21,7 +21,7 @@ export default function MenuPage() {
   const { usuario } = useAuth();
 
   return (
-    <MainLayout title="Diario Digital">
+    <MainLayout title="Luminar">
       <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
         {/* Greeting */}
         <Box sx={{ mb: 4 }}>

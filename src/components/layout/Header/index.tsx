@@ -4,7 +4,7 @@
  * Header principal do sistema.
  */
 
-import { AppBar, Toolbar, Box, IconButton, Typography, useTheme, useMediaQuery, Tooltip } from '@mui/material';
+import { AppBar, Toolbar, Box, IconButton, useTheme, useMediaQuery, Tooltip } from '@mui/material';
 import { Menu as MenuIcon, MenuOpen as MenuOpenIcon } from '@mui/icons-material';
 import { useUIStore } from '@/store/uiStore';
 import { Logo } from './Logo';
@@ -13,11 +13,10 @@ import { HeaderActions } from './HeaderActions';
 import { UserMenu } from './UserMenu';
 
 interface HeaderProps {
-  title?: string;
   showMenuButton?: boolean;
 }
 
-export default function Header({ title, showMenuButton = true }: HeaderProps) {
+export default function Header({ showMenuButton = true }: HeaderProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { setSidebarOpen, toggleSidebarMode, sidebarMode, addToast } = useUIStore();
@@ -71,21 +70,6 @@ export default function Header({ title, showMenuButton = true }: HeaderProps) {
 
         {/* Logo */}
         <Logo />
-
-        {/* Title */}
-        {title && (
-          <Typography
-            variant="body1"
-            component="h1"
-            sx={{
-              ml: 2,
-              fontWeight: 500,
-              display: { xs: 'none', sm: 'block' },
-            }}
-          >
-            {title}
-          </Typography>
-        )}
 
         {/* Spacer */}
         <Box sx={{ flexGrow: 1 }} />

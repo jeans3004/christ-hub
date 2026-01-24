@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   const onSubmit = async (data: LoginFormData) => {
-    const email = `${data.cpf.replace(/\D/g, '')}@diario.local`;
+    const email = `${data.cpf.replace(/\D/g, '')}@luminar.local`;
     const result = await login(email, data.senha);
     if (result.success) {
       router.push('/diario/menu');
@@ -42,21 +42,22 @@ export default function LoginPage() {
       sx={{
         minHeight: '100vh',
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         bgcolor: 'background.default',
         p: 2,
       }}
     >
-      <Box sx={{ width: '100%', maxWidth: 400 }}>
-        <Logo />
+      <Logo />
 
+      <Box sx={{ width: '100%', maxWidth: 400 }}>
         <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
           <Typography variant="h6" textAlign="center" fontWeight={600} sx={{ mb: 1 }}>
             Bem-vindo
           </Typography>
           <Typography variant="body2" color="text.secondary" textAlign="center" sx={{ mb: 3 }}>
-            Faca login para acessar o sistema
+            Faca login para acessar a plataforma
           </Typography>
 
           <GoogleLoginButton

@@ -20,7 +20,7 @@ export default function MainLayout({
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <Header title={title} showMenuButton={showSidebar} />
+      <Header showMenuButton={showSidebar} />
 
       {showSidebar && <Sidebar />}
 

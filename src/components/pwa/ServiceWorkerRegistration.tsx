@@ -152,7 +152,7 @@ export default function ServiceWorkerRegistration() {
             '& .MuiAlert-message': { flex: 1 }
           }}
         >
-          Instale o SGE Diário para acesso rápido!
+          Instale o Luminar para acesso rapido!
         </Alert>
       </Snackbar>
 

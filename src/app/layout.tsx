@@ -1,17 +1,25 @@
 import type { Metadata, Viewport } from 'next';
+import { IBM_Plex_Sans } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 import ToastProvider from '@/components/ui/ToastProvider';
 import PWAProvider from '@/components/pwa/PWAProvider';
 import './globals.css';
 
+const ibmPlexSans = IBM_Plex_Sans({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-ibm-plex',
+});
+
 export const metadata: Metadata = {
-  title: 'SGE Diário Digital',
-  description: 'Sistema de Gestão Escolar - Diário Digital',
+  title: 'Luminar',
+  description: 'Luminar - Plataforma Educacional',
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon.png', sizes: 'any' },
       { url: '/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
@@ -23,9 +31,9 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SGE Diário',
+    title: 'Luminar',
   },
-  applicationName: 'SGE Diário Digital',
+  applicationName: 'Luminar',
   formatDetection: {
     telephone: false,
   },
@@ -33,8 +41,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#5B21B6' },
-    { media: '(prefers-color-scheme: dark)', color: '#1e1e2e' },
+    { media: '(prefers-color-scheme: light)', color: '#2A3F5F' },
+    { media: '(prefers-color-scheme: dark)', color: '#0D1117' },
   ],
   width: 'device-width',
   initialScale: 1,
@@ -49,7 +57,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" suppressHydrationWarning>
+    <html lang="pt-BR" className={ibmPlexSans.variable} suppressHydrationWarning>
       <body>
         <AppRouterCacheProvider>
           <ThemeProvider>
