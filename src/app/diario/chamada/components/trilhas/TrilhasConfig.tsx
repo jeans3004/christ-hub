@@ -28,17 +28,22 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   Save as SaveIcon,
   ExpandMore as ExpandMoreIcon,
   CheckBox as CheckAllIcon,
   CheckBoxOutlineBlank as UncheckAllIcon,
+  Edit as ManualIcon,
+  CloudUpload as ImportIcon,
 } from '@mui/icons-material';
 import { Aluno, Turma } from '@/types';
 import { alunoService, turmaService } from '@/services/firestore';
 import { AREAS_CONHECIMENTO, SERIES_ENSINO_MEDIO, AreaConhecimentoId } from '@/constants';
 import { useUIStore } from '@/store/uiStore';
+import { TrilhasImport } from './TrilhasImport';
 
 interface TrilhasConfigProps {
   ano: number;
@@ -51,6 +56,7 @@ interface AlunoComTurma extends Aluno {
 
 export function TrilhasConfig({ ano }: TrilhasConfigProps) {
   const { addToast } = useUIStore();
+  const [activeTab, setActiveTab] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alunos, setAlunos] = useState<AlunoComTurma[]>([]);
@@ -205,13 +211,36 @@ export function TrilhasConfig({ ano }: TrilhasConfigProps) {
 
   return (
     <Box>
+      {/* Tabs */}
+      <Paper sx={{ mb: 2 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(_, v) => setActiveTab(v)}
+          variant="fullWidth"
+        >
+          <Tab icon={<ManualIcon />} iconPosition="start" label="Atribuicao Manual" />
+          <Tab icon={<ImportIcon />} iconPosition="start" label="Importar do Forms" />
+        </Tabs>
+      </Paper>
+
+      {/* Tab: Importar */}
+      {activeTab === 1 && (
+        <TrilhasImport
+          alunos={alunos}
+          onImportComplete={loadData}
+        />
+      )}
+
+      {/* Tab: Manual */}
+      {activeTab === 0 && (
+      <Box>
       {/* Header */}
       <Paper sx={{ p: 2, mb: 2 }}>
         <Typography variant="h6" gutterBottom>
-          Configuração de Trilhas
+          Atribuicao Manual de Areas
         </Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Selecione os alunos e atribua-os a uma área do conhecimento.
+          Selecione os alunos e atribua-os a uma area do conhecimento.
         </Typography>
 
         {/* Resumo por area */}
@@ -343,6 +372,8 @@ export function TrilhasConfig({ ano }: TrilhasConfigProps) {
         <Alert severity="info">
           Nenhum aluno do Ensino Médio encontrado para o ano {ano}.
         </Alert>
+      )}
+      </Box>
       )}
     </Box>
   );
