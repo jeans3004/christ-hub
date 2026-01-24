@@ -149,14 +149,18 @@ export function useNotasData({
 
     const { av1, rp1, av2, rp2 } = alunoNotas;
 
+    // Nota final de cada AV (considera recuperacao se maior)
     const notaAv1 = av1 !== null ? (rp1 !== null && rp1 > av1 ? rp1 : av1) : (rp1 ?? null);
     const notaAv2 = av2 !== null ? (rp2 !== null && rp2 > av2 ? rp2 : av2) : (rp2 ?? null);
 
-    const valores = [notaAv1, notaAv2].filter(v => v !== null) as number[];
+    // Se nenhuma nota preenchida, retorna '-'
+    if (notaAv1 === null && notaAv2 === null) return '-';
 
-    if (valores.length === 0) return '-';
+    // Media aritmetica: nota faltante conta como zero
+    const valorAv1 = notaAv1 ?? 0;
+    const valorAv2 = notaAv2 ?? 0;
+    const media = (valorAv1 + valorAv2) / 2;
 
-    const media = valores.reduce((a, b) => a + b, 0) / valores.length;
     return media.toFixed(1);
   }, [notas]);
 
