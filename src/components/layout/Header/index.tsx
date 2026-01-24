@@ -9,7 +9,6 @@ import { Menu as MenuIcon, MenuOpen as MenuOpenIcon } from '@mui/icons-material'
 import { useUIStore } from '@/store/uiStore';
 import { Logo } from './Logo';
 import { ThemeToggle } from './ThemeToggle';
-import { HeaderActions } from './HeaderActions';
 import { UserMenu } from './UserMenu';
 
 interface HeaderProps {
@@ -19,7 +18,7 @@ interface HeaderProps {
 export default function Header({ showMenuButton = true }: HeaderProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { setSidebarOpen, toggleSidebarMode, sidebarMode, addToast } = useUIStore();
+  const { setSidebarOpen, toggleSidebarMode, sidebarMode } = useUIStore();
 
   const handleMenuClick = () => {
     if (isMobile) {
@@ -27,18 +26,6 @@ export default function Header({ showMenuButton = true }: HeaderProps) {
     } else {
       toggleSidebarMode();
     }
-  };
-
-  const handleHelp = () => {
-    addToast('Central de ajuda em desenvolvimento', 'info');
-  };
-
-  const handleNotifications = () => {
-    addToast('Notificações em desenvolvimento', 'info');
-  };
-
-  const handleApps = () => {
-    addToast('Menu de apps em desenvolvimento', 'info');
   };
 
   return (
@@ -77,11 +64,6 @@ export default function Header({ showMenuButton = true }: HeaderProps) {
         {/* Actions */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           <ThemeToggle />
-          <HeaderActions
-            onHelpClick={handleHelp}
-            onNotificationsClick={handleNotifications}
-            onAppsClick={handleApps}
-          />
           <UserMenu />
         </Box>
       </Toolbar>
@@ -91,5 +73,4 @@ export default function Header({ showMenuButton = true }: HeaderProps) {
 
 export { Logo } from './Logo';
 export { ThemeToggle } from './ThemeToggle';
-export { HeaderActions } from './HeaderActions';
 export { UserMenu } from './UserMenu';
