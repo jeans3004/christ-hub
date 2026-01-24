@@ -61,3 +61,7 @@ sistema_documentado/
 # Modelos de referência (não versionar)
 MODELO_IGNORAR/
 novoSISTEMAbase/
+
+# Temporary/Development files
+PROMPT/
+trilhas-module.zip
