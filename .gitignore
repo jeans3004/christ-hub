@@ -65,3 +65,6 @@ novoSISTEMAbase/
 # Temporary/Development files
 PROMPT/
 trilhas-module.zip
+
+# Modelo de prompt (não versionar)
+modeloDePrompt.md

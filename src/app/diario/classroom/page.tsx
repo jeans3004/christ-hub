@@ -26,6 +26,7 @@ import {
   FileDownload as ExportIcon,
   Add as AddIcon,
   Topic as TopicIcon,
+  PersonAdd as PersonAddIcon,
 } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -40,6 +41,7 @@ import {
   ExportModal,
   ClassroomComposer,
   TopicsManager,
+  InviteTeacherModal,
 } from './components';
 
 type TabValue = 'turmas' | 'atividades' | 'anuncios' | 'alunos' | 'professores';
@@ -51,6 +53,7 @@ export default function ClassroomPage() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [topicsOpen, setTopicsOpen] = useState(false);
+  const [inviteTeacherOpen, setInviteTeacherOpen] = useState(false);
 
   const {
     courses,
@@ -60,6 +63,7 @@ export default function ClassroomPage() {
     announcements,
     students,
     teachers,
+    invitations,
     submissions,
     topics,
     stats,
@@ -86,6 +90,9 @@ export default function ClassroomPage() {
     deleteMultipleCourseWork,
     editAnnouncement,
     editCourseWork,
+    inviteTeacher,
+    removeTeacher,
+    cancelInvitation,
   } = useClassroomActions();
 
   // Carregar turmas ao montar
@@ -176,6 +183,25 @@ export default function ClassroomPage() {
     refreshSelectedCourses();
   };
 
+  const handleInviteTeacher = async (email: string, courseIds: string[]) => {
+    const results = await inviteTeacher(email, courseIds);
+    // Refresh para mostrar novos professores
+    if (results.some((r) => r.success)) {
+      refreshSelectedCourses();
+    }
+    return results;
+  };
+
+  const handleRemoveTeacher = async (courseId: string, userId: string) => {
+    await removeTeacher(courseId, userId);
+    refreshSelectedCourses();
+  };
+
+  const handleCancelInvitation = async (invitationId: string) => {
+    await cancelInvitation(invitationId);
+    refreshSelectedCourses();
+  };
+
   const isMultiCourse = selectedCourseIds.length > 1;
   const hasSelectedCourses = selectedCourseIds.length > 0;
 
@@ -224,6 +250,16 @@ export default function ClassroomPage() {
                 onClick={() => setTopicsOpen(true)}
               >
                 Temas
+              </Button>
+            )}
+            {can('classroom:post') && (
+              <Button
+                variant="outlined"
+                color="info"
+                startIcon={<PersonAddIcon />}
+                onClick={() => setInviteTeacherOpen(true)}
+              >
+                Convidar Professor
               </Button>
             )}
             {hasSelectedCourses && can('classroom:export') && (
@@ -374,9 +410,11 @@ export default function ClassroomPage() {
         {activeTab === 'professores' && hasSelectedCourses && (
           <TeachersTable
             teachers={teachers}
+            invitations={invitations}
             isLoading={isLoadingDetails}
             getCourseNameById={getCourseNameById}
             isMultiCourse={isMultiCourse}
+            onCancelInvitation={can('classroom:post') ? handleCancelInvitation : undefined}
           />
         )}
 
@@ -419,6 +457,14 @@ export default function ClassroomPage() {
           topics={topics}
           onTopicCreated={refreshSelectedCourses}
           getCourseNameById={getCourseNameById}
+        />
+
+        {/* Modal de convite de professor */}
+        <InviteTeacherModal
+          open={inviteTeacherOpen}
+          onClose={() => setInviteTeacherOpen(false)}
+          courses={courses}
+          onInvite={handleInviteTeacher}
         />
       </Box>
     </MainLayout>

@@ -16,6 +16,7 @@ import type {
   ClassroomStudent,
   ClassroomTeacher,
   ClassroomTopic,
+  ClassroomInvitationWithProfile,
 } from '@/types/classroom';
 
 export function useClassroomLoader() {
@@ -28,6 +29,7 @@ export function useClassroomLoader() {
     announcements,
     students,
     teachers,
+    invitations,
     submissions,
     topics,
     isLoading,
@@ -41,6 +43,7 @@ export function useClassroomLoader() {
     setAnnouncements,
     setStudents,
     setTeachers,
+    setInvitations,
     setSubmissions,
     setTopics,
     setLoading,
@@ -161,6 +164,7 @@ export function useClassroomLoader() {
         setAnnouncements([]);
         setStudents([]);
         setTeachers([]);
+        setInvitations([]);
         setTopics([]);
         return;
       }
@@ -174,14 +178,15 @@ export function useClassroomLoader() {
         // Carregar dados de todas as turmas em paralelo
         const results = await Promise.all(
           courseIds.map(async (courseId) => {
-            const [work, anns, studs, tchs, tpcs] = await Promise.all([
+            const [work, anns, studs, tchs, invs, tpcs] = await Promise.all([
               service.listCourseWork(courseId, { courseWorkStates: ['PUBLISHED'] }),
               service.listAnnouncements(courseId, { announcementStates: ['PUBLISHED'] }),
               service.listStudents(courseId),
               service.listTeachers(courseId),
+              service.listInvitations(courseId),
               service.listTopics(courseId),
             ]);
-            return { courseId, work, anns, studs, tchs, tpcs };
+            return { courseId, work, anns, studs, tchs, invs, tpcs };
           })
         );
 
@@ -190,6 +195,7 @@ export function useClassroomLoader() {
         let allAnns: ClassroomAnnouncement[] = [];
         let allStuds: ClassroomStudent[] = [];
         let allTeachers: ClassroomTeacher[] = [];
+        let allInvitations: ClassroomInvitationWithProfile[] = [];
         let allTopics: ClassroomTopic[] = [];
 
         for (const result of results) {
@@ -197,6 +203,7 @@ export function useClassroomLoader() {
           allAnns = [...allAnns, ...result.anns];
           allStuds = [...allStuds, ...result.studs];
           allTeachers = [...allTeachers, ...result.tchs];
+          allInvitations = [...allInvitations, ...result.invs];
           allTopics = [...allTopics, ...result.tpcs];
         }
 
@@ -224,6 +231,7 @@ export function useClassroomLoader() {
         setAnnouncements(allAnns);
         setStudents(allStuds);
         setTeachers(allTeachers);
+        setInvitations(allInvitations);
         setTopics(allTopics);
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Erro ao carregar detalhes das turmas';
@@ -239,6 +247,7 @@ export function useClassroomLoader() {
       setAnnouncements,
       setStudents,
       setTeachers,
+      setInvitations,
       setTopics,
       setLoadingDetails,
       setError,
@@ -319,6 +328,7 @@ export function useClassroomLoader() {
     announcements,
     students,
     teachers,
+    invitations,
     submissions,
     topics,
     stats,

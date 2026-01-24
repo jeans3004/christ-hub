@@ -12,6 +12,9 @@ import type {
   ClassroomStudent,
   ClassroomTeacher,
   ClassroomTopic,
+  ClassroomInvitation,
+  ClassroomInvitationWithProfile,
+  ClassroomUserProfile,
   CreateAnnouncementPayload,
   CreateCourseWorkPayload,
 } from '@/types/classroom';
@@ -105,6 +108,64 @@ export function createClassroomService(accessToken: string) {
       const response = await fetch(`${CLASSROOM_API_BASE}/courses/${courseId}/teachers`, { headers });
       const data = await handleResponse<{ teachers?: ClassroomTeacher[] }>(response);
       return data.teachers || [];
+    },
+
+    /**
+     * Convida um professor para uma turma usando a Invitations API.
+     * Cria um convite que o professor precisa aceitar (igual ao fluxo manual).
+     */
+    async inviteTeacher(courseId: string, emailAddress: string): Promise<ClassroomInvitation> {
+      const response = await fetch(`${CLASSROOM_API_BASE}/invitations`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: emailAddress,
+          courseId: courseId,
+          role: 'TEACHER',
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error?.message || errorMessage;
+          console.error('Classroom API inviteTeacher error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorJson,
+            courseId,
+            emailAddress,
+          });
+        } catch {
+          console.error('Classroom API inviteTeacher error (raw):', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText,
+            courseId,
+            emailAddress,
+          });
+        }
+        throw new Error(errorMessage);
+      }
+      return response.json();
+    },
+
+    /**
+     * Remove um professor de uma turma
+     */
+    async removeTeacher(courseId: string, userId: string): Promise<void> {
+      const response = await fetch(
+        `${CLASSROOM_API_BASE}/courses/${courseId}/teachers/${userId}`,
+        {
+          method: 'DELETE',
+          headers,
+        }
+      );
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error?.message || `Erro ${response.status}: ${response.statusText}`);
+      }
     },
 
     // ==========================================
@@ -262,6 +323,61 @@ export function createClassroomService(accessToken: string) {
       const response = await fetch(`${CLASSROOM_API_BASE}/courses/${courseId}/topics`, { headers });
       const data = await handleResponse<{ topic?: ClassroomTopic[] }>(response);
       return data.topic || [];
+    },
+
+    /**
+     * Obtem o perfil de um usuario pelo ID
+     */
+    async getUserProfile(userId: string): Promise<ClassroomUserProfile | null> {
+      try {
+        const response = await fetch(
+          `${CLASSROOM_API_BASE}/userProfiles/${userId}`,
+          { headers }
+        );
+        if (!response.ok) return null;
+        return response.json();
+      } catch {
+        return null;
+      }
+    },
+
+    /**
+     * Lista convites pendentes de uma turma com perfis dos usuarios
+     */
+    async listInvitations(courseId: string): Promise<ClassroomInvitationWithProfile[]> {
+      const response = await fetch(
+        `${CLASSROOM_API_BASE}/invitations?courseId=${courseId}`,
+        { headers }
+      );
+      const data = await handleResponse<{ invitations?: ClassroomInvitation[] }>(response);
+      const invitations = data.invitations || [];
+
+      // Buscar perfil de cada usuario convidado
+      const invitationsWithProfile: ClassroomInvitationWithProfile[] = await Promise.all(
+        invitations.map(async (inv) => {
+          const profile = await this.getUserProfile(inv.userId);
+          return { ...inv, profile };
+        })
+      );
+
+      return invitationsWithProfile;
+    },
+
+    /**
+     * Cancela um convite pendente
+     */
+    async deleteInvitation(invitationId: string): Promise<void> {
+      const response = await fetch(
+        `${CLASSROOM_API_BASE}/invitations/${invitationId}`,
+        {
+          method: 'DELETE',
+          headers,
+        }
+      );
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error?.message || `Erro ${response.status}: ${response.statusText}`);
+      }
     },
 
     // ==========================================

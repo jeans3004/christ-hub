@@ -170,6 +170,17 @@ export interface ClassroomTopic {
   updateTime: string;
 }
 
+export interface ClassroomInvitation {
+  id: string;
+  userId: string;
+  courseId: string;
+  role: 'STUDENT' | 'TEACHER' | 'OWNER';
+}
+
+export interface ClassroomInvitationWithProfile extends ClassroomInvitation {
+  profile: ClassroomUserProfile | null;
+}
+
 // ============================================
 // TIPOS AUXILIARES DO MODULO
 // ============================================

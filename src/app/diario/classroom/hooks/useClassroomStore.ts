@@ -14,8 +14,46 @@ import type {
   ClassroomTeacher,
   ClassroomStudentSubmission,
   ClassroomTopic,
-  ClassroomStoreState,
+  ClassroomInvitationWithProfile,
 } from '@/types/classroom';
+
+interface ClassroomStoreState {
+  // Dados
+  courses: ClassroomCourse[];
+  selectedCourseIds: string[];
+  courseWork: ClassroomCourseWork[];
+  announcements: ClassroomAnnouncement[];
+  students: ClassroomStudent[];
+  teachers: ClassroomTeacher[];
+  invitations: ClassroomInvitationWithProfile[];
+  submissions: Map<string, ClassroomStudentSubmission[]>;
+  topics: ClassroomTopic[];
+
+  // UI State
+  isLoading: boolean;
+  isLoadingDetails: boolean;
+  error: string | null;
+  lastSync: Date | null;
+
+  // Actions
+  setCourses: (courses: ClassroomCourse[]) => void;
+  setSelectedCourses: (courseIds: string[]) => void;
+  addSelectedCourse: (courseId: string) => void;
+  removeSelectedCourse: (courseId: string) => void;
+  toggleSelectedCourse: (courseId: string) => void;
+  setCourseWork: (courseWork: ClassroomCourseWork[]) => void;
+  setAnnouncements: (announcements: ClassroomAnnouncement[]) => void;
+  setStudents: (students: ClassroomStudent[]) => void;
+  setTeachers: (teachers: ClassroomTeacher[]) => void;
+  setInvitations: (invitations: ClassroomInvitationWithProfile[]) => void;
+  setSubmissions: (courseWorkId: string, submissions: ClassroomStudentSubmission[]) => void;
+  setTopics: (topics: ClassroomTopic[]) => void;
+  setLoading: (loading: boolean) => void;
+  setLoadingDetails: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  setLastSync: (date: Date) => void;
+  reset: () => void;
+}
 
 export const useClassroomStore = create<ClassroomStoreState>((set) => ({
   // Estado inicial
@@ -25,6 +63,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
   announcements: [],
   students: [],
   teachers: [],
+  invitations: [],
   submissions: new Map(),
   topics: [],
   isLoading: false,
@@ -43,6 +82,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
       announcements: [],
       students: [],
       teachers: [],
+      invitations: [],
       submissions: new Map(),
       topics: [],
     }),
@@ -74,6 +114,8 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
 
   setTeachers: (teachers) => set({ teachers }),
 
+  setInvitations: (invitations) => set({ invitations }),
+
   setSubmissions: (courseWorkId, submissions) =>
     set((state) => {
       const newMap = new Map(state.submissions);
@@ -99,6 +141,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
       announcements: [],
       students: [],
       teachers: [],
+      invitations: [],
       submissions: new Map(),
       topics: [],
       isLoading: false,

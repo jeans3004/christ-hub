@@ -369,6 +369,94 @@ export function useClassroomActions() {
     [accessToken, addToast]
   );
 
+  /**
+   * Convida um professor para multiplas turmas
+   */
+  const inviteTeacher = useCallback(
+    async (
+      email: string,
+      courseIds: string[]
+    ): Promise<{ courseId: string; success: boolean; error?: string }[]> => {
+      if (!accessToken) {
+        addToast('Token de acesso nao disponivel', 'error');
+        throw new Error('Token de acesso nao disponivel');
+      }
+
+      const service = createClassroomService(accessToken);
+      const results: { courseId: string; success: boolean; error?: string }[] = [];
+
+      for (const courseId of courseIds) {
+        try {
+          await service.inviteTeacher(courseId, email);
+          results.push({ courseId, success: true });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Erro desconhecido';
+          results.push({ courseId, success: false, error: message });
+        }
+      }
+
+      const successCount = results.filter((r) => r.success).length;
+      const errorCount = results.filter((r) => !r.success).length;
+
+      if (errorCount === 0) {
+        addToast(`Professor convidado para ${successCount} turma(s)!`, 'success');
+      } else if (successCount > 0) {
+        addToast(`${successCount} convite(s) enviado(s), ${errorCount} erro(s)`, 'warning');
+      } else {
+        addToast('Erro ao convidar professor', 'error');
+      }
+
+      return results;
+    },
+    [accessToken, addToast]
+  );
+
+  /**
+   * Remove um professor de uma turma
+   */
+  const removeTeacher = useCallback(
+    async (courseId: string, userId: string): Promise<void> => {
+      if (!accessToken) {
+        addToast('Token de acesso nao disponivel', 'error');
+        throw new Error('Token de acesso nao disponivel');
+      }
+
+      try {
+        const service = createClassroomService(accessToken);
+        await service.removeTeacher(courseId, userId);
+        addToast('Professor removido da turma!', 'success');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao remover professor';
+        addToast(message, 'error');
+        throw err;
+      }
+    },
+    [accessToken, addToast]
+  );
+
+  /**
+   * Cancela um convite pendente
+   */
+  const cancelInvitation = useCallback(
+    async (invitationId: string): Promise<void> => {
+      if (!accessToken) {
+        addToast('Token de acesso nao disponivel', 'error');
+        throw new Error('Token de acesso nao disponivel');
+      }
+
+      try {
+        const service = createClassroomService(accessToken);
+        await service.deleteInvitation(invitationId);
+        addToast('Convite cancelado com sucesso!', 'success');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao cancelar convite';
+        addToast(message, 'error');
+        throw err;
+      }
+    },
+    [accessToken, addToast]
+  );
+
   return {
     exportCourseWork,
     exportGrades,
@@ -380,5 +468,8 @@ export function useClassroomActions() {
     deleteMultipleCourseWork,
     editAnnouncement,
     editCourseWork,
+    inviteTeacher,
+    removeTeacher,
+    cancelInvitation,
   };
 }

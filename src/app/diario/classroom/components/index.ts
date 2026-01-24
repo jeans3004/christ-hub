@@ -12,3 +12,4 @@ export { ExportModal } from './ExportModal';
 export { AnnouncementComposer } from './AnnouncementComposer';
 export { ClassroomComposer } from './ClassroomComposer';
 export { TopicsManager } from './TopicsManager';
+export { InviteTeacherModal } from './InviteTeacherModal';

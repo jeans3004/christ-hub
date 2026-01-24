@@ -22,11 +22,17 @@ googleProvider.addScope('https://www.googleapis.com/auth/classroom.courseworkmat
 googleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements');
 googleProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.students');
 googleProvider.addScope('https://www.googleapis.com/auth/classroom.topics');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.rosters'); // Convidar/remover professores e alunos
 
-// Forcar consent e limitar ao dominio permitido
+// Escopos de perfil do Google Classroom (para ver email e foto dos usuarios)
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.profile.emails');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.profile.photos');
+
+// Forcar selecao de conta e consent para garantir novos scopes
 googleProvider.setCustomParameters({
-  prompt: 'consent',
+  prompt: 'select_account consent',
   hd: 'christmaster.com.br', // Hosted domain - so mostra contas desse dominio
+  access_type: 'offline', // Permite refresh token
 });
 
 // Escopos do Drive
