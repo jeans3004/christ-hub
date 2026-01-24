@@ -23,6 +23,7 @@ export {
   eventoService,
   relatorioService,
   horarioService,
+  classroomTemplateService,
   extractVariables,
   replaceVariables,
   getDocument,
