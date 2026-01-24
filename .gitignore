@@ -68,3 +68,6 @@ trilhas-module.zip
 
 # Modelo de prompt (não versionar)
 modeloDePrompt.md
+
+# Windows Zone.Identifier files
+*:Zone.Identifier
