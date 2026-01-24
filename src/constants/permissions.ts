@@ -75,7 +75,11 @@ export type Permission =
   | 'horarios:view'
   | 'horarios:create'
   | 'horarios:edit'
-  | 'horarios:delete';
+  | 'horarios:delete'
+  // Google Classroom
+  | 'classroom:view'
+  | 'classroom:export'
+  | 'classroom:post';
 
 /**
  * Permissoes base que todos os usuarios tem.
@@ -107,6 +111,8 @@ const PROFESSOR_PERMISSIONS: Permission[] = [
   'ocorrencias:view',
   'ocorrencias:create',
   'horarios:view',
+  'classroom:view',
+  'classroom:post',
 ];
 
 /**
@@ -146,6 +152,7 @@ const COORDENADOR_PERMISSIONS: Permission[] = [
   'horarios:create',
   'horarios:edit',
   'horarios:delete',
+  'classroom:export',
 ];
 
 /**

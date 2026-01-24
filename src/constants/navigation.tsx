@@ -19,6 +19,7 @@ import {
   GridView,
   WhatsApp,
   Schedule,
+  CloudQueue,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -93,6 +94,12 @@ export const NAVIGATION: NavSection[] = [
         permission: 'mensagens:view',
         minRole: 'coordenador',
       },
+      {
+        label: 'Google Classroom',
+        icon: <CloudQueue />,
+        href: '/diario/classroom',
+        permission: 'classroom:view',
+      },
       { label: 'Familia', icon: <FamilyRestroom />, href: '/diario/familia', minRole: 'coordenador' },
     ],
   },
@@ -162,6 +169,7 @@ export const ROUTES = {
   CONFIGURACOES: '/diario/configuracoes',
   SENHA: '/diario/senha',
   MENSAGENS: '/diario/mensagens',
+  CLASSROOM: '/diario/classroom',
 } as const;
 
 /**
