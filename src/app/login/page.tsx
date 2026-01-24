@@ -89,33 +89,33 @@ export default function LoginPage() {
             Ao fazer login, voce concorda com nossos
           </Typography>
           <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
-            <NextLink href="/termos-servico" passHref legacyBehavior>
-              <Link
-                variant="caption"
-                sx={{
-                  color: '#2A3F5F',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  '&:hover': { color: '#E5A53A' },
-                }}
-              >
-                Termos de Servico
-              </Link>
-            </NextLink>
+            <Link
+              component={NextLink}
+              href="/termos-servico"
+              variant="caption"
+              sx={{
+                color: '#2A3F5F',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                '&:hover': { color: '#E5A53A' },
+              }}
+            >
+              Termos de Servico
+            </Link>
             <Typography variant="caption" color="text.secondary">e</Typography>
-            <NextLink href="/politica-privacidade" passHref legacyBehavior>
-              <Link
-                variant="caption"
-                sx={{
-                  color: '#2A3F5F',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  '&:hover': { color: '#E5A53A' },
-                }}
-              >
-                Politica de Privacidade
-              </Link>
-            </NextLink>
+            <Link
+              component={NextLink}
+              href="/politica-privacidade"
+              variant="caption"
+              sx={{
+                color: '#2A3F5F',
+                textDecoration: 'underline',
+                cursor: 'pointer',
+                '&:hover': { color: '#E5A53A' },
+              }}
+            >
+              Politica de Privacidade
+            </Link>
           </Box>
         </Box>
       </Box>
