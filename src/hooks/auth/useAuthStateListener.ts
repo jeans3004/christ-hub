@@ -3,14 +3,16 @@
 /**
  * Hook para gerenciar o listener de estado de autenticacao.
  * Inclui logica de linking automatico de UID para pre-cadastros.
+ * Tambem gerencia persistencia do token OAuth do Google.
  */
 
 import { useEffect } from 'react';
-import { onAuthStateChanged, signOut, getRedirectResult } from 'firebase/auth';
+import { onAuthStateChanged, signOut, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
+import { useDriveStore } from '@/store/driveStore';
 import { Usuario, UserRole } from '@/types';
 import { getRoleForEmail, isAllowedDomain, ALLOWED_DOMAIN } from '@/lib/permissions';
 import { usuarioService } from '@/services/firestore';
@@ -52,6 +54,15 @@ export function useAuthStateListener() {
             addToast(`Acesso negado. Apenas emails @${ALLOWED_DOMAIN} são permitidos.`, 'error');
             return;
           }
+
+          // Capturar token do Google OAuth do resultado do redirect
+          const credential = GoogleAuthProvider.credentialFromResult(result);
+          if (credential?.accessToken) {
+            const driveStore = useDriveStore.getState();
+            driveStore.setAccessToken(credential.accessToken, 3600);
+            initializeDriveFolders(credential.accessToken);
+          }
+
           addToast(`Bem-vindo, ${result.user.displayName}!`, 'success');
         }
       })
@@ -60,6 +71,37 @@ export function useAuthStateListener() {
           console.error('Redirect result error:', error);
         }
       });
+
+    // Funcao helper para inicializar pastas do Drive
+    const initializeDriveFolders = (accessToken: string) => {
+      const driveStore = useDriveStore.getState();
+      driveStore.setInitializing(true);
+      fetch('/api/drive/init-folders', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+      })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success && data.folderIds) {
+            driveStore.setFolderIds(data.folderIds);
+            driveStore.setInitialized(true);
+            console.log('Drive folders initialized:', data.folderIds);
+          } else {
+            console.error('Failed to initialize Drive folders:', data.error);
+            driveStore.setInitialized(false);
+          }
+        })
+        .catch(error => {
+          console.error('Error initializing Drive folders:', error);
+          driveStore.setInitialized(false);
+        })
+        .finally(() => {
+          driveStore.setInitializing(false);
+        });
+    };
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
@@ -79,6 +121,18 @@ export function useAuthStateListener() {
           displayName: firebaseUser.displayName,
           photoURL: firebaseUser.photoURL,
         });
+
+        // Tentar carregar token do sessionStorage ao recarregar a pagina
+        const driveStore = useDriveStore.getState();
+        if (!driveStore.accessToken) {
+          const hasStoredToken = driveStore.loadStoredToken();
+          if (hasStoredToken && driveStore.accessToken) {
+            // Token recuperado do storage - inicializar Drive se necessario
+            if (!driveStore.isInitialized && !driveStore.isInitializing) {
+              initializeDriveFolders(driveStore.accessToken);
+            }
+          }
+        }
 
         try {
           // Primeiro, verifica se existe um usuario com este UID

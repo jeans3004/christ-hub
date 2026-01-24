@@ -1,13 +1,49 @@
 /**
  * Store para gerenciamento de estado do Google Drive.
- * Access token mantido apenas em memoria (nao persiste).
+ * Access token persistido em sessionStorage para sobreviver reloads.
  */
 
 import { create } from 'zustand';
 import { DriveFolderIds } from '@/types/drive';
 
+const TOKEN_STORAGE_KEY = 'google_access_token';
+const TOKEN_EXPIRES_KEY = 'google_token_expires';
+
+// Helpers para sessionStorage
+const saveTokenToStorage = (token: string, expiresAt: Date) => {
+  if (typeof window !== 'undefined') {
+    sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
+    sessionStorage.setItem(TOKEN_EXPIRES_KEY, expiresAt.toISOString());
+  }
+};
+
+const loadTokenFromStorage = (): { token: string | null; expiresAt: Date | null } => {
+  if (typeof window === 'undefined') {
+    return { token: null, expiresAt: null };
+  }
+  const token = sessionStorage.getItem(TOKEN_STORAGE_KEY);
+  const expiresStr = sessionStorage.getItem(TOKEN_EXPIRES_KEY);
+  const expiresAt = expiresStr ? new Date(expiresStr) : null;
+
+  // Verificar se o token ainda e valido
+  if (token && expiresAt && new Date() < expiresAt) {
+    return { token, expiresAt };
+  }
+
+  // Token expirado ou inexistente
+  clearTokenFromStorage();
+  return { token: null, expiresAt: null };
+};
+
+const clearTokenFromStorage = () => {
+  if (typeof window !== 'undefined') {
+    sessionStorage.removeItem(TOKEN_STORAGE_KEY);
+    sessionStorage.removeItem(TOKEN_EXPIRES_KEY);
+  }
+};
+
 interface DriveState {
-  // Token de acesso (em memoria apenas, nao persiste)
+  // Token de acesso (persistido em sessionStorage)
   accessToken: string | null;
   tokenExpiresAt: Date | null;
 
@@ -22,6 +58,7 @@ interface DriveState {
   // Acoes
   setAccessToken: (token: string, expiresInSeconds: number) => void;
   clearAccessToken: () => void;
+  loadStoredToken: () => boolean;
   setFolderIds: (ids: DriveFolderIds) => void;
   setInitializing: (initializing: boolean) => void;
   setInitialized: (initialized: boolean) => void;
@@ -46,6 +83,7 @@ export const useDriveStore = create<DriveState>()((set, get) => ({
   // Acoes
   setAccessToken: (token, expiresInSeconds) => {
     const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
+    saveTokenToStorage(token, expiresAt);
     set({
       accessToken: token,
       tokenExpiresAt: expiresAt,
@@ -53,10 +91,23 @@ export const useDriveStore = create<DriveState>()((set, get) => ({
   },
 
   clearAccessToken: () => {
+    clearTokenFromStorage();
     set({
       accessToken: null,
       tokenExpiresAt: null,
     });
+  },
+
+  loadStoredToken: () => {
+    const { token, expiresAt } = loadTokenFromStorage();
+    if (token && expiresAt) {
+      set({
+        accessToken: token,
+        tokenExpiresAt: expiresAt,
+      });
+      return true;
+    }
+    return false;
   },
 
   setFolderIds: (ids) => {
@@ -80,6 +131,7 @@ export const useDriveStore = create<DriveState>()((set, get) => ({
   },
 
   reset: () => {
+    clearTokenFromStorage();
     set({
       accessToken: null,
       tokenExpiresAt: null,
