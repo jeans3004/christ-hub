@@ -12,10 +12,14 @@ export function getAvaliacaoAluno(
   avaliacoes: AvaliacaoRubrica[],
   alunoId: string,
   rubricaId: string,
-  componenteId: string
+  componenteId: string,
+  av?: 'av1' | 'av2'
 ): NivelRubrica | null {
   const avaliacao = avaliacoes.find(
-    (a) => a.alunoId === alunoId && a.rubricaId === rubricaId && a.componenteId === componenteId
+    (a) => a.alunoId === alunoId &&
+           a.rubricaId === rubricaId &&
+           a.componenteId === componenteId &&
+           (av ? a.av === av : true)
   );
   return avaliacao?.nivel || null;
 }
@@ -34,7 +38,8 @@ export function calcularValorComponente(
   componente: NotaComposicao,
   alunoId: string,
   avaliacoes: AvaliacaoRubrica[],
-  rubricas: RubricaInfo[]
+  rubricas: RubricaInfo[],
+  av?: 'av1' | 'av2'
 ): { valor: number | null; detalhes: RubricaDetalhe[] } {
   const rubricaIds = componente.rubricaIds || [];
 
@@ -48,7 +53,7 @@ export function calcularValorComponente(
   const detalhes: RubricaDetalhe[] = [];
 
   for (const rubricaId of rubricaIds) {
-    const nivel = getAvaliacaoAluno(avaliacoes, alunoId, rubricaId, componente.id);
+    const nivel = getAvaliacaoAluno(avaliacoes, alunoId, rubricaId, componente.id, av);
     const rubricaNome = getRubricaNome(rubricas, rubricaId);
 
     if (nivel === null) {
@@ -86,10 +91,11 @@ export function gerarFormula(
   subNotas: NotaComposicao[],
   alunoId: string,
   avaliacoes: AvaliacaoRubrica[],
-  rubricas: RubricaInfo[]
+  rubricas: RubricaInfo[],
+  av?: 'av1' | 'av2'
 ): FormulaDetalhada {
   const componentes: ComponenteFormula[] = subNotas.map((sub) => {
-    const { detalhes } = calcularValorComponente(sub, alunoId, avaliacoes, rubricas);
+    const { detalhes } = calcularValorComponente(sub, alunoId, avaliacoes, rubricas, av);
     const todasRubricasAvaliadas = detalhes.length > 0 && detalhes.every((d) => d.nivel !== null);
     return {
       nome: sub.nome,

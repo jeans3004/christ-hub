@@ -51,7 +51,7 @@ export function useNotasComposition({
 
       // Calcular valores dos componentes
       const calculatedSubNotas = template.map((t) => {
-        const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas);
+        const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas, av);
         return { ...t, valor };
       });
 
@@ -120,7 +120,7 @@ export function useNotasComposition({
 
     const template = getTemplate(av);
     const novasSubNotas = template.map((t) => {
-      const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas);
+      const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas, av);
       return { ...t, valor };
     });
 
@@ -160,8 +160,8 @@ export function useNotasComposition({
 
   const gerarFormulaDetalhada = useCallback((): FormulaDetalhada | null => {
     if (subNotas.length === 0 || !editingCellKey) return null;
-    const { alunoId } = parseCellKey(editingCellKey);
-    return gerarFormula(subNotas, alunoId, avaliacoes, rubricas);
+    const { alunoId, av } = parseCellKey(editingCellKey);
+    return gerarFormula(subNotas, alunoId, avaliacoes, rubricas, av);
   }, [subNotas, editingCellKey, avaliacoes, rubricas]);
 
   const handleSaveNotasComposicao = useCallback(async () => {
