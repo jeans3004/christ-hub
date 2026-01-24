@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import NextLink from 'next/link';
 import { Box, Paper, Typography, Link, Collapse } from '@mui/material';
 import { LoginFormData } from '@/lib/validations';
 import { useAuth } from '@/hooks/useAuth';
@@ -83,9 +84,40 @@ export default function LoginPage() {
           </Collapse>
         </Paper>
 
-        <Typography variant="caption" color="text.secondary" textAlign="center" display="block" sx={{ mt: 3 }}>
-          Ao continuar, voce concorda com nossos Termos de Uso e Politica de Privacidade
-        </Typography>
+        <Box sx={{ mt: 3, textAlign: 'center' }}>
+          <Typography variant="caption" color="text.secondary">
+            Ao fazer login, voce concorda com nossos
+          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, mt: 0.5 }}>
+            <NextLink href="/termos-servico" passHref legacyBehavior>
+              <Link
+                variant="caption"
+                sx={{
+                  color: '#2A3F5F',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  '&:hover': { color: '#E5A53A' },
+                }}
+              >
+                Termos de Servico
+              </Link>
+            </NextLink>
+            <Typography variant="caption" color="text.secondary">e</Typography>
+            <NextLink href="/politica-privacidade" passHref legacyBehavior>
+              <Link
+                variant="caption"
+                sx={{
+                  color: '#2A3F5F',
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  '&:hover': { color: '#E5A53A' },
+                }}
+              >
+                Politica de Privacidade
+              </Link>
+            </NextLink>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
