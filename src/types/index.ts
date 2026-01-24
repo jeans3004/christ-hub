@@ -612,3 +612,47 @@ export interface TemplateVariables {
   disciplinas?: string;
   turmas?: string;
 }
+
+// =====================================
+// Importacao de Areas do Conhecimento
+// =====================================
+
+export interface ImportacaoAreaConfig {
+  spreadsheetId?: string;
+  spreadsheetUrl?: string;
+  colunaIdentificador: 'email' | 'matricula' | 'nome';
+  colunaNome: number;
+  colunaSerie: number;
+  colunaArea: number;
+  colunaAreaSecundaria?: number;
+}
+
+export interface ImportacaoAreaPreview {
+  linhasValidas: PreviewLinha[];
+  linhasInvalidas: PreviewLinhaErro[];
+  resumoPorArea: Record<string, number>;
+  resumoPorSerie: Record<string, number>;
+}
+
+export interface PreviewLinha {
+  linha: number;
+  identificador: string;
+  nome: string;
+  serie: string;
+  area: string;
+  areaId: string | null;
+  alunoExistente?: {
+    id: string;
+    nome: string;
+    turma: string;
+    areaAtual?: string;
+  };
+}
+
+export interface PreviewLinhaErro {
+  linha: number;
+  dados: string[];
+  erros: string[];
+}
+
+export type ImportacaoStatus = 'idle' | 'loading' | 'preview' | 'importing' | 'success' | 'error';

@@ -99,3 +99,6 @@ export async function deleteDocument(collectionName: string, id: string): Promis
 // Re-export Firestore utilities
 export { where, orderBy, limit, Timestamp } from 'firebase/firestore';
 export type { QueryConstraint } from 'firebase/firestore';
+
+// Re-export db for direct access when needed
+export { db } from '@/lib/firebase';
