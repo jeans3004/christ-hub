@@ -11,6 +11,7 @@ import type {
   ClassroomCourseWork,
   ClassroomAnnouncement,
   ClassroomStudent,
+  ClassroomTeacher,
   ClassroomStudentSubmission,
   ClassroomTopic,
   ClassroomStoreState,
@@ -23,6 +24,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
   courseWork: [],
   announcements: [],
   students: [],
+  teachers: [],
   submissions: new Map(),
   topics: [],
   isLoading: false,
@@ -40,6 +42,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
       courseWork: [],
       announcements: [],
       students: [],
+      teachers: [],
       submissions: new Map(),
       topics: [],
     }),
@@ -69,6 +72,8 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
 
   setStudents: (students) => set({ students }),
 
+  setTeachers: (teachers) => set({ teachers }),
+
   setSubmissions: (courseWorkId, submissions) =>
     set((state) => {
       const newMap = new Map(state.submissions);
@@ -93,6 +98,7 @@ export const useClassroomStore = create<ClassroomStoreState>((set) => ({
       courseWork: [],
       announcements: [],
       students: [],
+      teachers: [],
       submissions: new Map(),
       topics: [],
       isLoading: false,

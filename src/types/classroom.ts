@@ -210,6 +210,7 @@ export interface ClassroomStoreState {
   courseWork: ClassroomCourseWork[];
   announcements: ClassroomAnnouncement[];
   students: ClassroomStudent[];
+  teachers: ClassroomTeacher[];
   submissions: Map<string, ClassroomStudentSubmission[]>;
   topics: ClassroomTopic[];
 
@@ -228,6 +229,7 @@ export interface ClassroomStoreState {
   setCourseWork: (courseWork: ClassroomCourseWork[]) => void;
   setAnnouncements: (announcements: ClassroomAnnouncement[]) => void;
   setStudents: (students: ClassroomStudent[]) => void;
+  setTeachers: (teachers: ClassroomTeacher[]) => void;
   setSubmissions: (courseWorkId: string, submissions: ClassroomStudentSubmission[]) => void;
   setTopics: (topics: ClassroomTopic[]) => void;
   setLoading: (loading: boolean) => void;

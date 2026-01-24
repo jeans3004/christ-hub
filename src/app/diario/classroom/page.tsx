@@ -22,6 +22,7 @@ import {
   Assignment as AssignmentIcon,
   Campaign as CampaignIcon,
   People as PeopleIcon,
+  Person as PersonIcon,
   FileDownload as ExportIcon,
   Add as AddIcon,
   Topic as TopicIcon,
@@ -35,12 +36,13 @@ import {
   CourseworkTable,
   AnnouncementsTimeline,
   StudentsTable,
+  TeachersTable,
   ExportModal,
   ClassroomComposer,
   TopicsManager,
 } from './components';
 
-type TabValue = 'turmas' | 'atividades' | 'anuncios' | 'alunos';
+type TabValue = 'turmas' | 'atividades' | 'anuncios' | 'alunos' | 'professores';
 
 export default function ClassroomPage() {
   const { can } = usePermissions();
@@ -57,6 +59,7 @@ export default function ClassroomPage() {
     courseWork,
     announcements,
     students,
+    teachers,
     submissions,
     topics,
     stats,
@@ -302,6 +305,13 @@ export default function ClassroomPage() {
               value="alunos"
               disabled={!hasSelectedCourses}
             />
+            <Tab
+              icon={<PersonIcon />}
+              iconPosition="start"
+              label={`Professores (${stats.totalTeachers})`}
+              value="professores"
+              disabled={!hasSelectedCourses}
+            />
           </Tabs>
         </Box>
 
@@ -355,6 +365,15 @@ export default function ClassroomPage() {
         {activeTab === 'alunos' && hasSelectedCourses && (
           <StudentsTable
             students={students}
+            isLoading={isLoadingDetails}
+            getCourseNameById={getCourseNameById}
+            isMultiCourse={isMultiCourse}
+          />
+        )}
+
+        {activeTab === 'professores' && hasSelectedCourses && (
+          <TeachersTable
+            teachers={teachers}
             isLoading={isLoadingDetails}
             getCourseNameById={getCourseNameById}
             isMultiCourse={isMultiCourse}
