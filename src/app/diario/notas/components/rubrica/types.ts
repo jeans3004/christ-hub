@@ -40,6 +40,7 @@ export interface AvaliacaoRubricasTabProps {
   alunos: Aluno[];
   rubricas: Rubrica[];
   loadingAlunos: boolean;
+  onSaveSuccess?: () => void;
 }
 
 /**

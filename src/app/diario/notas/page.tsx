@@ -32,7 +32,7 @@ export default function NotasPage() {
   const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
   const { rubricas, loading: loadingRubricas, refetch: refetchRubricas } = useRubricas();
-  const { avaliacoes, loading: loadingAvaliacoes } = useAvaliacoesRubricas(serieId || null, bimestre, ano);
+  const { avaliacoes, loading: loadingAvaliacoes, refetch: refetchAvaliacoes } = useAvaliacoesRubricas(serieId || null, bimestre, ano);
 
   // Filter disciplinas by selected turma
   const disciplinas = serieId
@@ -164,6 +164,7 @@ export default function NotasPage() {
           onAnoChange={setAno} onTurmaChange={setSerieId}
           onDisciplinaChange={setDisciplinaId} onBimestreChange={setBimestre}
           alunos={alunos} rubricas={rubricas} loadingAlunos={loadingAlunos || loadingRubricas}
+          onSaveSuccess={refetchAvaliacoes}
         />
       </TabPanel>
 

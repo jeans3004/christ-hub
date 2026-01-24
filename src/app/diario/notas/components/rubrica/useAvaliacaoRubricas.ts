@@ -17,10 +17,11 @@ interface UseAvaliacaoRubricasParams {
   ano: number;
   disciplinas: Disciplina[];
   rubricas: Rubrica[];
+  onSaveSuccess?: () => void;
 }
 
 export function useAvaliacaoRubricas({
-  turmaId, disciplinaId, bimestre, ano, disciplinas, rubricas,
+  turmaId, disciplinaId, bimestre, ano, disciplinas, rubricas, onSaveSuccess,
 }: UseAvaliacaoRubricasParams) {
   const { usuario } = useAuth();
   const { addToast } = useUIStore();
@@ -121,13 +122,14 @@ export function useAvaliacaoRubricas({
       setAvaliacoes(data);
       setPendingChanges({});
       addToast('Avaliacoes salvas com sucesso!', 'success');
+      onSaveSuccess?.();
     } catch (error) {
       console.error('Error saving avaliacoes:', error);
       addToast('Erro ao salvar avaliacoes', 'error');
     } finally {
       setSaving(false);
     }
-  }, [usuario, disciplinaId, turmaId, pendingChanges, avaliacoes, av, bimestre, ano, addToast]);
+  }, [usuario, disciplinaId, turmaId, pendingChanges, avaliacoes, av, bimestre, ano, addToast, onSaveSuccess]);
 
   const getRubricasDoComponente = useCallback((componenteId: string) => {
     const ids = rubricasSelecionadas[componenteId] || [];

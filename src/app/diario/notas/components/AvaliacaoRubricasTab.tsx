@@ -40,6 +40,7 @@ export function AvaliacaoRubricasTab({
   alunos,
   rubricas,
   loadingAlunos,
+  onSaveSuccess,
 }: AvaliacaoRubricasTabProps) {
   const {
     av, setAv,
@@ -63,6 +64,7 @@ export function AvaliacaoRubricasTab({
     ano,
     disciplinas,
     rubricas,
+    onSaveSuccess,
   });
 
   const isLoading = loadingAlunos || loadingAvaliacoes || loadingTemplate;
