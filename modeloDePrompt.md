@@ -865,6 +865,88 @@ getAreaColor('matematica')    // '#2196F3'
 getAreaSigla('ciencias_natureza') // 'CNT'
 ```
 
+### Importacao via Google Forms
+
+O sistema suporta importacao de atribuicoes de areas a partir de planilhas do Google Forms ou arquivos CSV.
+
+#### Arquivos Relacionados
+```
+src/app/api/google/sheets/route.ts      # API para acessar Google Sheets
+src/services/sheetsService.ts           # Servico de parsing de planilhas
+src/app/diario/chamada/hooks/useImportAreas.ts  # Hook de importacao
+src/app/diario/chamada/components/trilhas/TrilhasImport.tsx  # Componente de importacao
+```
+
+#### Fluxo de Importacao
+```typescript
+// 1. Coordenador acessa aba "Importar do Forms" em Trilhas Config
+// 2. Cola URL da planilha de respostas do Google Forms
+// 3. Sistema carrega e faz matching com alunos cadastrados
+// 4. Preview mostra: alunos encontrados, nao encontrados, areas atribuidas
+// 5. Coordenador confirma importacao
+// 6. Sistema atualiza areaConhecimentoId de cada aluno em batch
+```
+
+#### Formato da Planilha
+```
+Colunas aceitas (deteccao automatica):
+- Identificador: email, matricula, nome do aluno
+- Nome: nome completo
+- Serie: 1a Serie, 2a Serie, 3a Serie
+- Area: nome ou sigla da area (linguagens, MAT, CNT, etc)
+```
+
+#### sheetsService
+```typescript
+// services/sheetsService.ts
+sheetsService.getSpreadsheetData(accessToken, spreadsheetId, range)
+sheetsService.detectHeaderColumns(header)          // Detecta colunas automaticamente
+sheetsService.parseRows(rows, headerMap)           // Parseia linhas em SheetRow[]
+sheetsService.normalizeArea(texto)                 // Converte texto para ID de area
+sheetsService.normalizeSerie(texto)                // Converte texto para serie padrao
+sheetsService.extractSpreadsheetId(url)            // Extrai ID de URL do Sheets
+sheetsService.isValidSheetsUrl(url)                // Valida URL
+```
+
+#### useImportAreas Hook
+```typescript
+const {
+  status,              // 'idle' | 'loading' | 'preview' | 'importing' | 'success' | 'error'
+  preview,             // Preview com linhas validas/invalidas
+  result,              // Resultado da importacao
+  error,               // Mensagem de erro
+  loadFromSpreadsheet, // Carregar de Google Sheets
+  loadFromCSV,         // Carregar de arquivo CSV
+  confirmImport,       // Confirmar e executar importacao
+  reset,               // Resetar estado
+} = useImportAreas(alunosExistentes);
+```
+
+#### Tipos de Importacao
+```typescript
+interface ImportacaoAreaPreview {
+  linhasValidas: PreviewLinha[];
+  linhasInvalidas: PreviewLinhaErro[];
+  resumoPorArea: Record<string, number>;
+  resumoPorSerie: Record<string, number>;
+}
+
+interface PreviewLinha {
+  linha: number;
+  identificador: string;
+  nome: string;
+  serie: string;
+  area: string;
+  areaId: string | null;
+  alunoExistente?: {
+    id: string;
+    nome: string;
+    turma: string;
+    areaAtual?: string;
+  };
+}
+```
+
 ---
 
 ## Módulo de Mensagens WhatsApp (Detalhado)
@@ -1115,6 +1197,199 @@ const { uploadPhoto, isUploading } = useStudentPhoto();
 const photoUrl = await uploadPhoto(alunoId, file);
 // Retorna: https://drive.google.com/thumbnail?id=FILE_ID&sz=w400
 ```
+
+### Google Classroom Service
+```typescript
+// services/classroomService.ts
+createClassroomService(accessToken: string): ClassroomService
+
+// ClassroomService methods
+classroomService.listCourses(params?)           // Lista turmas do professor
+classroomService.getCourse(courseId)            // Detalhes da turma
+classroomService.listStudents(courseId)         // Lista alunos da turma
+classroomService.listTeachers(courseId)         // Lista professores da turma
+classroomService.listCourseWork(courseId, params?) // Lista atividades
+classroomService.getCourseWork(courseId, id)    // Detalhes da atividade
+classroomService.listSubmissions(courseId, cwId, params?) // Lista entregas
+classroomService.listAnnouncements(courseId, params?) // Lista anuncios
+classroomService.listTopics(courseId)           // Lista topicos
+classroomService.listCourseWorkMaterials(courseId) // Lista materiais
+```
+
+---
+
+## Modulo de Integracao Google Classroom (Detalhado)
+
+### Conceito
+O modulo de Classroom permite visualizar turmas, atividades, anuncios e alunos diretamente do Google Classroom dentro do SGE. Acesso somente leitura.
+
+### Estrutura de Arquivos
+```
+src/app/diario/classroom/
+├── page.tsx                    # Pagina principal com abas
+├── hooks/
+│   ├── index.ts
+│   ├── useClassroomStore.ts    # Store Zustand
+│   ├── useClassroomLoader.ts   # Carrega dados
+│   └── useClassroomActions.ts  # Exportacao
+├── components/
+│   ├── index.ts
+│   ├── CourseList.tsx          # Lista de turmas
+│   ├── CourseCard.tsx          # Card de turma
+│   ├── CourseworkTable.tsx     # Tabela de atividades
+│   ├── AnnouncementsTimeline.tsx # Timeline de anuncios
+│   ├── StudentsTable.tsx       # Lista de alunos
+│   ├── ExportModal.tsx         # Modal de exportacao
+│   └── AnnouncementComposer.tsx # Compositor de anuncios formatados
+
+src/types/classroom.ts          # Tipos da API Classroom
+src/services/classroomService.ts # Cliente API Classroom
+```
+
+### Tipos Principais
+```typescript
+// types/classroom.ts
+interface ClassroomCourse {
+  id: string;
+  name: string;
+  section?: string;
+  courseState: 'ACTIVE' | 'ARCHIVED' | 'PROVISIONED' | 'DECLINED' | 'SUSPENDED';
+  alternateLink: string;
+  // ... outros campos
+}
+
+interface ClassroomCourseWork {
+  id: string;
+  title: string;
+  description?: string;
+  state: 'PUBLISHED' | 'DRAFT' | 'DELETED';
+  workType: 'ASSIGNMENT' | 'SHORT_ANSWER_QUESTION' | 'MULTIPLE_CHOICE_QUESTION';
+  dueDate?: { year: number; month: number; day: number };
+  maxPoints?: number;
+  // ... outros campos
+}
+
+interface ClassroomStudent {
+  userId: string;
+  profile: {
+    name: { fullName: string; givenName: string; familyName: string };
+    emailAddress: string;
+    photoUrl?: string;
+  };
+}
+
+interface ClassroomStudentSubmission {
+  id: string;
+  userId: string;
+  state: 'NEW' | 'CREATED' | 'TURNED_IN' | 'RETURNED' | 'RECLAIMED_BY_STUDENT';
+  late?: boolean;
+  assignedGrade?: number;
+}
+```
+
+### Hooks
+
+#### useClassroomLoader
+```typescript
+const {
+  courses,              // Lista de turmas
+  selectedCourse,       // Turma selecionada
+  courseWork,           // Atividades da turma
+  announcements,        // Anuncios da turma
+  students,             // Alunos da turma
+  submissions,          // Map de entregas por atividade
+  topics,               // Topicos da turma
+  stats,                // Estatisticas calculadas
+  isLoading,
+  isLoadingDetails,
+  error,
+  lastSync,
+  isConnected,          // Token disponivel
+  loadCourses,          // Carrega turmas
+  loadCourseDetails,    // Carrega detalhes de uma turma
+  loadSubmissions,      // Carrega entregas de uma atividade
+  refreshCurrentCourse,
+} = useClassroomLoader();
+```
+
+#### useClassroomActions
+```typescript
+const {
+  exportCourseWork,     // Exporta atividades para xlsx/csv
+  exportGrades,         // Exporta notas para xlsx/csv
+  exportStudents,       // Exporta lista de alunos
+  getSubmissionStats,   // Calcula estatisticas de entregas
+} = useClassroomActions();
+```
+
+### Permissoes
+```typescript
+// Definidas em constants/permissions.ts
+'classroom:view'    // Visualizar (professor+)
+'classroom:post'    // Criar anuncios (professor+)
+'classroom:export'  // Exportar dados (coordenador+)
+```
+
+### OAuth Scopes (authConstants.ts)
+```typescript
+// Escopos do Google Classroom (leitura)
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.rosters.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.students.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.topics.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly');
+
+// Escopo de escrita (criar anuncios)
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements');
+```
+
+### Navegacao
+```typescript
+// navigation.tsx
+{
+  label: 'Google Classroom',
+  icon: <CloudQueue />,
+  href: '/diario/classroom',
+  permission: 'classroom:view',
+}
+```
+
+### Abas da Pagina
+1. **Turmas**: Lista de turmas ativas do professor no Classroom
+2. **Atividades**: Tabela de atividades com prazo, pontuacao, entregas
+3. **Anuncios**: Timeline de anuncios com materiais anexados
+4. **Alunos**: Lista de alunos com foto, nome e email
+
+### Funcionalidades
+- Visualizar turmas do Google Classroom
+- Ver atividades com status de entregas
+- Expandir atividade para ver entregas individuais
+- Ver anuncios com materiais anexados
+- Ver lista de alunos
+- Filtrar atividades por topico
+- Exportar dados para Excel/CSV
+- Criar anuncios com formatacao (negrito, italico, codigo, etc.)
+
+### Compositor de Anuncios (AnnouncementComposer)
+```typescript
+// Formatacao suportada:
+*texto*     // Negrito
+_texto_     // Italico
+~texto~     // Tachado
+`texto`     // Codigo inline
+```texto``` // Bloco de codigo
+(texto) (url) // Link
+
+// Preview em tempo real antes de publicar
+// Publica via API do Classroom
+```
+
+### Observacoes
+1. **Token OAuth**: Usa o mesmo token do Drive (`useDriveStore.accessToken`)
+2. **Somente Leitura**: Nao permite criar/editar no Classroom
+3. **Dominio**: Apenas contas `@christmaster.com.br`
+4. **Cache**: Dados mantidos no store Zustand durante a sessao
 
 ### Configuração de Shared Drive
 O sistema usa Google Shared Drive (Drive Compartilhado) para armazenamento:
@@ -1385,4 +1660,4 @@ GET  /api/seed/alunos    # Info sobre jogadores disponíveis
 
 *Observação: Priorize sempre a reutilização de código existente e a manutenção dos padrões estabelecidos. Se a solicitação violar a arquitetura, sugira uma abordagem compatível.*
 
-*Versão: 2.10.0 | Última atualização: 23/01/2026*
+*Versão: 2.13.0 | Última atualização: 23/01/2026*
