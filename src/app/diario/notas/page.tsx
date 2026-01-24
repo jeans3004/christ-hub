@@ -6,7 +6,7 @@ import { Star, Grading, ListAlt } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useFilterStore } from '@/store/filterStore';
 import { useAuth } from '@/hooks/useAuth';
-import { useTurmas, useDisciplinas, useAlunosByTurma, useRubricas } from '@/hooks/useFirestoreData';
+import { useTurmas, useDisciplinas, useAlunosByTurma, useRubricas, useAvaliacoesRubricas } from '@/hooks/useFirestoreData';
 
 // Local imports
 import { ModoEntrada } from './types';
@@ -32,6 +32,7 @@ export default function NotasPage() {
   const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
   const { rubricas, loading: loadingRubricas, refetch: refetchRubricas } = useRubricas();
+  const { avaliacoes, loading: loadingAvaliacoes } = useAvaliacoesRubricas(serieId || null, bimestre, ano);
 
   // Filter disciplinas by selected turma
   const disciplinas = serieId
@@ -91,7 +92,7 @@ export default function NotasPage() {
     handleSaveNotasComposicao,
   } = useNotasComposition({
     serieId, disciplinaId, bimestre, ano, notas, setNotas,
-    modosCells, setModosCells, getTemplate, avaliacoes: [], rubricas,
+    modosCells, setModosCells, getTemplate, avaliacoes, rubricas,
   });
 
   // Save hook
@@ -112,7 +113,7 @@ export default function NotasPage() {
     [openCompositionModal, setModosCells]
   );
 
-  const isLoading = loadingTurmas || loadingDisciplinas || loadingAlunos || loadingNotas;
+  const isLoading = loadingTurmas || loadingDisciplinas || loadingAlunos || loadingNotas || loadingAvaliacoes;
 
   return (
     <MainLayout title="Notas" showSidebar>
