@@ -7,13 +7,26 @@ import { GoogleAuthProvider } from 'firebase/auth';
 export const googleProvider = new GoogleAuthProvider();
 
 // Adicionar escopo do Google Drive (acesso completo para Shared Drives)
-// Necessário para acessar pastas existentes no Drive Compartilhado
+// Necessario para acessar pastas existentes no Drive Compartilhado
 googleProvider.addScope('https://www.googleapis.com/auth/drive');
+
+// Escopos do Google Classroom (leitura)
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.rosters.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.students.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.topics.readonly');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly');
+
+// Escopos de escrita do Google Classroom
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.announcements');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.coursework.students');
+googleProvider.addScope('https://www.googleapis.com/auth/classroom.topics');
 
 // Forcar consent e limitar ao dominio permitido
 googleProvider.setCustomParameters({
   prompt: 'consent',
-  hd: 'christmaster.com.br', // Hosted domain - só mostra contas desse domínio
+  hd: 'christmaster.com.br', // Hosted domain - so mostra contas desse dominio
 });
 
 // Escopos do Drive
