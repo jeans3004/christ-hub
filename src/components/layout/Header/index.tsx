@@ -34,8 +34,8 @@ export default function Header({ showMenuButton = true }: HeaderProps) {
       elevation={0}
       sx={{
         zIndex: theme.zIndex.drawer + 1,
-        bgcolor: 'header.background',
-        color: 'header.text',
+        bgcolor: 'background.paper',
+        color: 'text.primary',
         borderBottom: 1,
         borderColor: 'divider',
       }}
