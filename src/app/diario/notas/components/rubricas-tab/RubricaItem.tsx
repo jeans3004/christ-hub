@@ -11,7 +11,7 @@ import type { RubricaItemProps } from './types';
 
 export function RubricaItem({ rubrica, canEdit, deleting, onEdit, onDelete }: RubricaItemProps) {
   return (
-    <Accordion sx={{ bgcolor: 'grey.50' }}>
+    <Accordion sx={{ bgcolor: 'background.paper' }}>
       <AccordionSummary expandIcon={<ExpandMore />}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, mr: 2 }}>
           <DragIndicator sx={{ color: 'grey.400', cursor: 'grab' }} />

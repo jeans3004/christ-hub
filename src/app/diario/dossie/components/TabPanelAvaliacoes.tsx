@@ -94,7 +94,7 @@ export function TabPanelAvaliacoes({ avaliacoes }: TabPanelAvaliacoesProps) {
           <TableContainer component={Paper} variant="outlined">
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: 'grey.50' }}>
+                <TableRow sx={{ bgcolor: 'action.hover' }}>
                   <TableCell>Disciplina</TableCell>
                   <TableCell>Rubrica</TableCell>
                   <TableCell>AV</TableCell>
@@ -142,7 +142,7 @@ export function TabPanelAvaliacoes({ avaliacoes }: TabPanelAvaliacoesProps) {
         </Box>
       ))}
 
-      <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+      <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>
           Legenda dos Niveis
         </Typography>

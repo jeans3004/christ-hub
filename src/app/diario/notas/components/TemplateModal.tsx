@@ -75,7 +75,7 @@ export function TemplateModal({
                 alignItems: 'center',
                 gap: 2,
                 p: 2,
-                bgcolor: 'grey.50',
+                bgcolor: 'action.hover',
                 borderRadius: 2,
               }}
             >

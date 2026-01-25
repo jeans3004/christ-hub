@@ -19,7 +19,7 @@ export function RubricaSelector({
   onToggle,
 }: RubricaSelectorProps) {
   return (
-    <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+    <Paper sx={{ p: 2, mb: 3, bgcolor: 'action.hover' }}>
       <Typography variant="subtitle2" gutterBottom>
         Selecione {qtdNecessarias} rubrica(s) para avaliar este componente:
       </Typography>

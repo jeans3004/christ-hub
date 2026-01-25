@@ -32,7 +32,7 @@ export function AvaliacaoGrid({
             gridTemplateColumns: `40px 200px repeat(${rubricasComponente.length}, 1fr)`,
             gap: 1,
             p: 2,
-            bgcolor: 'grey.100',
+            bgcolor: 'action.selected',
             borderBottom: '1px solid',
             borderColor: 'divider',
           }}

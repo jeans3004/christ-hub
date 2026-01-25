@@ -58,7 +58,7 @@ export function TabPanelFrequencia({ frequencia }: TabPanelFrequenciaProps) {
         sx={{
           p: 1.5,
           borderRadius: 2,
-          bgcolor: color ? `${color}.light` : 'grey.100',
+          bgcolor: color ? `${color}.light` : 'action.hover',
           color: color ? `${color}.main` : 'text.primary',
           display: 'flex',
         }}
@@ -183,7 +183,7 @@ export function TabPanelFrequencia({ frequencia }: TabPanelFrequenciaProps) {
         </Grid>
       </Grid>
 
-      <Box sx={{ mt: 3, p: 2, bgcolor: 'grey.50', borderRadius: 1 }}>
+      <Box sx={{ mt: 3, p: 2, bgcolor: 'action.hover', borderRadius: 1 }}>
         <Typography variant="subtitle2" sx={{ mb: 1 }}>
           Informacoes
         </Typography>

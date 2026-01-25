@@ -16,10 +16,10 @@ export function ComponenteItem({ subNota, componenteFormula }: ComponenteItemPro
     <Box
       sx={{
         p: 2,
-        bgcolor: 'grey.50',
+        bgcolor: 'action.hover',
         borderRadius: 2,
         border: '1px solid',
-        borderColor: todasAvaliadas ? 'success.main' : temRubricas ? 'warning.main' : 'grey.300',
+        borderColor: todasAvaliadas ? 'success.main' : temRubricas ? 'warning.main' : 'divider',
       }}
     >
       {/* Cabecalho do componente */}

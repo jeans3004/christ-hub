@@ -23,7 +23,7 @@ export function ModalTabs({ value, dossie, relatoriosCount = 0, onChange }: Moda
       sx={{
         borderBottom: 1,
         borderColor: 'divider',
-        bgcolor: 'grey.50',
+        bgcolor: 'background.default',
       }}
     >
       <Tab
