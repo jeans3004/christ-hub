@@ -13,8 +13,8 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
   const { themeMode } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
-  // Handle system preference
-  const [systemPreference, setSystemPreference] = useState<PaletteMode>('light');
+  // Handle system preference (default to dark)
+  const [systemPreference, setSystemPreference] = useState<PaletteMode>('dark');
 
   useEffect(() => {
     setMounted(true);
@@ -49,10 +49,10 @@ export default function ThemeProvider({ children }: ThemeProviderProps) {
     }
   }, [resolvedMode, mounted]);
 
-  // Prevent hydration mismatch by rendering with default theme first
+  // Prevent hydration mismatch by rendering with default theme first (dark)
   if (!mounted) {
     return (
-      <MUIThemeProvider theme={createAppTheme('light')}>
+      <MUIThemeProvider theme={createAppTheme('dark')}>
         <CssBaseline />
         {children}
       </MUIThemeProvider>

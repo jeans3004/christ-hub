@@ -49,7 +49,7 @@ export const useUIStore = create<UIState>()(
       // Other initial states
       toasts: [],
       isLoading: false,
-      themeMode: 'light',
+      themeMode: 'dark', // Default dark mode
 
       // Sidebar actions
       toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
@@ -86,11 +86,25 @@ export const useUIStore = create<UIState>()(
 
       // Other actions
       setLoading: (isLoading) => set({ isLoading }),
-      setThemeMode: (themeMode) => set({ themeMode }),
+      setThemeMode: (themeMode) => {
+        set({ themeMode });
+        // Atualizar data-theme no documento
+        if (typeof document !== 'undefined') {
+          const effectiveTheme = themeMode === 'system'
+            ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : themeMode;
+          document.documentElement.setAttribute('data-theme', effectiveTheme);
+        }
+      },
       toggleTheme: () =>
-        set((state) => ({
-          themeMode: state.themeMode === 'light' ? 'dark' : 'light',
-        })),
+        set((state) => {
+          const newTheme = state.themeMode === 'light' ? 'dark' : 'light';
+          // Atualizar data-theme no documento
+          if (typeof document !== 'undefined') {
+            document.documentElement.setAttribute('data-theme', newTheme);
+          }
+          return { themeMode: newTheme };
+        }),
     }),
     {
       name: 'sge-ui-storage',

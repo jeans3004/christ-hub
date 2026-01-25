@@ -1,16 +1,16 @@
 import type { Metadata, Viewport } from 'next';
-import { IBM_Plex_Sans } from 'next/font/google';
+import { Inter } from 'next/font/google';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
 import ThemeProvider from '@/components/providers/ThemeProvider';
 import ToastProvider from '@/components/ui/ToastProvider';
 import PWAProvider from '@/components/pwa/PWAProvider';
 import './globals.css';
 
-const ibmPlexSans = IBM_Plex_Sans({
+const inter = Inter({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700'],
   display: 'swap',
-  variable: '--font-ibm-plex',
+  variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
@@ -57,7 +57,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={ibmPlexSans.variable} suppressHydrationWarning>
+    <html lang="pt-BR" className={inter.variable} data-theme="dark" suppressHydrationWarning>
       <body>
         <AppRouterCacheProvider>
           <ThemeProvider>
