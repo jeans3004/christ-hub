@@ -23,6 +23,7 @@ export { horarioService } from './horarioService';
 export { chamadaTrilhaService } from './chamadaTrilhaService';
 export type { ChamadaTrilhaInput } from './chamadaTrilhaService';
 export { classroomTemplateService } from './classroomTemplateService';
+export { grupoWhatsappService } from './grupoWhatsappService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';

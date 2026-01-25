@@ -1,6 +1,7 @@
 /**
  * Cliente para Evolution API (WhatsApp).
  * Abstrai todas as chamadas para o servidor Evolution API.
+ * Compativel com Evolution API 2.3.7+
  */
 
 import { GrupoWhatsApp, SendMessageResult } from '@/types';
@@ -8,6 +9,9 @@ import { GrupoWhatsApp, SendMessageResult } from '@/types';
 const EVOLUTION_API_URL = process.env.EVOLUTION_API_URL || '';
 const EVOLUTION_API_KEY = process.env.EVOLUTION_API_KEY || '';
 const INSTANCE_NAME = process.env.EVOLUTION_INSTANCE_NAME || 'sge-whatsapp';
+
+// Timeout padrao para Evolution API 2.3.7 (30 segundos)
+const DEFAULT_TIMEOUT = 30000;
 
 /**
  * Formatar número para padrão internacional brasileiro.
@@ -48,6 +52,51 @@ function checkConfig(): void {
   if (!EVOLUTION_API_KEY) {
     throw new Error('EVOLUTION_API_KEY não configurada');
   }
+}
+
+/**
+ * Helper para requisicoes com retry e exponential backoff.
+ * Recomendado para Evolution API 2.3.7+
+ */
+async function fetchWithRetry<T>(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3,
+  timeout = DEFAULT_TIMEOUT
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`[WhatsApp] Tentativa ${attempt}/${maxRetries} falhou:`, (error as Error).message);
+
+      if (attempt < maxRetries) {
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = 1000 * Math.pow(2, attempt - 1);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+  }
+
+  throw lastError || new Error('Erro desconhecido apos retries');
 }
 
 /**
@@ -393,6 +442,39 @@ export const whatsappService = {
         groups: [],
         error: error instanceof Error ? error.message : String(error),
       };
+    }
+  },
+
+  /**
+   * Busca todos os grupos da instancia (com retry).
+   * Compativel com Evolution API 2.3.7+
+   */
+  async fetchAllGroups(): Promise<GrupoWhatsApp[]> {
+    checkConfig();
+
+    try {
+      const response = await fetchWithRetry<Record<string, unknown>[] | { groups?: Record<string, unknown>[] }>(
+        `${EVOLUTION_API_URL}/group/fetchAllGroups/${INSTANCE_NAME}`,
+        {
+          method: 'GET',
+          headers: getHeaders(),
+        }
+      );
+
+      // Normalizar resposta (pode vir como array direto ou dentro de objeto)
+      const data = Array.isArray(response) ? response : (response?.groups || []);
+
+      return data.map((g: Record<string, unknown>) => ({
+        id: g.id as string,
+        nome: (g.subject || g.name || 'Sem nome') as string,
+        descricao: g.description as string | undefined,
+        participantes: (g.size || (g.participants as unknown[])?.length || 0) as number,
+        isAdmin: (g.isAdmin || false) as boolean,
+        profilePicUrl: g.profilePicUrl as string | undefined,
+      }));
+    } catch (error) {
+      console.error('WhatsApp fetchAllGroups error:', error);
+      throw error;
     }
   },
 

@@ -3,6 +3,7 @@ export { MensagemComposer } from './MensagemComposer';
 export { HistoricoTable } from './HistoricoTable';
 export { StatusIndicator } from './StatusIndicator';
 export { QuickActionsBar } from './QuickActionsBar';
+export { GrupoSelector } from './GrupoSelector';
 
 // Composer sub-components
 export * from './composer';

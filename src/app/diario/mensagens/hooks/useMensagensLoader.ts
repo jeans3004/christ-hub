@@ -2,11 +2,14 @@
 
 /**
  * Hook para carregar dados da pagina de mensagens.
+ * Compativel com Evolution API 2.3.7+
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { Usuario, MensagemLog, TemplateMensagem, GrupoWhatsApp } from '@/types';
-import { usuarioService, mensagemLogService, templateMensagemService } from '@/services/firestore';
+import { usuarioService, mensagemLogService, templateMensagemService, grupoWhatsappService } from '@/services/firestore';
+import { whatsappService } from '@/services/whatsappService';
+import { useUIStore } from '@/store/uiStore';
 import {
   Destinatario,
   WhatsAppStatus,
@@ -31,6 +34,7 @@ interface UseMensagensLoaderReturn {
   refreshHistorico: () => Promise<void>;
   refreshStatus: () => Promise<void>;
   refreshGrupos: () => Promise<void>;
+  syncGrupos: () => Promise<void>;
 }
 
 export function useMensagensLoader(): UseMensagensLoaderReturn {
@@ -45,6 +49,8 @@ export function useMensagensLoader(): UseMensagensLoaderReturn {
   const [loading, setLoading] = useState(true);
   const [loadingHistorico, setLoadingHistorico] = useState(false);
   const [loadingGrupos, setLoadingGrupos] = useState(false);
+
+  const { addToast } = useUIStore();
 
   // Carregar professores com celular
   const loadDestinatarios = useCallback(async () => {
@@ -104,15 +110,21 @@ export function useMensagensLoader(): UseMensagensLoaderReturn {
     }
   }, []);
 
-  // Carregar grupos do WhatsApp
+  // Carregar grupos do Firestore (cache local)
   const loadGrupos = useCallback(async () => {
     setLoadingGrupos(true);
     try {
-      const response = await fetch('/api/whatsapp/groups');
-      const data = await response.json();
-
-      if (data.groups) {
-        setGrupos(data.groups);
+      // Primeiro tenta carregar do Firestore (cache)
+      const gruposFirestore = await grupoWhatsappService.getAll();
+      if (gruposFirestore.length > 0) {
+        setGrupos(gruposFirestore);
+      } else {
+        // Se nao tem cache, carrega da API
+        const response = await fetch('/api/whatsapp/groups');
+        const data = await response.json();
+        if (data.groups) {
+          setGrupos(data.groups);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar grupos:', error);
@@ -120,6 +132,34 @@ export function useMensagensLoader(): UseMensagensLoaderReturn {
       setLoadingGrupos(false);
     }
   }, []);
+
+  // Sincronizar grupos do WhatsApp para Firestore
+  const syncGrupos = useCallback(async () => {
+    setLoadingGrupos(true);
+    try {
+      // Buscar grupos diretamente da Evolution API com retry
+      const gruposWhatsApp = await whatsappService.fetchAllGroups();
+
+      if (!gruposWhatsApp.length) {
+        addToast('Nenhum grupo encontrado no WhatsApp', 'warning');
+        return;
+      }
+
+      // Sincronizar com Firestore
+      const count = await grupoWhatsappService.syncFromEvolution(gruposWhatsApp);
+
+      // Atualizar estado local
+      setGrupos(gruposWhatsApp);
+
+      addToast(`${count} grupo(s) sincronizado(s) com sucesso`, 'success');
+    } catch (error) {
+      console.error('Erro ao sincronizar grupos:', error);
+      addToast('Erro ao sincronizar grupos do WhatsApp', 'error');
+      throw error;
+    } finally {
+      setLoadingGrupos(false);
+    }
+  }, [addToast]);
 
   // Carregar dados iniciais
   useEffect(() => {
@@ -160,5 +200,6 @@ export function useMensagensLoader(): UseMensagensLoaderReturn {
     refreshHistorico: loadHistorico,
     refreshStatus: loadStatus,
     refreshGrupos: loadGrupos,
+    syncGrupos,
   };
 }

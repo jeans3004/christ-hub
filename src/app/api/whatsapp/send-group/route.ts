@@ -1,6 +1,7 @@
 /**
  * API Route: Enviar mensagem para grupo do WhatsApp.
  * POST /api/whatsapp/send-group
+ * Compativel com Evolution API 2.3.7+
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -8,25 +9,37 @@ import { whatsappService } from '@/services/whatsappService';
 
 interface SendGroupRequest {
   groupId: string;
-  mensagem: string;
+  mensagem?: string;
+  message?: string;
+  text?: string;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const body: SendGroupRequest = await request.json();
-    const { groupId, mensagem } = body;
+    const { groupId } = body;
+    // Aceita varios nomes para a mensagem
+    const mensagem = body.mensagem || body.message || body.text;
 
     // Validacoes
     if (!groupId) {
       return NextResponse.json(
-        { error: 'ID do grupo e obrigatorio' },
+        { error: 'groupId e obrigatorio' },
         { status: 400 }
       );
     }
 
     if (!mensagem) {
       return NextResponse.json(
-        { error: 'Mensagem e obrigatoria' },
+        { error: 'mensagem e obrigatoria' },
+        { status: 400 }
+      );
+    }
+
+    // Valida formato do groupJid (deve terminar com @g.us)
+    if (!groupId.endsWith('@g.us')) {
+      return NextResponse.json(
+        { error: 'groupId deve estar no formato: 120363...@g.us' },
         { status: 400 }
       );
     }
@@ -35,15 +48,15 @@ export async function POST(request: NextRequest) {
     const result = await whatsappService.sendToGroup(groupId, mensagem);
 
     if (!result.success) {
-      // Tratar erro específico de sessão (bug conhecido Baileys/LID)
+      // Tratar erro especifico de sessao (bug Baileys/LID - corrigido em 2.3.7)
       if (result.error?.includes('SessionError') || result.error?.includes('No sessions')) {
         return NextResponse.json(
           {
             success: false,
-            error: 'Envio para grupos temporariamente indisponível',
+            error: 'Erro de sessao ao enviar para grupo',
             errorType: 'whatsapp-group',
             errorCode: 'SESSION_NO_SESSIONS',
-            details: 'Limitação conhecida da integração WhatsApp. Mensagens individuais funcionam normalmente.',
+            details: 'Tente reconectar o WhatsApp ou atualize a Evolution API para 2.3.7+',
           },
           { status: 502 }
         );

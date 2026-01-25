@@ -24,6 +24,7 @@ export {
   relatorioService,
   horarioService,
   classroomTemplateService,
+  grupoWhatsappService,
   extractVariables,
   replaceVariables,
   getDocument,
