@@ -90,6 +90,7 @@ export default function NotasPage() {
     calcularNotaComposicao,
     gerarFormulaDetalhada,
     handleSaveNotasComposicao,
+    getComposicaoStatus,
   } = useNotasComposition({
     serieId, disciplinaId, bimestre, ano, notas, setNotas,
     modosCells, setModosCells, getTemplate, avaliacoes, rubricas,
@@ -145,7 +146,8 @@ export default function NotasPage() {
             {serieId && disciplinaId && !isLoading && alunos.length > 0 && (
               <NotasTable
                 alunos={alunos} notas={notas} modosCells={modosCells} saving={saving}
-                getModoCell={getModoCell} handleNotaChange={handleNotaChange}
+                getModoCell={getModoCell} getComposicaoStatus={getComposicaoStatus}
+                handleNotaChange={handleNotaChange}
                 calcularMedia={calcularMedia} handleSaveNotas={handleSaveNotas}
                 handleOpenTemplateModal={handleOpenTemplateModal}
                 handleSelectModo={handleSelectModo} openCompositionModal={openCompositionModal}

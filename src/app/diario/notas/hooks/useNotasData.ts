@@ -123,7 +123,8 @@ export function useNotasData({
 
   const getModoCell = useCallback((alunoId: string, av: 'av1' | 'av2'): ModoCell => {
     const key = getCellKey(alunoId, av);
-    return modosCells[key] || { modo: 'bloqueado' };
+    // Modo padrao e composicao (em vez de bloqueado)
+    return modosCells[key] || { modo: 'composicao' };
   }, [modosCells]);
 
   const handleNotaChange = useCallback((

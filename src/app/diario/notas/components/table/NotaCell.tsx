@@ -2,42 +2,153 @@
  * Celula de nota (AV1/AV2) com suporte a composicao.
  */
 
-import { Box, Typography, TextField, IconButton, Tooltip } from '@mui/material';
-import { Lock, Calculate, Settings } from '@mui/icons-material';
+import { Box, Typography, TextField, IconButton, Tooltip, useMediaQuery, useTheme } from '@mui/material';
+import { Calculate, Settings, Warning, Grading } from '@mui/icons-material';
 import { getNotaColor, NOTA_COLORS } from './constants';
 import { NotaCellProps } from './types';
 
 export function NotaCell({
   nota,
   modoCell,
+  composicaoStatus,
   onNotaChange,
   onOpenMenu,
   onOpenComposition,
+  onOpenTemplateModal,
 }: NotaCellProps) {
-  const isBloqueado = modoCell.modo === 'bloqueado';
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const temNotaSalva = nota !== null && nota !== undefined;
   const colorKey = getNotaColor(nota);
   const colors = NOTA_COLORS[colorKey];
 
+  // Modo composicao com status
+  if (modoCell.modo === 'composicao') {
+    if (composicaoStatus === 'sem-template') {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <SemTemplateCell isMobile={isMobile} onClick={onOpenTemplateModal} />
+          <IconButton size="small" onClick={onOpenMenu} sx={{ p: 0.25, color: 'warning.main' }}>
+            <Settings sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Box>
+      );
+    }
+
+    if (composicaoStatus === 'falta-avaliar') {
+      return (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+          <FaltaAvaliarCell isMobile={isMobile} onClick={onOpenComposition} />
+          <IconButton size="small" onClick={onOpenMenu} sx={{ p: 0.25, color: 'info.main' }}>
+            <Settings sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Box>
+      );
+    }
+
+    // Status pronto - mostra nota
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+        <ComposicaoCell nota={nota} colors={colors} temNotaSalva={temNotaSalva} onClick={onOpenComposition} />
+        <IconButton size="small" onClick={onOpenMenu} sx={{ p: 0.25, color: 'primary.main' }}>
+          <Settings sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Box>
+    );
+  }
+
+  // Modo direto
+  if (modoCell.modo === 'direto') {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
+        <DiretaCell nota={nota} colors={colors} temNotaSalva={temNotaSalva} onChange={onNotaChange} />
+        <IconButton size="small" onClick={onOpenMenu} sx={{ p: 0.25, color: 'primary.main' }}>
+          <Settings sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Box>
+    );
+  }
+
+  // Modo bloqueado (fallback)
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25 }}>
-      {isBloqueado && !temNotaSalva ? (
-        <BloqueadoVazio />
-      ) : isBloqueado && temNotaSalva ? (
-        <BloqueadoComNota nota={nota} colors={colors} />
-      ) : modoCell.modo === 'composicao' ? (
-        <ComposicaoCell nota={nota} colors={colors} temNotaSalva={temNotaSalva} onClick={onOpenComposition} />
+      {temNotaSalva ? (
+        <BloqueadoComNota nota={nota!} colors={colors} />
       ) : (
-        <DiretaCell nota={nota} colors={colors} temNotaSalva={temNotaSalva} onChange={onNotaChange} />
+        <BloqueadoVazio />
       )}
-      <IconButton
-        size="small"
-        onClick={onOpenMenu}
-        sx={{ p: 0.25, color: isBloqueado ? 'grey.500' : 'primary.main' }}
-      >
+      <IconButton size="small" onClick={onOpenMenu} sx={{ p: 0.25, color: 'grey.500' }}>
         <Settings sx={{ fontSize: 16 }} />
       </IconButton>
     </Box>
+  );
+}
+
+function SemTemplateCell({ isMobile, onClick }: { isMobile: boolean; onClick: () => void }) {
+  return (
+    <Tooltip title="Clique para configurar a composicao da nota">
+      <Box
+        onClick={onClick}
+        sx={{
+          flex: 1,
+          bgcolor: 'warning.light',
+          borderRadius: 1,
+          py: 0.75,
+          px: 1,
+          textAlign: 'center',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.5,
+          minHeight: 32,
+          border: '2px solid',
+          borderColor: 'warning.main',
+          '&:hover': { bgcolor: 'warning.200' },
+        }}
+      >
+        <Warning sx={{ fontSize: 14, color: 'warning.dark' }} />
+        {!isMobile && (
+          <Typography sx={{ fontSize: '0.65rem', color: 'warning.dark', fontWeight: 500 }}>
+            Configurar
+          </Typography>
+        )}
+      </Box>
+    </Tooltip>
+  );
+}
+
+function FaltaAvaliarCell({ isMobile, onClick }: { isMobile: boolean; onClick: () => void }) {
+  return (
+    <Tooltip title="Falta avaliar rubricas - clique para ver detalhes">
+      <Box
+        onClick={onClick}
+        sx={{
+          flex: 1,
+          bgcolor: 'info.light',
+          borderRadius: 1,
+          py: 0.75,
+          px: 1,
+          textAlign: 'center',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 0.5,
+          minHeight: 32,
+          border: '2px solid',
+          borderColor: 'info.main',
+          '&:hover': { bgcolor: 'info.200' },
+        }}
+      >
+        <Grading sx={{ fontSize: 14, color: 'info.dark' }} />
+        {!isMobile && (
+          <Typography sx={{ fontSize: '0.65rem', color: 'info.dark', fontWeight: 500 }}>
+            Avaliar
+          </Typography>
+        )}
+      </Box>
+    </Tooltip>
   );
 }
 
@@ -46,14 +157,13 @@ function BloqueadoVazio() {
     <Tooltip title="Clique na engrenagem para habilitar">
       <Box
         sx={{
-          flex: 1, bgcolor: 'grey.200', borderRadius: 1, py: 0.75, px: 1,
+          flex: 1, bgcolor: 'action.disabledBackground', borderRadius: 1, py: 0.75, px: 1,
           textAlign: 'center', display: 'flex', alignItems: 'center',
           justifyContent: 'center', gap: 0.5, cursor: 'not-allowed',
-          minHeight: 32, border: '2px solid', borderColor: 'grey.400',
+          minHeight: 32, border: '2px solid', borderColor: 'divider',
         }}
       >
-        <Lock sx={{ fontSize: 14, color: 'grey.500' }} />
-        <Typography sx={{ fontSize: '0.75rem', color: 'grey.500' }}>-</Typography>
+        <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>-</Typography>
       </Box>
     </Tooltip>
   );
@@ -87,19 +197,19 @@ function ComposicaoCell({
   onClick: () => void;
 }) {
   return (
-    <Tooltip title="Clique para editar valores">
+    <Tooltip title="Clique para ver detalhes da composicao">
       <Box
         onClick={onClick}
         sx={{
-          flex: 1, bgcolor: temNotaSalva ? colors.bg : 'grey.100', borderRadius: 1,
+          flex: 1, bgcolor: temNotaSalva ? colors.bg : 'action.hover', borderRadius: 1,
           py: 0.75, px: 1, textAlign: 'center', cursor: 'pointer', display: 'flex',
           alignItems: 'center', justifyContent: 'center', gap: 0.5, minHeight: 32,
-          border: '2px solid', borderColor: temNotaSalva ? colors.border : 'grey.400',
-          '&:hover': { bgcolor: temNotaSalva ? colors.bgHover : 'grey.200' },
+          border: '2px solid', borderColor: temNotaSalva ? colors.border : 'divider',
+          '&:hover': { bgcolor: temNotaSalva ? colors.bgHover : 'action.selected' },
         }}
       >
-        <Calculate sx={{ fontSize: 14, color: temNotaSalva ? colors.text : 'grey.600' }} />
-        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: temNotaSalva ? colors.text : 'grey.600' }}>
+        <Calculate sx={{ fontSize: 14, color: temNotaSalva ? colors.text : 'text.secondary' }} />
+        <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: temNotaSalva ? colors.text : 'text.secondary' }}>
           {nota ?? '-'}
         </Typography>
       </Box>
@@ -131,8 +241,8 @@ function DiretaCell({
         flex: 1,
         '& .MuiOutlinedInput-root': {
           borderRadius: 1, bgcolor: temNotaSalva ? colors.bg : 'background.paper',
-          '& fieldset': { borderWidth: 2, borderColor: temNotaSalva ? colors.border : 'grey.400' },
-          '&:hover fieldset': { borderColor: temNotaSalva ? colors.border : 'grey.500' },
+          '& fieldset': { borderWidth: 2, borderColor: temNotaSalva ? colors.border : 'divider' },
+          '&:hover fieldset': { borderColor: temNotaSalva ? colors.border : 'text.disabled' },
           '&.Mui-focused fieldset': { borderColor: temNotaSalva ? colors.border : 'primary.main' },
         },
       }}

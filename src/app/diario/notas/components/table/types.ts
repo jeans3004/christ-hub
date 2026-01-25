@@ -14,6 +14,7 @@ export interface NotasTableProps {
   modosCells: Record<string, ModoCell>;
   saving: boolean;
   getModoCell: (alunoId: string, av: 'av1' | 'av2') => ModoCell;
+  getComposicaoStatus: (alunoId: string, av: 'av1' | 'av2') => ComposicaoStatus;
   handleNotaChange: (alunoId: string, tipo: 'av1' | 'av2' | 'rp1' | 'rp2', valor: string) => void;
   calcularMedia: (alunoId: string) => string;
   handleSaveNotas: () => Promise<void>;
@@ -23,6 +24,11 @@ export interface NotasTableProps {
 }
 
 /**
+ * Status da composicao para exibicao na celula.
+ */
+export type ComposicaoStatus = 'sem-template' | 'falta-avaliar' | 'pronto';
+
+/**
  * Props da celula de nota (AV1/AV2).
  */
 export interface NotaCellProps {
@@ -30,9 +36,11 @@ export interface NotaCellProps {
   av: 'av1' | 'av2';
   nota: number | null | undefined;
   modoCell: ModoCell;
+  composicaoStatus: ComposicaoStatus;
   onNotaChange: (valor: string) => void;
   onOpenMenu: (event: React.MouseEvent<HTMLElement>) => void;
   onOpenComposition: () => void;
+  onOpenTemplateModal: () => void;
 }
 
 /**

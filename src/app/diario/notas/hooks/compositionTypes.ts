@@ -43,6 +43,11 @@ export interface UseNotasCompositionParams {
 }
 
 /**
+ * Status da composicao para exibicao na celula.
+ */
+export type ComposicaoStatus = 'sem-template' | 'falta-avaliar' | 'pronto';
+
+/**
  * Retorno do hook.
  */
 export interface UseNotasCompositionReturn {
@@ -57,6 +62,7 @@ export interface UseNotasCompositionReturn {
   calcularNotaComposicao: () => number | null;
   gerarFormulaDetalhada: () => FormulaDetalhada | null;
   handleSaveNotasComposicao: () => Promise<void>;
+  getComposicaoStatus: (alunoId: string, av: 'av1' | 'av2') => ComposicaoStatus;
 }
 
 // Re-export types for convenience

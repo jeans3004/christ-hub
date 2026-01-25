@@ -9,8 +9,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { notaService } from '@/services/firestore';
 import { NotaComposicao } from '@/types';
 import { parseCellKey, getCellKey } from '../types';
-import { calcularValorComponente, gerarFormula, calcularNota, getTotalMax } from './compositionUtils';
-import type { UseNotasCompositionParams, UseNotasCompositionReturn, FormulaDetalhada } from './compositionTypes';
+import { calcularValorComponente, gerarFormula, calcularNota, getTotalMax, getAvaliacaoAluno } from './compositionUtils';
+import type { UseNotasCompositionParams, UseNotasCompositionReturn, FormulaDetalhada, ComposicaoStatus } from './compositionTypes';
 
 export function useNotasComposition({
   serieId,
@@ -38,73 +38,79 @@ export function useNotasComposition({
   const recalculateCompositions = useCallback(async () => {
     if (!serieId || !disciplinaId || !usuario || avaliacoes.length === 0) return;
 
-    // Pegar todos os alunos que tem modo composicao
-    const cellsComposicao = Object.entries(modosCells).filter(
-      ([, cell]) => cell.modo === 'composicao'
-    );
+    // Pegar todos os alunos do objeto notas
+    const alunoIds = Object.keys(notas);
+    if (alunoIds.length === 0) return;
 
-    if (cellsComposicao.length === 0) return;
+    // Para cada aluno, calcular AV1 e AV2
+    for (const alunoId of alunoIds) {
+      for (const av of ['av1', 'av2'] as const) {
+        const template = getTemplate(av);
 
-    for (const [cellKey] of cellsComposicao) {
-      const { alunoId, av } = parseCellKey(cellKey);
-      const template = getTemplate(av);
+        // Verificar se template tem rubricas configuradas
+        const hasRubricasConfigured = template.some(
+          (comp) => comp.rubricaIds && comp.rubricaIds.length > 0
+        );
+        if (!hasRubricasConfigured) continue;
 
-      // Calcular valores dos componentes
-      const calculatedSubNotas = template.map((t) => {
-        const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas, av);
-        return { ...t, valor };
-      });
+        // Calcular valores dos componentes
+        const calculatedSubNotas = template.map((t) => {
+          const { valor } = calcularValorComponente(t, alunoId, avaliacoes, rubricas, av);
+          return { ...t, valor };
+        });
 
-      const notaCalculada = calcularNota(calculatedSubNotas);
+        const notaCalculada = calcularNota(calculatedSubNotas);
 
-      // Se conseguiu calcular, atualizar
-      if (notaCalculada !== null) {
-        const tipo = av === 'av1' ? 'AV1' : 'AV2';
-        const notaIdKey = av === 'av1' ? 'av1Id' : 'av2Id';
-        const composicaoKey = av === 'av1' ? 'av1Composicao' : 'av2Composicao';
-        const existingNotaId = notas[alunoId]?.[notaIdKey];
+        // Se conseguiu calcular, atualizar
+        if (notaCalculada !== null) {
+          const tipo = av === 'av1' ? 'AV1' : 'AV2';
+          const notaIdKey = av === 'av1' ? 'av1Id' : 'av2Id';
+          const composicaoKey = av === 'av1' ? 'av1Composicao' : 'av2Composicao';
+          const existingNotaId = notas[alunoId]?.[notaIdKey];
+          const cellKey = getCellKey(alunoId, av);
 
-        try {
-          const notaData: Record<string, unknown> = {
-            alunoId,
-            turmaId: serieId,
-            disciplinaId,
-            professorId: usuario.id,
-            bimestre: bimestre as 1 | 2 | 3 | 4,
-            tipo,
-            valor: notaCalculada,
-            ano,
-            composicao: calculatedSubNotas,
-          };
+          try {
+            const notaData: Record<string, unknown> = {
+              alunoId,
+              turmaId: serieId,
+              disciplinaId,
+              professorId: usuario.id,
+              bimestre: bimestre as 1 | 2 | 3 | 4,
+              tipo,
+              valor: notaCalculada,
+              ano,
+              composicao: calculatedSubNotas,
+            };
 
-          let notaId = existingNotaId;
-          if (existingNotaId) {
-            await notaService.update(existingNotaId, notaData);
-          } else {
-            notaId = await notaService.create(notaData as Parameters<typeof notaService.create>[0]);
+            let notaId = existingNotaId;
+            if (existingNotaId) {
+              await notaService.update(existingNotaId, notaData);
+            } else {
+              notaId = await notaService.create(notaData as Parameters<typeof notaService.create>[0]);
+            }
+
+            // Atualizar estado local
+            setModosCells((prev) => ({
+              ...prev,
+              [cellKey]: { modo: 'composicao', composicao: calculatedSubNotas },
+            }));
+
+            setNotas((prev) => ({
+              ...prev,
+              [alunoId]: {
+                ...prev[alunoId],
+                [av]: notaCalculada,
+                [notaIdKey]: notaId,
+                [composicaoKey]: calculatedSubNotas,
+              },
+            }));
+          } catch (error) {
+            console.error('Erro ao atualizar nota composicao:', error);
           }
-
-          // Atualizar estado local
-          setModosCells((prev) => ({
-            ...prev,
-            [cellKey]: { modo: 'composicao', composicao: calculatedSubNotas },
-          }));
-
-          setNotas((prev) => ({
-            ...prev,
-            [alunoId]: {
-              ...prev[alunoId],
-              [av]: notaCalculada,
-              [notaIdKey]: notaId,
-              [composicaoKey]: calculatedSubNotas,
-            },
-          }));
-        } catch (error) {
-          console.error('Erro ao atualizar nota composicao:', error);
         }
       }
     }
-  }, [serieId, disciplinaId, usuario, avaliacoes, modosCells, getTemplate, rubricas, notas, bimestre, ano, setModosCells, setNotas]);
+  }, [serieId, disciplinaId, usuario, avaliacoes, getTemplate, rubricas, notas, bimestre, ano, setModosCells, setNotas]);
 
   // Detectar mudancas em avaliacoes e recalcular
   useEffect(() => {
@@ -163,6 +169,33 @@ export function useNotasComposition({
     const { alunoId, av } = parseCellKey(editingCellKey);
     return gerarFormula(subNotas, alunoId, avaliacoes, rubricas, av);
   }, [subNotas, editingCellKey, avaliacoes, rubricas]);
+
+  // Determinar status da composicao para exibicao na celula
+  const getComposicaoStatus = useCallback((alunoId: string, av: 'av1' | 'av2'): ComposicaoStatus => {
+    const template = getTemplate(av);
+
+    // Verificar se template tem rubricas configuradas
+    const hasRubricasConfigured = template.some(
+      (comp) => comp.rubricaIds && comp.rubricaIds.length > 0
+    );
+
+    if (!hasRubricasConfigured) {
+      return 'sem-template';
+    }
+
+    // Verificar se todas as rubricas estao avaliadas para este aluno
+    for (const comp of template) {
+      const rubricaIds = comp.rubricaIds || [];
+      for (const rubricaId of rubricaIds) {
+        const nivel = getAvaliacaoAluno(avaliacoes, alunoId, rubricaId, comp.id, av);
+        if (nivel === null) {
+          return 'falta-avaliar';
+        }
+      }
+    }
+
+    return 'pronto';
+  }, [getTemplate, avaliacoes]);
 
   const handleSaveNotasComposicao = useCallback(async () => {
     if (subNotas.length === 0) {
@@ -245,5 +278,6 @@ export function useNotasComposition({
     calcularNotaComposicao,
     gerarFormulaDetalhada,
     handleSaveNotasComposicao,
+    getComposicaoStatus,
   };
 }

@@ -20,6 +20,7 @@ export function NotasTable({
   notas,
   saving,
   getModoCell,
+  getComposicaoStatus,
   handleNotaChange,
   calcularMedia,
   handleSaveNotas,
@@ -72,9 +73,11 @@ export function NotasTable({
               av="av1"
               nota={notas[aluno.id]?.av1}
               modoCell={getModoCell(aluno.id, 'av1')}
+              composicaoStatus={getComposicaoStatus(aluno.id, 'av1')}
               onNotaChange={(valor) => handleNotaChange(aluno.id, 'av1', valor)}
               onOpenMenu={(e) => handleOpenMenu(e, aluno.id, 'av1')}
               onOpenComposition={() => openCompositionModal(getCellKey(aluno.id, 'av1'))}
+              onOpenTemplateModal={() => handleOpenTemplateModal('av1')}
             />
 
             {/* RP1 */}
@@ -89,9 +92,11 @@ export function NotasTable({
               av="av2"
               nota={notas[aluno.id]?.av2}
               modoCell={getModoCell(aluno.id, 'av2')}
+              composicaoStatus={getComposicaoStatus(aluno.id, 'av2')}
               onNotaChange={(valor) => handleNotaChange(aluno.id, 'av2', valor)}
               onOpenMenu={(e) => handleOpenMenu(e, aluno.id, 'av2')}
               onOpenComposition={() => openCompositionModal(getCellKey(aluno.id, 'av2'))}
+              onOpenTemplateModal={() => handleOpenTemplateModal('av2')}
             />
 
             {/* RP2 */}
