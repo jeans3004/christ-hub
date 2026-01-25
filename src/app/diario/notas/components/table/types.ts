@@ -2,7 +2,7 @@
  * Tipos para componentes de tabela de notas.
  */
 
-import { Aluno } from '@/types';
+import { Aluno, TipoAv } from '@/types';
 import { NotasAluno, ModoCell, ModoEntrada } from '../../types';
 
 /**
@@ -13,12 +13,12 @@ export interface NotasTableProps {
   notas: Record<string, NotasAluno>;
   modosCells: Record<string, ModoCell>;
   saving: boolean;
-  getModoCell: (alunoId: string, av: 'av1' | 'av2') => ModoCell;
-  getComposicaoStatus: (alunoId: string, av: 'av1' | 'av2') => ComposicaoStatus;
-  handleNotaChange: (alunoId: string, tipo: 'av1' | 'av2' | 'rp1' | 'rp2', valor: string) => void;
+  getModoCell: (alunoId: string, av: TipoAv) => ModoCell;
+  getComposicaoStatus: (alunoId: string, av: TipoAv) => ComposicaoStatus;
+  handleNotaChange: (alunoId: string, tipo: TipoAv, valor: string) => void;
   calcularMedia: (alunoId: string) => string;
   handleSaveNotas: () => Promise<void>;
-  handleOpenTemplateModal: (av: 'av1' | 'av2') => void;
+  handleOpenTemplateModal: (av: TipoAv) => void;
   handleSelectModo: (modo: ModoEntrada, cellKey: string) => void;
   openCompositionModal: (cellKey: string) => void;
 }
@@ -29,11 +29,11 @@ export interface NotasTableProps {
 export type ComposicaoStatus = 'sem-template' | 'falta-avaliar' | 'pronto';
 
 /**
- * Props da celula de nota (AV1/AV2).
+ * Props da celula de nota (AV1/AV2/RP1/RP2).
  */
 export interface NotaCellProps {
   alunoId: string;
-  av: 'av1' | 'av2';
+  av: TipoAv;
   nota: number | null | undefined;
   modoCell: ModoCell;
   composicaoStatus: ComposicaoStatus;
@@ -62,7 +62,7 @@ export interface MediaCellProps {
  * Props do cabecalho da tabela.
  */
 export interface NotasTableHeaderProps {
-  onOpenTemplateModal: (av: 'av1' | 'av2') => void;
+  onOpenTemplateModal: (av: TipoAv) => void;
 }
 
 /**

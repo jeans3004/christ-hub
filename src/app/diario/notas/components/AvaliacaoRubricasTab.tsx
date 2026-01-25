@@ -16,6 +16,7 @@ import {
   AccordionDetails,
 } from '@mui/material';
 import { Save, Grading, ExpandMore, CheckCircle } from '@mui/icons-material';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AvaliacaoFilters,
   AvaliacaoGrid,
@@ -42,6 +43,7 @@ export function AvaliacaoRubricasTab({
   loadingAlunos,
   onSaveSuccess,
 }: AvaliacaoRubricasTabProps) {
+  const { usuario } = useAuth();
   const {
     av, setAv,
     template, loadingTemplate,
@@ -137,6 +139,7 @@ export function AvaliacaoRubricasTab({
                     rubricas={rubricas}
                     rubricasSelecionadas={rubricasSelecionadas[componente.id] || []}
                     onToggle={handleRubricaToggle}
+                    usuarioId={usuario?.id}
                   />
                   <AvaliacaoGrid
                     alunos={alunos}

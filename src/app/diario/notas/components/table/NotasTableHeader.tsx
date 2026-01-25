@@ -39,9 +39,9 @@ export function NotasTableHeader({ onOpenTemplateModal }: NotasTableHeaderProps)
         Nome
       </Typography>
       <ColumnHeader label="AV1" color={COLUMN_COLORS.av1} onEdit={() => onOpenTemplateModal('av1')} />
-      <ColumnChip label="RP1" color={COLUMN_COLORS.rp1} />
+      <ColumnHeader label="RP1" color={COLUMN_COLORS.rp1} onEdit={() => onOpenTemplateModal('rp1')} />
       <ColumnHeader label="AV2" color={COLUMN_COLORS.av2} onEdit={() => onOpenTemplateModal('av2')} />
-      <ColumnChip label="RP2" color={COLUMN_COLORS.rp2} />
+      <ColumnHeader label="RP2" color={COLUMN_COLORS.rp2} onEdit={() => onOpenTemplateModal('rp2')} />
       <ColumnChip label="Média" color={COLUMN_COLORS.media} />
     </Box>
   );

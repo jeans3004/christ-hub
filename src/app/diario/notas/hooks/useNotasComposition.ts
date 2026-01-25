@@ -7,7 +7,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { notaService } from '@/services/firestore';
-import { NotaComposicao } from '@/types';
+import { NotaComposicao, TipoAv } from '@/types';
 import { parseCellKey, getCellKey } from '../types';
 import { calcularValorComponente, gerarFormula, calcularNota, getTotalMax, getAvaliacaoAluno } from './compositionUtils';
 import type { UseNotasCompositionParams, UseNotasCompositionReturn, FormulaDetalhada, ComposicaoStatus } from './compositionTypes';
@@ -34,6 +34,22 @@ export function useNotasComposition({
   const [savingComposicao, setSavingComposicao] = useState(false);
   const prevAvaliacoesRef = useRef(avaliacoes);
 
+  // Helper para mapear TipoAv para tipo de nota no banco
+  const getNotaTipo = (av: TipoAv): 'AV1' | 'AV2' | 'REC' => {
+    switch (av) {
+      case 'av1': return 'AV1';
+      case 'av2': return 'AV2';
+      case 'rp1':
+      case 'rp2': return 'REC';
+    }
+  };
+
+  // Helper para obter chaves de nota e composicao
+  const getNotaKeys = (av: TipoAv) => ({
+    notaIdKey: `${av}Id` as 'av1Id' | 'av2Id' | 'rp1Id' | 'rp2Id',
+    composicaoKey: `${av}Composicao` as 'av1Composicao' | 'av2Composicao' | 'rp1Composicao' | 'rp2Composicao',
+  });
+
   // Recalcular notas de composicao automaticamente quando avaliacoes mudam
   const recalculateCompositions = useCallback(async () => {
     if (!serieId || !disciplinaId || !usuario || avaliacoes.length === 0) return;
@@ -42,9 +58,9 @@ export function useNotasComposition({
     const alunoIds = Object.keys(notas);
     if (alunoIds.length === 0) return;
 
-    // Para cada aluno, calcular AV1 e AV2
+    // Para cada aluno, calcular AV1, AV2, RP1, RP2
     for (const alunoId of alunoIds) {
-      for (const av of ['av1', 'av2'] as const) {
+      for (const av of ['av1', 'av2', 'rp1', 'rp2'] as const) {
         const template = getTemplate(av);
 
         // Verificar se template tem rubricas configuradas
@@ -63,9 +79,8 @@ export function useNotasComposition({
 
         // Se conseguiu calcular, atualizar
         if (notaCalculada !== null) {
-          const tipo = av === 'av1' ? 'AV1' : 'AV2';
-          const notaIdKey = av === 'av1' ? 'av1Id' : 'av2Id';
-          const composicaoKey = av === 'av1' ? 'av1Composicao' : 'av2Composicao';
+          const tipo = getNotaTipo(av);
+          const { notaIdKey, composicaoKey } = getNotaKeys(av);
           const existingNotaId = notas[alunoId]?.[notaIdKey];
           const cellKey = getCellKey(alunoId, av);
 
@@ -171,7 +186,7 @@ export function useNotasComposition({
   }, [subNotas, editingCellKey, avaliacoes, rubricas]);
 
   // Determinar status da composicao para exibicao na celula
-  const getComposicaoStatus = useCallback((alunoId: string, av: 'av1' | 'av2'): ComposicaoStatus => {
+  const getComposicaoStatus = useCallback((alunoId: string, av: TipoAv): ComposicaoStatus => {
     const template = getTemplate(av);
 
     // Verificar se template tem rubricas configuradas
@@ -215,9 +230,8 @@ export function useNotasComposition({
     }
 
     const { alunoId, av } = parseCellKey(editingCellKey);
-    const tipo = av === 'av1' ? 'AV1' : 'AV2';
-    const notaIdKey = av === 'av1' ? 'av1Id' : 'av2Id';
-    const composicaoKey = av === 'av1' ? 'av1Composicao' : 'av2Composicao';
+    const tipo = getNotaTipo(av);
+    const { notaIdKey, composicaoKey } = getNotaKeys(av);
     const existingNotaId = notas[alunoId]?.[notaIdKey];
 
     setSavingComposicao(true);

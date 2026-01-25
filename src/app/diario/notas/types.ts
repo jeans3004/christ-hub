@@ -2,7 +2,7 @@
  * Tipos locais para o modulo de notas.
  */
 
-import { NotaComposicao, NivelRubrica } from '@/types';
+import { NotaComposicao, NivelRubrica, TipoAv } from '@/types';
 
 // Cores para cada nivel de rubrica
 export const NIVEL_COLORS: Record<NivelRubrica, { bg: string; text: string; border: string }> = {
@@ -82,11 +82,13 @@ export interface NotasAluno {
   av1Composicao?: NotaComposicao[];
   rp1: number | null;
   rp1Id?: string;
+  rp1Composicao?: NotaComposicao[];
   av2: number | null;
   av2Id?: string;
   av2Composicao?: NotaComposicao[];
   rp2: number | null;
   rp2Id?: string;
+  rp2Composicao?: NotaComposicao[];
 }
 
 /**
@@ -117,14 +119,14 @@ export const DEFAULT_TEMPLATE: NotaComposicao[] = [
 /**
  * Gera chave unica para celula de nota.
  */
-export function getCellKey(alunoId: string, av: 'av1' | 'av2'): string {
+export function getCellKey(alunoId: string, av: TipoAv): string {
   return `${alunoId}_${av}`;
 }
 
 /**
  * Extrai alunoId e av de uma cellKey.
  */
-export function parseCellKey(cellKey: string): { alunoId: string; av: 'av1' | 'av2' } {
-  const [alunoId, av] = cellKey.split('_') as [string, 'av1' | 'av2'];
+export function parseCellKey(cellKey: string): { alunoId: string; av: TipoAv } {
+  const [alunoId, av] = cellKey.split('_') as [string, TipoAv];
   return { alunoId, av };
 }

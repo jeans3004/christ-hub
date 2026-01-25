@@ -6,7 +6,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useUIStore } from '@/store/uiStore';
 import { avaliacaoRubricaService } from '@/services/firestore';
-import { NotaComposicao, NivelRubrica, Rubrica, Disciplina } from '@/types';
+import { NotaComposicao, NivelRubrica, Rubrica, Disciplina, TipoAv } from '@/types';
 import { RubricasSelecionadas, AvaliacaoInterna } from './types';
 import { loadAvaliacoes, loadTemplate, saveRubricaSelection } from './avaliacaoUtils';
 
@@ -27,7 +27,7 @@ export function useAvaliacaoRubricas({
   const { addToast } = useUIStore();
 
   const [saving, setSaving] = useState(false);
-  const [av, setAv] = useState<'av1' | 'av2'>('av1');
+  const [av, setAv] = useState<TipoAv>('av1');
   const [template, setTemplate] = useState<NotaComposicao[]>([]);
   const [loadingTemplate, setLoadingTemplate] = useState(false);
   const [rubricasSelecionadas, setRubricasSelecionadas] = useState<RubricasSelecionadas>({});

@@ -18,11 +18,11 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Add, Delete, Close } from '@mui/icons-material';
-import { NotaComposicao } from '@/types';
+import { NotaComposicao, TipoAv } from '@/types';
 
 interface TemplateModalProps {
   open: boolean;
-  editingAv: 'av1' | 'av2' | null;
+  editingAv: TipoAv | null;
   templateSubNotas: NotaComposicao[];
   novaSubNota: { nome: string; porcentagem: number; quantidadeRubricas: 1 | 2 | 3 };
   setNovaSubNota: React.Dispatch<React.SetStateAction<{ nome: string; porcentagem: number; quantidadeRubricas: 1 | 2 | 3 }>>;

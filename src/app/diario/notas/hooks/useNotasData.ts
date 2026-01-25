@@ -5,7 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { notaService } from '@/services/firestore';
-import { Aluno } from '@/types';
+import { Aluno, TipoAv } from '@/types';
 import { NotasAluno, ModoCell, getCellKey } from '../types';
 
 interface UseNotasDataParams {
@@ -24,8 +24,8 @@ interface UseNotasDataReturn {
   loading: boolean;
   saving: boolean;
   loadNotas: () => Promise<void>;
-  getModoCell: (alunoId: string, av: 'av1' | 'av2') => ModoCell;
-  handleNotaChange: (alunoId: string, tipo: 'av1' | 'av2' | 'rp1' | 'rp2', valor: string) => void;
+  getModoCell: (alunoId: string, av: TipoAv) => ModoCell;
+  handleNotaChange: (alunoId: string, tipo: TipoAv, valor: string) => void;
   calcularMedia: (alunoId: string) => string;
 }
 
@@ -98,9 +98,23 @@ export function useNotasData({
               if (notasMap[aluno.id].rp1 === null) {
                 notasMap[aluno.id].rp1 = nota.valor;
                 notasMap[aluno.id].rp1Id = nota.id;
+                notasMap[aluno.id].rp1Composicao = nota.composicao;
+                if (nota.composicao && nota.composicao.length > 0) {
+                  modosMap[getCellKey(aluno.id, 'rp1')] = {
+                    modo: 'composicao',
+                    composicao: nota.composicao,
+                  };
+                }
               } else {
                 notasMap[aluno.id].rp2 = nota.valor;
                 notasMap[aluno.id].rp2Id = nota.id;
+                notasMap[aluno.id].rp2Composicao = nota.composicao;
+                if (nota.composicao && nota.composicao.length > 0) {
+                  modosMap[getCellKey(aluno.id, 'rp2')] = {
+                    modo: 'composicao',
+                    composicao: nota.composicao,
+                  };
+                }
               }
             }
           });
@@ -121,7 +135,7 @@ export function useNotasData({
     loadNotas();
   }, [loadNotas]);
 
-  const getModoCell = useCallback((alunoId: string, av: 'av1' | 'av2'): ModoCell => {
+  const getModoCell = useCallback((alunoId: string, av: TipoAv): ModoCell => {
     const key = getCellKey(alunoId, av);
     // Modo padrao e composicao (em vez de bloqueado)
     return modosCells[key] || { modo: 'composicao' };
@@ -129,7 +143,7 @@ export function useNotasData({
 
   const handleNotaChange = useCallback((
     alunoId: string,
-    tipo: 'av1' | 'av2' | 'rp1' | 'rp2',
+    tipo: TipoAv,
     valor: string
   ) => {
     const numValue = valor === '' ? null : parseFloat(valor.replace(',', '.'));

@@ -2,7 +2,7 @@
  * Utilitarios para calculo de composicao.
  */
 
-import { NotaComposicao, AvaliacaoRubrica, NivelRubrica } from '@/types';
+import { NotaComposicao, AvaliacaoRubrica, NivelRubrica, TipoAv } from '@/types';
 import { NIVEL_PERCENTUAL, RubricaInfo, RubricaDetalhe, ComponenteFormula, FormulaDetalhada } from './compositionTypes';
 
 /**
@@ -13,7 +13,7 @@ export function getAvaliacaoAluno(
   alunoId: string,
   rubricaId: string,
   componenteId: string,
-  av?: 'av1' | 'av2'
+  av?: TipoAv
 ): NivelRubrica | null {
   const avaliacao = avaliacoes.find(
     (a) => a.alunoId === alunoId &&
@@ -39,7 +39,7 @@ export function calcularValorComponente(
   alunoId: string,
   avaliacoes: AvaliacaoRubrica[],
   rubricas: RubricaInfo[],
-  av?: 'av1' | 'av2'
+  av?: TipoAv
 ): { valor: number | null; detalhes: RubricaDetalhe[] } {
   const rubricaIds = componente.rubricaIds || [];
 
@@ -92,7 +92,7 @@ export function gerarFormula(
   alunoId: string,
   avaliacoes: AvaliacaoRubrica[],
   rubricas: RubricaInfo[],
-  av?: 'av1' | 'av2'
+  av?: TipoAv
 ): FormulaDetalhada {
   const componentes: ComponenteFormula[] = subNotas.map((sub) => {
     const { detalhes } = calcularValorComponente(sub, alunoId, avaliacoes, rubricas, av);

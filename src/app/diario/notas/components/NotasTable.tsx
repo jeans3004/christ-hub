@@ -5,10 +5,10 @@
 import { useState } from 'react';
 import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { Save } from '@mui/icons-material';
+import { TipoAv } from '@/types';
 import { getCellKey } from '../types';
 import {
   NotaCell,
-  RecuperacaoCell,
   MediaCell,
   ModoMenu,
   NotasTableHeader,
@@ -31,7 +31,7 @@ export function NotasTable({
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
   const [menuCellKey, setMenuCellKey] = useState<string | null>(null);
 
-  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, alunoId: string, av: 'av1' | 'av2') => {
+  const handleOpenMenu = (event: React.MouseEvent<HTMLElement>, alunoId: string, av: TipoAv) => {
     setMenuAnchor(event.currentTarget);
     setMenuCellKey(getCellKey(alunoId, av));
   };
@@ -81,9 +81,16 @@ export function NotasTable({
             />
 
             {/* RP1 */}
-            <RecuperacaoCell
+            <NotaCell
+              alunoId={aluno.id}
+              av="rp1"
               nota={notas[aluno.id]?.rp1}
-              onChange={(valor) => handleNotaChange(aluno.id, 'rp1', valor)}
+              modoCell={getModoCell(aluno.id, 'rp1')}
+              composicaoStatus={getComposicaoStatus(aluno.id, 'rp1')}
+              onNotaChange={(valor) => handleNotaChange(aluno.id, 'rp1', valor)}
+              onOpenMenu={(e) => handleOpenMenu(e, aluno.id, 'rp1')}
+              onOpenComposition={() => openCompositionModal(getCellKey(aluno.id, 'rp1'))}
+              onOpenTemplateModal={() => handleOpenTemplateModal('rp1')}
             />
 
             {/* AV2 */}
@@ -100,9 +107,16 @@ export function NotasTable({
             />
 
             {/* RP2 */}
-            <RecuperacaoCell
+            <NotaCell
+              alunoId={aluno.id}
+              av="rp2"
               nota={notas[aluno.id]?.rp2}
-              onChange={(valor) => handleNotaChange(aluno.id, 'rp2', valor)}
+              modoCell={getModoCell(aluno.id, 'rp2')}
+              composicaoStatus={getComposicaoStatus(aluno.id, 'rp2')}
+              onNotaChange={(valor) => handleNotaChange(aluno.id, 'rp2', valor)}
+              onOpenMenu={(e) => handleOpenMenu(e, aluno.id, 'rp2')}
+              onOpenComposition={() => openCompositionModal(getCellKey(aluno.id, 'rp2'))}
+              onOpenTemplateModal={() => handleOpenTemplateModal('rp2')}
             />
 
             {/* Media */}

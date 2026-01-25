@@ -10,6 +10,7 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
+import { TipoAv } from '@/types';
 import { AvaliacaoFiltersProps } from './types';
 
 export function AvaliacaoFilters({
@@ -91,10 +92,12 @@ export function AvaliacaoFilters({
           <Select
             value={av}
             label="AV"
-            onChange={(e) => onAvChange(e.target.value as 'av1' | 'av2')}
+            onChange={(e) => onAvChange(e.target.value as TipoAv)}
           >
             <MenuItem value="av1">AV1</MenuItem>
+            <MenuItem value="rp1">RP1</MenuItem>
             <MenuItem value="av2">AV2</MenuItem>
+            <MenuItem value="rp2">RP2</MenuItem>
           </Select>
         </FormControl>
       </Box>

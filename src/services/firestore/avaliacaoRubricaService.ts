@@ -2,7 +2,7 @@
  * Servico de avaliacoes por rubricas.
  */
 
-import { AvaliacaoRubrica } from '@/types';
+import { AvaliacaoRubrica, TipoAv } from '@/types';
 import { getDocument, getDocuments, createDocument, updateDocument, deleteDocument, where, orderBy } from './base';
 
 const COLLECTION = 'avaliacoesRubricas';
@@ -17,7 +17,7 @@ export const avaliacaoRubricaService = {
       where('ano', '==', ano),
     ]),
 
-  getByTurmaBimestreAv: (turmaId: string, bimestre: number, ano: number, av: 'av1' | 'av2') =>
+  getByTurmaBimestreAv: (turmaId: string, bimestre: number, ano: number, av: TipoAv) =>
     getDocuments<AvaliacaoRubrica>(COLLECTION, [
       where('turmaId', '==', turmaId),
       where('bimestre', '==', bimestre),

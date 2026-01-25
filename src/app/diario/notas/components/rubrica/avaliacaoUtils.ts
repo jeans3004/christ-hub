@@ -3,7 +3,7 @@
  */
 
 import { templateComposicaoService, avaliacaoRubricaService } from '@/services/firestore';
-import { NotaComposicao } from '@/types';
+import { NotaComposicao, TipoAv } from '@/types';
 import { RubricasSelecionadas, AvaliacaoInterna } from './types';
 
 /**
@@ -13,7 +13,7 @@ export async function loadAvaliacoes(
   turmaId: string,
   bimestre: number,
   ano: number,
-  av: 'av1' | 'av2'
+  av: TipoAv
 ): Promise<AvaliacaoInterna[]> {
   if (!turmaId) return [];
 
@@ -39,7 +39,7 @@ export async function loadTemplate(
   turmaId: string,
   disciplinaId: string,
   bimestre: number,
-  av: 'av1' | 'av2',
+  av: TipoAv,
   ano: number
 ): Promise<{ template: NotaComposicao[]; rubricas: RubricasSelecionadas; firstId: string | false }> {
   if (!turmaId || !disciplinaId) {
@@ -78,7 +78,7 @@ export async function saveRubricaSelection(
   turmaId: string,
   disciplinaId: string,
   bimestre: number,
-  av: 'av1' | 'av2',
+  av: TipoAv,
   ano: number,
   template: NotaComposicao[]
 ): Promise<void> {

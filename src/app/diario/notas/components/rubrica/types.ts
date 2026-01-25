@@ -2,7 +2,7 @@
  * Tipos para avaliacao por rubricas.
  */
 
-import { Aluno, Rubrica, NivelRubrica, Turma, Disciplina, NotaComposicao } from '@/types';
+import { Aluno, Rubrica, NivelRubrica, Turma, Disciplina, NotaComposicao, TipoAv } from '@/types';
 
 /**
  * Rubricas selecionadas por componente.
@@ -51,7 +51,7 @@ export interface AvaliacaoFiltersProps {
   turmaId: string;
   disciplinaId: string;
   bimestre: number;
-  av: 'av1' | 'av2';
+  av: TipoAv;
   turmas: Turma[];
   disciplinas: Disciplina[];
   disciplinasFiltradas: Disciplina[];
@@ -61,7 +61,7 @@ export interface AvaliacaoFiltersProps {
   onTurmaChange: (turmaId: string) => void;
   onDisciplinaChange: (disciplinaId: string) => void;
   onBimestreChange: (bimestre: number) => void;
-  onAvChange: (av: 'av1' | 'av2') => void;
+  onAvChange: (av: TipoAv) => void;
 }
 
 /**
@@ -73,6 +73,7 @@ export interface RubricaSelectorProps {
   rubricas: Rubrica[];
   rubricasSelecionadas: string[];
   onToggle: (componenteId: string, rubricaId: string, maxRubricas: number) => void;
+  usuarioId?: string; // ID do usuario atual para filtrar rubricas
 }
 
 /**

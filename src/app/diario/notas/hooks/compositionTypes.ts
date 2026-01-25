@@ -2,7 +2,7 @@
  * Tipos para hook de composicao de notas.
  */
 
-import { NotaComposicao, AvaliacaoRubrica, NivelRubrica } from '@/types';
+import { NotaComposicao, AvaliacaoRubrica, NivelRubrica, TipoAv } from '@/types';
 import type { NotasAluno, ModoCell } from '../types';
 import type { RubricaDetalhe, ComponenteFormula, FormulaDetalhada } from '../components/composicao';
 
@@ -37,7 +37,7 @@ export interface UseNotasCompositionParams {
   setNotas: React.Dispatch<React.SetStateAction<Record<string, NotasAluno>>>;
   modosCells: Record<string, ModoCell>;
   setModosCells: React.Dispatch<React.SetStateAction<Record<string, ModoCell>>>;
-  getTemplate: (av: 'av1' | 'av2') => NotaComposicao[];
+  getTemplate: (av: TipoAv) => NotaComposicao[];
   avaliacoes: AvaliacaoRubrica[];
   rubricas: RubricaInfo[];
 }
@@ -62,7 +62,7 @@ export interface UseNotasCompositionReturn {
   calcularNotaComposicao: () => number | null;
   gerarFormulaDetalhada: () => FormulaDetalhada | null;
   handleSaveNotasComposicao: () => Promise<void>;
-  getComposicaoStatus: (alunoId: string, av: 'av1' | 'av2') => ComposicaoStatus;
+  getComposicaoStatus: (alunoId: string, av: TipoAv) => ComposicaoStatus;
 }
 
 // Re-export types for convenience

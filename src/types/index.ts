@@ -246,7 +246,7 @@ export interface TemplateComposicao {
   turmaId: string;
   disciplinaId: string;
   bimestre: 1 | 2 | 3 | 4;
-  av: 'av1' | 'av2';
+  av: TipoAv;
   ano: number;
   componentes: NotaComposicao[];
   createdAt: Date;
@@ -311,6 +311,9 @@ export interface Rubrica {
   updatedAt: Date;
 }
 
+// Tipo de avaliacao (AV1, AV2, RP1, RP2)
+export type TipoAv = 'av1' | 'av2' | 'rp1' | 'rp2';
+
 // Avaliacao de Rubrica (avaliacao do aluno em uma rubrica por componente)
 export interface AvaliacaoRubrica {
   id: string;
@@ -319,7 +322,7 @@ export interface AvaliacaoRubrica {
   disciplinaId: string;
   rubricaId: string;
   componenteId: string; // ID do componente da composição (Prova, Trabalho, etc.)
-  av: 'av1' | 'av2'; // Qual AV este componente pertence
+  av: TipoAv; // Qual AV este componente pertence (av1, av2, rp1, rp2)
   professorId: string;
   bimestre: number;
   ano: number;

@@ -28,15 +28,31 @@ export default function NotasPage() {
   const [tabValue, setTabValue] = useState(0);
 
   // Firebase data hooks
-  const { turmas, loading: loadingTurmas } = useTurmas(ano);
+  const { turmas: todasTurmas, loading: loadingTurmas } = useTurmas(ano);
   const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
   const { rubricas, loading: loadingRubricas, refetch: refetchRubricas } = useRubricas();
   const { avaliacoes, loading: loadingAvaliacoes, refetch: refetchAvaliacoes } = useAvaliacoesRubricas(serieId || null, bimestre, ano);
 
-  // Filter disciplinas by selected turma
+  // Se o usuario e professor, filtrar turmas e disciplinas pelas quais ele e responsavel
+  const isProfessor = usuario?.tipo === 'professor';
+
+  // Filter turmas by professor access
+  const turmas = isProfessor && usuario?.turmaIds?.length
+    ? todasTurmas.filter((t) => usuario.turmaIds?.includes(t.id))
+    : todasTurmas;
+
+  // Filter disciplinas by selected turma AND by professor access
   const disciplinas = serieId
-    ? todasDisciplinas.filter((d) => d.turmaIds?.includes(serieId))
+    ? todasDisciplinas.filter((d) => {
+        const isLinkedToTurma = d.turmaIds?.includes(serieId);
+        if (!isLinkedToTurma) return false;
+        // Se e professor, filtrar tambem pelas disciplinas que ele pode acessar
+        if (isProfessor && usuario?.disciplinaIds?.length) {
+          return usuario.disciplinaIds.includes(d.id);
+        }
+        return true;
+      })
     : [];
 
   // Clear disciplinaId when turma changes and current disciplina is not linked
@@ -161,7 +177,7 @@ export default function NotasPage() {
       <TabPanel value={tabValue} index={1}>
         <AvaliacaoRubricasTab
           ano={ano} turmaId={serieId} disciplinaId={disciplinaId} bimestre={bimestre}
-          turmas={turmas} disciplinas={todasDisciplinas}
+          turmas={turmas} disciplinas={isProfessor && usuario?.disciplinaIds?.length ? todasDisciplinas.filter(d => usuario.disciplinaIds?.includes(d.id)) : todasDisciplinas}
           loadingTurmas={loadingTurmas} loadingDisciplinas={loadingDisciplinas}
           onAnoChange={setAno} onTurmaChange={setSerieId}
           onDisciplinaChange={setDisciplinaId} onBimestreChange={setBimestre}

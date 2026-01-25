@@ -2,7 +2,7 @@
  * Tipos para hook de templates.
  */
 
-import { NotaComposicao } from '@/types';
+import { NotaComposicao, TipoAv } from '@/types';
 
 /**
  * Props do hook de templates.
@@ -29,20 +29,22 @@ export interface NovaSubNotaState {
 export interface UseNotasTemplatesReturn {
   templateAv1: NotaComposicao[];
   templateAv2: NotaComposicao[];
+  templateRp1: NotaComposicao[];
+  templateRp2: NotaComposicao[];
   templateModalOpen: boolean;
-  editingTemplateAv: 'av1' | 'av2' | null;
+  editingTemplateAv: TipoAv | null;
   templateSubNotas: NotaComposicao[];
   novaSubNota: NovaSubNotaState;
   setNovaSubNota: React.Dispatch<React.SetStateAction<NovaSubNotaState>>;
   loadingTemplates: boolean;
-  handleOpenTemplateModal: (av: 'av1' | 'av2') => void;
+  handleOpenTemplateModal: (av: TipoAv) => void;
   handleCloseTemplateModal: () => void;
   handleSaveTemplate: () => Promise<void>;
   handleAddTemplateSubNota: () => void;
   handleRemoveTemplateSubNota: (id: string) => void;
   handleTemplateSubNotaPorcentagemChange: (id: string, value: string) => void;
   handleTemplateSubNotaRubricasChange: (id: string, value: 1 | 2 | 3) => void;
-  getTemplate: (av: 'av1' | 'av2') => NotaComposicao[];
+  getTemplate: (av: TipoAv) => NotaComposicao[];
   getTemplateSoma: () => number;
 }
 

@@ -4,7 +4,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { useUIStore } from '@/store/uiStore';
-import { NotaComposicao } from '@/types';
+import { NotaComposicao, TipoAv } from '@/types';
 import { templateComposicaoService } from '@/services/firestore';
 import { DEFAULT_TEMPLATE } from '../types';
 import { deepCopyTemplate, INITIAL_NOVA_SUBNOTA } from './templateTypes';
@@ -20,9 +20,11 @@ export function useNotasTemplates({
 
   const [templateAv1, setTemplateAv1] = useState<NotaComposicao[]>(() => deepCopyTemplate(DEFAULT_TEMPLATE));
   const [templateAv2, setTemplateAv2] = useState<NotaComposicao[]>(() => deepCopyTemplate(DEFAULT_TEMPLATE));
+  const [templateRp1, setTemplateRp1] = useState<NotaComposicao[]>(() => deepCopyTemplate(DEFAULT_TEMPLATE));
+  const [templateRp2, setTemplateRp2] = useState<NotaComposicao[]>(() => deepCopyTemplate(DEFAULT_TEMPLATE));
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [templateModalOpen, setTemplateModalOpen] = useState(false);
-  const [editingTemplateAv, setEditingTemplateAv] = useState<'av1' | 'av2' | null>(null);
+  const [editingTemplateAv, setEditingTemplateAv] = useState<TipoAv | null>(null);
   const [templateSubNotas, setTemplateSubNotas] = useState<NotaComposicao[]>([]);
   const [novaSubNota, setNovaSubNota] = useState<NovaSubNotaState>(INITIAL_NOVA_SUBNOTA);
 
@@ -32,6 +34,8 @@ export function useNotasTemplates({
       if (!turmaId || !disciplinaId) {
         setTemplateAv1(deepCopyTemplate(DEFAULT_TEMPLATE));
         setTemplateAv2(deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp1(deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp2(deepCopyTemplate(DEFAULT_TEMPLATE));
         return;
       }
 
@@ -43,10 +47,14 @@ export function useNotasTemplates({
 
         setTemplateAv1(templates.av1?.componentes ? deepCopyTemplate(templates.av1.componentes) : deepCopyTemplate(DEFAULT_TEMPLATE));
         setTemplateAv2(templates.av2?.componentes ? deepCopyTemplate(templates.av2.componentes) : deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp1(templates.rp1?.componentes ? deepCopyTemplate(templates.rp1.componentes) : deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp2(templates.rp2?.componentes ? deepCopyTemplate(templates.rp2.componentes) : deepCopyTemplate(DEFAULT_TEMPLATE));
       } catch (error) {
         console.error('Error loading templates:', error);
         setTemplateAv1(deepCopyTemplate(DEFAULT_TEMPLATE));
         setTemplateAv2(deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp1(deepCopyTemplate(DEFAULT_TEMPLATE));
+        setTemplateRp2(deepCopyTemplate(DEFAULT_TEMPLATE));
       } finally {
         setLoadingTemplates(false);
       }
@@ -54,14 +62,22 @@ export function useNotasTemplates({
     loadTemplates();
   }, [turmaId, disciplinaId, bimestre, ano]);
 
-  const getTemplate = useCallback((av: 'av1' | 'av2') => (av === 'av1' ? templateAv1 : templateAv2), [templateAv1, templateAv2]);
+  const getTemplate = useCallback((av: TipoAv) => {
+    switch (av) {
+      case 'av1': return templateAv1;
+      case 'av2': return templateAv2;
+      case 'rp1': return templateRp1;
+      case 'rp2': return templateRp2;
+    }
+  }, [templateAv1, templateAv2, templateRp1, templateRp2]);
+
   const getTemplateSoma = useCallback(() => templateSubNotas.reduce((acc, s) => acc + s.porcentagem, 0), [templateSubNotas]);
 
-  const handleOpenTemplateModal = useCallback((av: 'av1' | 'av2') => {
+  const handleOpenTemplateModal = useCallback((av: TipoAv) => {
     setEditingTemplateAv(av);
-    setTemplateSubNotas(deepCopyTemplate(av === 'av1' ? templateAv1 : templateAv2));
+    setTemplateSubNotas(deepCopyTemplate(getTemplate(av)));
     setTemplateModalOpen(true);
-  }, [templateAv1, templateAv2]);
+  }, [getTemplate]);
 
   const handleCloseTemplateModal = useCallback(() => {
     setTemplateModalOpen(false);
@@ -78,8 +94,13 @@ export function useNotasTemplates({
 
     try {
       await templateComposicaoService.save(turmaId, disciplinaId, bimestre, editingTemplateAv, ano, deepCopyTemplate(templateSubNotas));
-      if (editingTemplateAv === 'av1') setTemplateAv1(deepCopyTemplate(templateSubNotas));
-      else setTemplateAv2(deepCopyTemplate(templateSubNotas));
+      const copiedTemplate = deepCopyTemplate(templateSubNotas);
+      switch (editingTemplateAv) {
+        case 'av1': setTemplateAv1(copiedTemplate); break;
+        case 'av2': setTemplateAv2(copiedTemplate); break;
+        case 'rp1': setTemplateRp1(copiedTemplate); break;
+        case 'rp2': setTemplateRp2(copiedTemplate); break;
+      }
       addToast(`Composicao da ${editingTemplateAv?.toUpperCase()} salva!`, 'success');
       handleCloseTemplateModal();
     } catch (error) {
@@ -116,7 +137,7 @@ export function useNotasTemplates({
   }, []);
 
   return {
-    templateAv1, templateAv2, templateModalOpen, editingTemplateAv, templateSubNotas,
+    templateAv1, templateAv2, templateRp1, templateRp2, templateModalOpen, editingTemplateAv, templateSubNotas,
     novaSubNota, setNovaSubNota, loadingTemplates,
     handleOpenTemplateModal, handleCloseTemplateModal, handleSaveTemplate,
     handleAddTemplateSubNota, handleRemoveTemplateSubNota,

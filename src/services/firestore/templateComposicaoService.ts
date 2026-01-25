@@ -2,7 +2,7 @@
  * Servico de templates de composicao.
  */
 
-import { TemplateComposicao, NotaComposicao } from '@/types';
+import { TemplateComposicao, NotaComposicao, TipoAv } from '@/types';
 import { getDocument, getDocuments, createDocument, updateDocument, deleteDocument, where } from './base';
 
 const COLLECTION = 'templatesComposicao';
@@ -14,7 +14,7 @@ export const templateComposicaoService = {
     turmaId: string,
     disciplinaId: string,
     bimestre: number,
-    av: 'av1' | 'av2',
+    av: TipoAv,
     ano: number
   ): Promise<TemplateComposicao | null> => {
     const docs = await getDocuments<TemplateComposicao>(COLLECTION, [
@@ -32,7 +32,7 @@ export const templateComposicaoService = {
     disciplinaId: string,
     bimestre: number,
     ano: number
-  ): Promise<{ av1: TemplateComposicao | null; av2: TemplateComposicao | null }> => {
+  ): Promise<{ av1: TemplateComposicao | null; av2: TemplateComposicao | null; rp1: TemplateComposicao | null; rp2: TemplateComposicao | null }> => {
     const docs = await getDocuments<TemplateComposicao>(COLLECTION, [
       where('turmaId', '==', turmaId),
       where('disciplinaId', '==', disciplinaId),
@@ -42,6 +42,8 @@ export const templateComposicaoService = {
     return {
       av1: docs.find((d) => d.av === 'av1') || null,
       av2: docs.find((d) => d.av === 'av2') || null,
+      rp1: docs.find((d) => d.av === 'rp1') || null,
+      rp2: docs.find((d) => d.av === 'rp2') || null,
     };
   },
 
@@ -49,7 +51,7 @@ export const templateComposicaoService = {
     turmaId: string,
     disciplinaId: string,
     bimestre: number,
-    av: 'av1' | 'av2',
+    av: TipoAv,
     ano: number,
     componentes: NotaComposicao[]
   ): Promise<string> => {
