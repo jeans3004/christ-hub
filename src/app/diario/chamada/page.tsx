@@ -29,8 +29,29 @@ export default function ChamadaPage() {
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
 
   // Filter turmas by professor's vinculos (professors only see their turmas)
+  // Fallback: if professor has no turmaIds, show turmas that have their disciplinas
   const turmas = usuario?.tipo === 'professor'
-    ? todasTurmas.filter(t => usuario.turmaIds?.includes(t.id))
+    ? (() => {
+        const profTurmas = usuario.turmaIds || [];
+        const profDisciplinas = usuario.disciplinaIds || [];
+
+        // Se tem turmas vinculadas, usa elas
+        if (profTurmas.length > 0) {
+          return todasTurmas.filter(t => profTurmas.includes(t.id));
+        }
+
+        // Fallback: turmas que tem as disciplinas do professor
+        if (profDisciplinas.length > 0) {
+          return todasTurmas.filter(t =>
+            todasDisciplinas.some(d =>
+              d.turmaIds?.includes(t.id) &&
+              (profDisciplinas.includes(d.id) || (d.parentId && profDisciplinas.includes(d.parentId)))
+            )
+          );
+        }
+
+        return [];
+      })()
     : todasTurmas;
 
   // Filter disciplinas by selected turma AND professor's vinculos
@@ -98,8 +119,19 @@ export default function ChamadaPage() {
 
   const isLoading = loadingTurmas || loadingDisciplinas || loadingAlunos || loadingChamada;
 
+  // Verificar se professor tem vinculos configurados
+  const professorSemVinculos = usuario?.tipo === 'professor' &&
+    (!usuario.disciplinaIds || usuario.disciplinaIds.length === 0);
+
   return (
     <MainLayout title="Chamada" showSidebar>
+      {/* Alerta para professor sem vinculos */}
+      {professorSemVinculos && (
+        <Alert severity="warning" sx={{ mb: 2 }}>
+          Seu cadastro nao possui disciplinas vinculadas. Entre em contato com a coordenacao para configurar seu acesso.
+        </Alert>
+      )}
+
       {/* Tabs */}
       <Paper sx={{ mb: 2 }}>
         <Tabs
