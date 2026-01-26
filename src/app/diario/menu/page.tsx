@@ -8,7 +8,7 @@ import { Box, Typography, Grid } from '@mui/material';
 import { CheckCircleOutline, GradeOutlined, EventNote, CalendarMonth } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { QuickAccessCard, PromoBanner, EmptyAnnouncements } from './components';
+import { QuickAccessCard, EmptyAnnouncements } from './components';
 
 const quickAccessItems = [
   { title: 'Chamada', icon: <CheckCircleOutline sx={{ fontSize: 28 }} />, href: '/diario/chamada' },
@@ -33,26 +33,19 @@ export default function MenuPage() {
           </Typography>
         </Box>
 
-        {/* Quick Access + Banner */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid size={{ xs: 12, lg: 7 }}>
-            <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: 'text.secondary' }}>
-              Mais acessados
-            </Typography>
-            <Grid container spacing={2}>
-              {quickAccessItems.map((item) => (
-                <Grid size={{ xs: 6, sm: 3 }} key={item.title}>
-                  <QuickAccessCard {...item} />
-                </Grid>
-              ))}
-            </Grid>
+        {/* Quick Access */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 2, color: 'text.secondary' }}>
+            Mais acessados
+          </Typography>
+          <Grid container spacing={2}>
+            {quickAccessItems.map((item) => (
+              <Grid size={{ xs: 6, sm: 3 }} key={item.title}>
+                <QuickAccessCard {...item} />
+              </Grid>
+            ))}
           </Grid>
-          <Grid size={{ xs: 12, lg: 5 }}>
-            <Box sx={{ height: '100%', pt: { xs: 0, lg: 3.5 } }}>
-              <PromoBanner />
-            </Box>
-          </Grid>
-        </Grid>
+        </Box>
 
         {/* Posts Section */}
         <Box>
