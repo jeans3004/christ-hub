@@ -142,30 +142,38 @@ export function useAuthStateListener() {
             const userData = { id: userDoc.id, ...userDoc.data() } as Usuario;
             setUsuario(userData);
           } else {
-            // Usuario nao existe pelo UID - verificar se existe pre-cadastro pelo e-mail
+            // Usuario nao existe pelo UID - verificar se existe pelo e-mail
             const email = firebaseUser.email;
             if (email) {
-              const preCadastro = await usuarioService.getByGoogleEmail(email);
+              const existingUser = await usuarioService.getByGoogleEmail(email);
 
-              if (preCadastro && preCadastro.authStatus === 'pending') {
-                // Pre-cadastro encontrado! Vincular UID
-                const linked = await usuarioService.linkUidToEmail(email, firebaseUser.uid);
-                if (linked) {
-                  console.log('UID vinculado automaticamente ao pre-cadastro:', email);
-                  addToast('Bem-vindo! Seu acesso foi ativado automaticamente.', 'success');
+              if (existingUser) {
+                // Usuario encontrado pelo email - verificar se precisa atualizar UID
+                if (existingUser.authStatus === 'pending' || existingUser.googleUid !== firebaseUser.uid) {
+                  // Atualizar UID e status
+                  await usuarioService.update(existingUser.id, {
+                    googleUid: firebaseUser.uid,
+                    authStatus: 'linked',
+                    firstLoginAt: existingUser.firstLoginAt || new Date(),
+                  });
+                  console.log('UID vinculado/atualizado para usuario:', email);
 
-                  // Buscar usuario atualizado
-                  const updatedUser = await usuarioService.getByGoogleEmail(email);
-                  if (updatedUser) {
-                    setUsuario(updatedUser);
-                    setLoading(false);
-                    return;
+                  if (existingUser.authStatus === 'pending') {
+                    addToast('Bem-vindo! Seu acesso foi ativado automaticamente.', 'success');
                   }
+                }
+
+                // Usar o usuario existente (com dados atualizados)
+                const updatedUser = await usuarioService.getByGoogleEmail(email);
+                if (updatedUser) {
+                  setUsuario(updatedUser);
+                  setLoading(false);
+                  return;
                 }
               }
             }
 
-            // Nenhum pre-cadastro - criar novo usuario
+            // Nenhum usuario existente - criar novo
             const userRole: UserRole = getRoleForEmail(firebaseUser.email, 'professor');
             const newUser: Usuario = {
               id: firebaseUser.uid,
