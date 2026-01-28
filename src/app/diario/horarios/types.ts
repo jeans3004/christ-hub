@@ -11,7 +11,9 @@ export interface HorarioCellProps {
   professor?: Usuario;
   professors?: Usuario[];  // Para disciplinas com múltiplos professores (ex: Trilhas)
   canEdit: boolean;
+  canAddPessoal?: boolean;  // Professor pode adicionar horario pessoal
   onClick: () => void;
+  onAddPessoal?: () => void;  // Callback para adicionar horario pessoal
 }
 
 export interface HorarioFormData {
@@ -33,6 +35,8 @@ export interface HorarioGridProps {
   sextaVespertinoSlots?: HorarioSlot[];
   isVespertino?: boolean;
   canEdit: boolean;
+  canAddPessoal?: boolean;  // Professor pode adicionar horarios pessoais
   onCellClick: (horario?: HorarioAula, slot?: { dia: DiaSemana; slot: HorarioSlot }) => void;
+  onAddPessoal?: (slot: { dia: DiaSemana; slot: HorarioSlot }) => void;  // Callback para adicionar horario pessoal
   viewMode: 'turma' | 'professor';
 }

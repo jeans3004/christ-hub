@@ -37,6 +37,8 @@ interface HorarioModalProps {
   selectedSlot: { dia: DiaSemana; slot: HorarioSlot } | null;
   saving: boolean;
   readOnly?: boolean; // Modo somente leitura para professores
+  modoPessoal?: boolean; // Modo para horario pessoal do professor
+  usuarioId?: string; // ID do usuario logado (para horarios pessoais)
   onClose: () => void;
   onCreate: (data: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   onUpdate: (id: string, data: Partial<HorarioAula>) => Promise<boolean>;
@@ -60,6 +62,8 @@ export function HorarioModal({
   selectedSlot,
   saving,
   readOnly = false,
+  modoPessoal = false,
+  usuarioId,
   onClose,
   onCreate,
   onUpdate,
@@ -76,6 +80,7 @@ export function HorarioModal({
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFim, setHoraFim] = useState('');
   const [sala, setSala] = useState('');
+  const [descricaoPessoal, setDescricaoPessoal] = useState('');
 
   // Verificar se a disciplina selecionada permite múltiplos professores
   const selectedDisciplina = useMemo(() => {
@@ -101,6 +106,7 @@ export function HorarioModal({
         setHoraInicio(horario.horaInicio);
         setHoraFim(horario.horaFim);
         setSala(horario.sala || '');
+        setDescricaoPessoal(horario.descricaoPessoal || '');
       } else {
         // Modo criacao
         setProfessorId(initialProfessorId);
@@ -108,6 +114,7 @@ export function HorarioModal({
         setTurmaId(initialTurmaId);
         setDisciplinaId('');
         setSala('');
+        setDescricaoPessoal('');
         if (selectedSlot) {
           setDiaSemana(selectedSlot.dia);
           setHoraInicio(selectedSlot.slot.horaInicio);
@@ -137,6 +144,44 @@ export function HorarioModal({
   }, [allowsMultipleProfessors, professorId, professorIds]);
 
   const handleSubmit = async () => {
+    // Validacao diferente para horario pessoal
+    if (modoPessoal) {
+      if (!descricaoPessoal.trim() || !horaInicio || !horaFim) {
+        return;
+      }
+
+      const data: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'> = {
+        professorId: usuarioId || initialProfessorId,
+        turmaId: '', // Horario pessoal nao tem turma
+        disciplinaId: '', // Horario pessoal nao tem disciplina
+        diaSemana,
+        horaInicio,
+        horaFim,
+        ano,
+        ativo: true,
+        pessoal: true,
+        descricaoPessoal: descricaoPessoal.trim(),
+        createdBy: usuarioId || initialProfessorId,
+      };
+
+      if (sala.trim()) {
+        data.sala = sala.trim();
+      }
+
+      let success: boolean | string | null;
+      if (isEditing && horario) {
+        success = await onUpdate(horario.id, data);
+      } else {
+        success = await onCreate(data);
+      }
+
+      if (success) {
+        onClose();
+      }
+      return;
+    }
+
+    // Validacao para horario oficial
     const hasValidProfessor = allowsMultipleProfessors
       ? professorIds.length > 0
       : !!professorId;
@@ -187,8 +232,10 @@ export function HorarioModal({
     }
   };
 
-  const isValid = (allowsMultipleProfessors ? professorIds.length > 0 : professorId)
-    && turmaId && disciplinaId && horaInicio && horaFim;
+  const isValid = modoPessoal
+    ? descricaoPessoal.trim() && horaInicio && horaFim
+    : (allowsMultipleProfessors ? professorIds.length > 0 : professorId)
+      && turmaId && disciplinaId && horaInicio && horaFim;
 
   // Filtrar disciplinas por turma selecionada
   const disciplinasFiltradas = turmaId
@@ -198,7 +245,11 @@ export function HorarioModal({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span>{readOnly ? 'Visualizar Horario' : isEditing ? 'Editar Horario' : 'Novo Horario'}</span>
+        <span>
+          {readOnly ? 'Visualizar Horario' :
+            modoPessoal ? (isEditing ? 'Editar Horario Pessoal' : 'Novo Horario Pessoal') :
+              (isEditing ? 'Editar Horario' : 'Novo Horario')}
+        </span>
         <Box>
           {isEditing && !readOnly && (
             <IconButton onClick={handleDelete} color="error" size="small" sx={{ mr: 1 }}>
@@ -213,87 +264,104 @@ export function HorarioModal({
 
       <DialogContent>
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
-          {/* Turma */}
-          <FormControl fullWidth size="small" disabled={readOnly}>
-            <InputLabel>Turma *</InputLabel>
-            <Select
-              value={turmaId}
-              label="Turma *"
-              onChange={(e) => {
-                setTurmaId(e.target.value);
-                setDisciplinaId(''); // Reset disciplina ao trocar turma
-              }}
-            >
-              {turmas.map((t) => (
-                <MenuItem key={t.id} value={t.id}>{t.nome}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Disciplina */}
-          <FormControl fullWidth size="small" disabled={readOnly}>
-            <InputLabel>Disciplina *</InputLabel>
-            <Select
-              value={disciplinaId}
-              label="Disciplina *"
-              onChange={(e) => setDisciplinaId(e.target.value)}
-              disabled={readOnly || !turmaId}
-            >
-              {disciplinasFiltradas.map((d) => (
-                <MenuItem key={d.id} value={d.id}>{d.nome}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Professor(es) */}
-          {allowsMultipleProfessors ? (
-            <FormControl fullWidth size="small" disabled={readOnly}>
-              <InputLabel>Professores *</InputLabel>
-              <Select
-                multiple
-                value={professorIds}
-                label="Professores *"
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setProfessorIds(typeof value === 'string' ? value.split(',') : value);
-                }}
-                input={<OutlinedInput label="Professores *" />}
-                renderValue={(selected) => (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selected.map((id) => {
-                      const prof = professores.find(p => p.id === id);
-                      return (
-                        <Chip
-                          key={id}
-                          label={prof?.nome?.split(' ')[0] || id}
-                          size="small"
-                        />
-                      );
-                    })}
-                  </Box>
-                )}
-              >
-                {professores.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>
-                    <Checkbox checked={professorIds.includes(p.id)} />
-                    <ListItemText primary={p.nome} />
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+          {/* Modo Pessoal - apenas descricao */}
+          {modoPessoal ? (
+            <TextField
+              label="Descricao *"
+              size="small"
+              fullWidth
+              value={descricaoPessoal}
+              onChange={(e) => setDescricaoPessoal(e.target.value)}
+              placeholder="Ex: Reuniao, Planejamento, Atendimento..."
+              helperText="Este horario sera visivel apenas para voce e a coordenacao"
+              disabled={readOnly}
+              autoFocus
+            />
           ) : (
-            <FormControl fullWidth size="small" disabled={readOnly}>
-              <InputLabel>Professor *</InputLabel>
-              <Select
-                value={professorId}
-                label="Professor *"
-                onChange={(e) => setProfessorId(e.target.value)}
-              >
-                {professores.map((p) => (
-                  <MenuItem key={p.id} value={p.id}>{p.nome}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <>
+              {/* Turma */}
+              <FormControl fullWidth size="small" disabled={readOnly}>
+                <InputLabel>Turma *</InputLabel>
+                <Select
+                  value={turmaId}
+                  label="Turma *"
+                  onChange={(e) => {
+                    setTurmaId(e.target.value);
+                    setDisciplinaId(''); // Reset disciplina ao trocar turma
+                  }}
+                >
+                  {turmas.map((t) => (
+                    <MenuItem key={t.id} value={t.id}>{t.nome}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Disciplina */}
+              <FormControl fullWidth size="small" disabled={readOnly}>
+                <InputLabel>Disciplina *</InputLabel>
+                <Select
+                  value={disciplinaId}
+                  label="Disciplina *"
+                  onChange={(e) => setDisciplinaId(e.target.value)}
+                  disabled={readOnly || !turmaId}
+                >
+                  {disciplinasFiltradas.map((d) => (
+                    <MenuItem key={d.id} value={d.id}>{d.nome}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Professor(es) */}
+              {allowsMultipleProfessors ? (
+                <FormControl fullWidth size="small" disabled={readOnly}>
+                  <InputLabel>Professores *</InputLabel>
+                  <Select
+                    multiple
+                    value={professorIds}
+                    label="Professores *"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setProfessorIds(typeof value === 'string' ? value.split(',') : value);
+                    }}
+                    input={<OutlinedInput label="Professores *" />}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((id) => {
+                          const prof = professores.find(p => p.id === id);
+                          return (
+                            <Chip
+                              key={id}
+                              label={prof?.nome?.split(' ')[0] || id}
+                              size="small"
+                            />
+                          );
+                        })}
+                      </Box>
+                    )}
+                  >
+                    {professores.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>
+                        <Checkbox checked={professorIds.includes(p.id)} />
+                        <ListItemText primary={p.nome} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              ) : (
+                <FormControl fullWidth size="small" disabled={readOnly}>
+                  <InputLabel>Professor *</InputLabel>
+                  <Select
+                    value={professorId}
+                    label="Professor *"
+                    onChange={(e) => setProfessorId(e.target.value)}
+                  >
+                    {professores.map((p) => (
+                      <MenuItem key={p.id} value={p.id}>{p.nome}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            </>
           )}
 
           {/* Dia da Semana */}
