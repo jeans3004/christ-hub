@@ -420,7 +420,7 @@ export function DownloadHorarioImage({
         }}
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Horario do Professor - Preview</Typography>
+          <Box component="span">Horario do Professor - Preview</Box>
           <IconButton onClick={() => setOpen(false)} size="small">
             <Close />
           </IconButton>
