@@ -21,8 +21,11 @@ import {
   IconButton,
   Alert,
   Snackbar,
+  ToggleButton,
+  ToggleButtonGroup,
+  Divider,
 } from '@mui/material';
-import { Download, Close, Image, WhatsApp } from '@mui/icons-material';
+import { Download, Close, Image, WhatsApp, WbSunny, NightsStay } from '@mui/icons-material';
 import html2canvas from 'html2canvas';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, HorarioSlot } from '@/types';
 
@@ -68,6 +71,8 @@ const SEXTA_VESPERTINO_SLOTS: HorarioSlot[] = [
   { horaInicio: '16:30', horaFim: '17:05', label: '7º' },
 ];
 
+type TurnoView = 'matutino' | 'vespertino';
+
 interface DownloadHorarioImageProps {
   professor: Usuario;
   horarios: HorarioAula[];
@@ -97,6 +102,7 @@ export function DownloadHorarioImage({
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [selectedTurno, setSelectedTurno] = useState<TurnoView>('matutino');
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -107,31 +113,13 @@ export function DownloadHorarioImage({
   // Verificar se professor tem telefone
   const professorPhone = professor.celular || professor.telefone;
 
-  // Determinar turno do professor baseado nos horarios
-  const getTurno = () => {
-    if (horarios.length === 0) return 'Sem horários';
-    const hasMatutino = horarios.some(h => {
+  // Obter disciplinas do professor para o turno selecionado
+  const getDisciplinasProfessor = (turno: TurnoView) => {
+    const horariosDoTurno = horarios.filter(h => {
       const hora = parseInt(h.horaInicio.split(':')[0] || '0');
-      return hora < 12;
+      return turno === 'matutino' ? hora < 12 : hora >= 12;
     });
-    const hasVespertino = horarios.some(h => {
-      const hora = parseInt(h.horaInicio.split(':')[0] || '0');
-      return hora >= 12;
-    });
-    if (hasMatutino && hasVespertino) return 'Integral';
-    if (hasMatutino) return 'Matutino';
-    if (hasVespertino) return 'Vespertino';
-    return '';
-  };
-
-  // Calcular carga horaria
-  const getCargaHoraria = () => {
-    return `${horarios.length * 45} min/semana`;
-  };
-
-  // Obter disciplinas do professor
-  const getDisciplinasProfessor = () => {
-    const discIds = new Set(horarios.map(h => h.disciplinaId));
+    const discIds = new Set(horariosDoTurno.map(h => h.disciplinaId));
     return Array.from(discIds)
       .map(id => disciplinas.find(d => d.id === id)?.nome)
       .filter(Boolean)
@@ -198,8 +186,9 @@ export function DownloadHorarioImage({
         useCORS: true,
       });
 
+      const turnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
       const link = document.createElement('a');
-      link.download = `Horario_${professor.nome.replace(/\s+/g, '_')}_${ano}.png`;
+      link.download = `Horario_${professor.nome.replace(/\s+/g, '_')}_${turnoLabel}_${ano}.png`;
       link.href = canvas.toDataURL('image/png');
       link.click();
     } catch (error) {
@@ -229,6 +218,7 @@ export function DownloadHorarioImage({
         throw new Error('Falha ao gerar imagem');
       }
 
+      const turnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
       const response = await fetch('/api/whatsapp/send-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -237,7 +227,7 @@ export function DownloadHorarioImage({
           destinatarioNome: professor.nome,
           numero: professorPhone,
           imageBase64,
-          caption: `Horario - ${professor.nome} - Ano Letivo ${ano}`,
+          caption: `Horario ${turnoLabel} - ${professor.nome} - Ano Letivo ${ano}`,
           enviadoPorId,
           enviadoPorNome,
         }),
@@ -249,8 +239,7 @@ export function DownloadHorarioImage({
         throw new Error(data.error || 'Erro ao enviar imagem');
       }
 
-      setSnackbar({ open: true, message: 'Imagem enviada com sucesso!', severity: 'success' });
-      setOpen(false);
+      setSnackbar({ open: true, message: `Imagem ${turnoLabel} enviada com sucesso!`, severity: 'success' });
     } catch (error) {
       console.error('Erro ao enviar via WhatsApp:', error);
       setSnackbar({
@@ -272,6 +261,16 @@ export function DownloadHorarioImage({
     const hora = parseInt(h.horaInicio.split(':')[0] || '0');
     return hora >= 12;
   });
+
+  // Definir turno inicial baseado nos horarios disponíveis
+  const handleOpen = () => {
+    if (hasMatutino) {
+      setSelectedTurno('matutino');
+    } else if (hasVespertino) {
+      setSelectedTurno('vespertino');
+    }
+    setOpen(true);
+  };
 
   // Renderizar tabela de horarios
   const renderTable = (turno: 'Matutino' | 'Vespertino') => {
@@ -390,13 +389,16 @@ export function DownloadHorarioImage({
     );
   };
 
+  const currentTurnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
+  const currentTurnoForTable = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
+
   return (
     <>
       <Button
         variant="outlined"
         color="secondary"
         size="small"
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
         disabled={horarios.length === 0}
         sx={{
           minWidth: { xs: 40, sm: 'auto' },
@@ -420,13 +422,32 @@ export function DownloadHorarioImage({
         }}
       >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Box component="span">Horario do Professor - Preview</Box>
+          <Box component="span">Horario do Professor - {currentTurnoLabel}</Box>
           <IconButton onClick={() => setOpen(false)} size="small">
             <Close />
           </IconButton>
         </DialogTitle>
 
         <DialogContent dividers sx={{ bgcolor: '#f5f5f5' }}>
+          {/* Seletor de Turno */}
+          <Box sx={{ mb: 2, display: 'flex', justifyContent: 'center' }}>
+            <ToggleButtonGroup
+              value={selectedTurno}
+              exclusive
+              onChange={(_, value) => value && setSelectedTurno(value)}
+              size="small"
+            >
+              <ToggleButton value="matutino" disabled={!hasMatutino}>
+                <WbSunny sx={{ mr: 1 }} />
+                Matutino
+              </ToggleButton>
+              <ToggleButton value="vespertino" disabled={!hasVespertino}>
+                <NightsStay sx={{ mr: 1 }} />
+                Vespertino
+              </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
           <Box
             ref={tableRef}
             sx={{
@@ -438,38 +459,16 @@ export function DownloadHorarioImage({
             {/* Header */}
             <Box sx={{ mb: 2, borderBottom: '2px solid #000', pb: 1 }}>
               <Typography sx={{ fontWeight: 'bold', fontSize: '1rem' }}>
-                PROFESSOR(A): {professor.nome} - {getCargaHoraria()} - {getTurno()}
+                PROFESSOR(A): {professor.nome} - {currentTurnoLabel}
               </Typography>
               <Typography sx={{ fontWeight: 'bold', fontSize: '1.1rem', mt: 0.5 }}>
-                DISCIPLINAS: {getDisciplinasProfessor() || 'Nenhuma'}
+                DISCIPLINAS: {getDisciplinasProfessor(selectedTurno) || 'Nenhuma'}
               </Typography>
             </Box>
 
-            {/* Tabelas */}
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-              {hasMatutino && (
-                <Box>
-                  <Typography sx={{ fontWeight: 'bold', mb: 1, color: '#f57c00' }}>
-                    MATUTINO
-                  </Typography>
-                  {renderTable('Matutino')}
-                </Box>
-              )}
-
-              {hasVespertino && (
-                <Box>
-                  <Typography sx={{ fontWeight: 'bold', mb: 1, color: '#1976d2' }}>
-                    VESPERTINO
-                  </Typography>
-                  {renderTable('Vespertino')}
-                </Box>
-              )}
-
-              {!hasMatutino && !hasVespertino && (
-                <Typography color="text.secondary" textAlign="center" py={4}>
-                  Nenhum horario cadastrado para este professor.
-                </Typography>
-              )}
+            {/* Tabela do turno selecionado */}
+            <Box>
+              {renderTable(currentTurnoForTable)}
             </Box>
 
             {/* Footer */}
@@ -481,15 +480,16 @@ export function DownloadHorarioImage({
           </Box>
         </DialogContent>
 
-        <DialogActions sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+        <DialogActions sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end', p: 2 }}>
           <Button onClick={() => setOpen(false)}>Fechar</Button>
+          <Divider orientation="vertical" flexItem />
           <Button
             variant="contained"
             startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
             onClick={handleDownload}
-            disabled={downloading || sendingWhatsApp || horarios.length === 0}
+            disabled={downloading || sendingWhatsApp}
           >
-            {downloading ? 'Gerando...' : 'Baixar PNG'}
+            {downloading ? 'Gerando...' : `Baixar ${currentTurnoLabel}`}
           </Button>
           {professorPhone && enviadoPorId && (
             <Button
@@ -497,9 +497,9 @@ export function DownloadHorarioImage({
               color="success"
               startIcon={sendingWhatsApp ? <CircularProgress size={16} color="inherit" /> : <WhatsApp />}
               onClick={handleSendWhatsApp}
-              disabled={downloading || sendingWhatsApp || horarios.length === 0}
+              disabled={downloading || sendingWhatsApp}
             >
-              {sendingWhatsApp ? 'Enviando...' : 'Enviar WhatsApp'}
+              {sendingWhatsApp ? 'Enviando...' : `WhatsApp ${currentTurnoLabel}`}
             </Button>
           )}
         </DialogActions>
