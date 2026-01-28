@@ -238,6 +238,8 @@ export default function HorariosPage() {
                 turmas={turmas}
                 disciplinas={disciplinas}
                 ano={ano}
+                enviadoPorId={usuario?.id}
+                enviadoPorNome={usuario?.nome}
               />
             )}
 

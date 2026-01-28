@@ -19,8 +19,10 @@ import {
   TableRow,
   CircularProgress,
   IconButton,
+  Alert,
+  Snackbar,
 } from '@mui/material';
-import { Download, Close, Image } from '@mui/icons-material';
+import { Download, Close, Image, WhatsApp } from '@mui/icons-material';
 import html2canvas from 'html2canvas';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, HorarioSlot } from '@/types';
 
@@ -72,6 +74,8 @@ interface DownloadHorarioImageProps {
   turmas: Turma[];
   disciplinas: Disciplina[];
   ano: number;
+  enviadoPorId?: string;
+  enviadoPorNome?: string;
 }
 
 // Converte horario HH:MM para minutos desde meia-noite
@@ -87,10 +91,21 @@ export function DownloadHorarioImage({
   turmas,
   disciplinas,
   ano,
+  enviadoPorId,
+  enviadoPorNome,
 }: DownloadHorarioImageProps) {
   const [open, setOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [sendingWhatsApp, setSendingWhatsApp] = useState(false);
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  });
   const tableRef = useRef<HTMLDivElement>(null);
+
+  // Verificar se professor tem telefone
+  const professorPhone = professor.celular || professor.telefone;
 
   // Determinar turno do professor baseado nos horarios
   const getTurno = () => {
@@ -151,6 +166,26 @@ export function DownloadHorarioImage({
     }) || null;
   };
 
+  // Gerar imagem como base64
+  const generateImageBase64 = async (): Promise<string | null> => {
+    if (!tableRef.current) return null;
+
+    try {
+      const canvas = await html2canvas(tableRef.current, {
+        scale: 2,
+        backgroundColor: '#ffffff',
+        useCORS: true,
+      });
+
+      // Retorna apenas a parte base64 (remove o prefixo data:image/png;base64,)
+      const dataUrl = canvas.toDataURL('image/png');
+      return dataUrl.split(',')[1];
+    } catch (error) {
+      console.error('Erro ao gerar imagem:', error);
+      return null;
+    }
+  };
+
   // Download da imagem
   const handleDownload = async () => {
     if (!tableRef.current) return;
@@ -169,8 +204,62 @@ export function DownloadHorarioImage({
       link.click();
     } catch (error) {
       console.error('Erro ao gerar imagem:', error);
+      setSnackbar({ open: true, message: 'Erro ao gerar imagem', severity: 'error' });
     } finally {
       setDownloading(false);
+    }
+  };
+
+  // Enviar via WhatsApp
+  const handleSendWhatsApp = async () => {
+    if (!professorPhone) {
+      setSnackbar({ open: true, message: 'Professor nao possui telefone cadastrado', severity: 'error' });
+      return;
+    }
+
+    if (!enviadoPorId || !enviadoPorNome) {
+      setSnackbar({ open: true, message: 'Dados do remetente nao disponiveis', severity: 'error' });
+      return;
+    }
+
+    setSendingWhatsApp(true);
+    try {
+      const imageBase64 = await generateImageBase64();
+      if (!imageBase64) {
+        throw new Error('Falha ao gerar imagem');
+      }
+
+      const response = await fetch('/api/whatsapp/send-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destinatarioId: professor.id,
+          destinatarioNome: professor.nome,
+          numero: professorPhone,
+          imageBase64,
+          caption: `Horario - ${professor.nome} - Ano Letivo ${ano}`,
+          enviadoPorId,
+          enviadoPorNome,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Erro ao enviar imagem');
+      }
+
+      setSnackbar({ open: true, message: 'Imagem enviada com sucesso!', severity: 'success' });
+      setOpen(false);
+    } catch (error) {
+      console.error('Erro ao enviar via WhatsApp:', error);
+      setSnackbar({
+        open: true,
+        message: error instanceof Error ? error.message : 'Erro ao enviar via WhatsApp',
+        severity: 'error',
+      });
+    } finally {
+      setSendingWhatsApp(false);
     }
   };
 
@@ -392,18 +481,45 @@ export function DownloadHorarioImage({
           </Box>
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions sx={{ gap: 1, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <Button onClick={() => setOpen(false)}>Fechar</Button>
           <Button
             variant="contained"
             startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download />}
             onClick={handleDownload}
-            disabled={downloading || horarios.length === 0}
+            disabled={downloading || sendingWhatsApp || horarios.length === 0}
           >
             {downloading ? 'Gerando...' : 'Baixar PNG'}
           </Button>
+          {professorPhone && enviadoPorId && (
+            <Button
+              variant="contained"
+              color="success"
+              startIcon={sendingWhatsApp ? <CircularProgress size={16} color="inherit" /> : <WhatsApp />}
+              onClick={handleSendWhatsApp}
+              disabled={downloading || sendingWhatsApp || horarios.length === 0}
+            >
+              {sendingWhatsApp ? 'Enviando...' : 'Enviar WhatsApp'}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar para feedback */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          variant="filled"
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
