@@ -135,11 +135,11 @@ export default function HorariosPage() {
         <Box
           sx={{
             display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
             justifyContent: 'space-between',
-            alignItems: 'center',
+            alignItems: { xs: 'stretch', sm: 'center' },
             mb: 3,
-            flexWrap: 'wrap',
-            gap: { xs: 1, sm: 2 },
+            gap: { xs: 1.5, sm: 2 },
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -149,7 +149,15 @@ export default function HorariosPage() {
             </Typography>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 }, flexWrap: 'wrap' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+              justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+            }}
+          >
             {/* Toggle de visualizacao */}
             <ToggleButtonGroup
               value={gridViewType}
@@ -171,11 +179,18 @@ export default function HorariosPage() {
                 variant="outlined"
                 color="primary"
                 size="small"
-                startIcon={<FileUpload />}
                 onClick={() => setImportModalOpen(true)}
                 disabled={saving}
+                sx={{
+                  minWidth: { xs: 40, sm: 'auto' },
+                  px: { xs: 1, sm: 2 },
+                }}
+                title="Importar Planilha"
               >
-                Importar
+                <FileUpload sx={{ mr: { xs: 0, sm: 1 } }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Importar
+                </Box>
               </Button>
             )}
 
@@ -185,11 +200,18 @@ export default function HorariosPage() {
                 variant="outlined"
                 color="error"
                 size="small"
-                startIcon={<DeleteSweep />}
                 onClick={() => setClearAllDialogOpen(true)}
                 disabled={saving}
+                sx={{
+                  minWidth: { xs: 40, sm: 'auto' },
+                  px: { xs: 1, sm: 2 },
+                }}
+                title="Limpar Todos"
               >
-                Limpar Todos
+                <DeleteSweep sx={{ mr: { xs: 0, sm: 1 } }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Limpar Todos
+                </Box>
               </Button>
             )}
 
@@ -213,11 +235,18 @@ export default function HorariosPage() {
                 variant="outlined"
                 color="warning"
                 size="small"
-                startIcon={<PersonOff />}
                 onClick={() => setClearPessoalDialogOpen(true)}
                 disabled={saving}
+                sx={{
+                  minWidth: { xs: 40, sm: 'auto' },
+                  px: { xs: 1, sm: 2 },
+                }}
+                title={`Limpar Pessoais (${horariosPessoais.length})`}
               >
-                Limpar Pessoais ({horariosPessoais.length})
+                <PersonOff sx={{ mr: { xs: 0, sm: 1 } }} />
+                <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                  Limpar Pessoais ({horariosPessoais.length})
+                </Box>
               </Button>
             )}
           </Box>
