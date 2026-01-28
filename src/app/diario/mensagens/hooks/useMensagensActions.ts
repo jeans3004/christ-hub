@@ -14,6 +14,7 @@ import {
   initialFormData,
   Destinatario,
   SendResult,
+  MediaData,
 } from '../types';
 
 interface UseMensagensActionsReturn {
@@ -57,10 +58,55 @@ export function useMensagensActions(
     setSendResult(null);
   }, []);
 
+  // Enviar mensagem de texto para um destinatário
+  const sendTextMessage = async (dest: Destinatario, mensagem: string): Promise<boolean> => {
+    const response = await fetch('/api/whatsapp/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destinatarioId: dest.id,
+        destinatarioNome: dest.nome,
+        numero: dest.numero,
+        mensagem,
+        enviadoPorId: usuario?.id,
+        enviadoPorNome: usuario?.nome,
+        templateId: form.templateId,
+      }),
+    });
+    const data = await response.json();
+    return data.success;
+  };
+
+  // Enviar mídia para um destinatário
+  const sendMediaMessage = async (dest: Destinatario, media: MediaData, caption: string): Promise<boolean> => {
+    const response = await fetch('/api/whatsapp/send-media', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        destinatarioId: dest.id,
+        destinatarioNome: dest.nome,
+        numero: dest.numero,
+        mediaType: media.type,
+        mediaBase64: media.base64,
+        mediaUrl: media.url,
+        filename: media.filename,
+        mimetype: media.mimetype,
+        caption,
+        enviadoPorId: usuario?.id,
+        enviadoPorNome: usuario?.nome,
+      }),
+    });
+    const data = await response.json();
+    return data.success;
+  };
+
   // Enviar mensagem (individual ou broadcast)
   const sendMessage = useCallback(async (): Promise<boolean> => {
-    if (!form.mensagem.trim()) {
-      addToast('Digite uma mensagem', 'error');
+    const hasMedia = !!form.media;
+    const hasText = !!form.mensagem.trim();
+
+    if (!hasMedia && !hasText) {
+      addToast('Digite uma mensagem ou anexe uma mídia', 'error');
       return false;
     }
 
@@ -81,25 +127,18 @@ export function useMensagensActions(
       // Envio individual
       if (form.destinatarios.length === 1) {
         const dest = form.destinatarios[0];
+        let success = false;
 
-        const response = await fetch('/api/whatsapp/send', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            destinatarioId: dest.id,
-            destinatarioNome: dest.nome,
-            numero: dest.numero,
-            mensagem: form.mensagem,
-            enviadoPorId: usuario.id,
-            enviadoPorNome: usuario.nome,
-            templateId: form.templateId,
-          }),
-        });
+        if (hasMedia && form.media) {
+          // Enviar mídia com caption opcional
+          success = await sendMediaMessage(dest, form.media, form.mensagem);
+        } else {
+          // Enviar texto
+          success = await sendTextMessage(dest, form.mensagem);
+        }
 
-        const data = await response.json();
-
-        if (data.success) {
-          addToast('Mensagem enviada com sucesso!', 'success');
+        if (success) {
+          addToast(hasMedia ? 'Mídia enviada com sucesso!' : 'Mensagem enviada com sucesso!', 'success');
           setSendResult({
             success: true,
             total: 1,
@@ -109,7 +148,7 @@ export function useMensagensActions(
           onSuccess?.();
           return true;
         } else {
-          addToast(data.error || 'Erro ao enviar mensagem', 'error');
+          addToast('Erro ao enviar', 'error');
           setSendResult({
             success: false,
             total: 1,
@@ -121,6 +160,55 @@ export function useMensagensActions(
       }
 
       // Envio em massa (broadcast)
+      if (hasMedia && form.media) {
+        // Envio em massa de mídia - enviar um a um com delay
+        let enviadas = 0;
+        let falhas = 0;
+        const results: Array<{ id: string; nome: string; success: boolean; error?: string }> = [];
+
+        for (let i = 0; i < form.destinatarios.length; i++) {
+          const dest = form.destinatarios[i];
+          try {
+            const success = await sendMediaMessage(dest, form.media, form.mensagem);
+            if (success) {
+              enviadas++;
+              results.push({ id: dest.id, nome: dest.nome, success: true });
+            } else {
+              falhas++;
+              results.push({ id: dest.id, nome: dest.nome, success: false, error: 'Falha no envio' });
+            }
+          } catch {
+            falhas++;
+            results.push({ id: dest.id, nome: dest.nome, success: false, error: 'Erro de conexão' });
+          }
+
+          // Delay entre envios para evitar bloqueio
+          if (i < form.destinatarios.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+          }
+        }
+
+        setSendResult({
+          success: enviadas > 0,
+          total: form.destinatarios.length,
+          enviadas,
+          falhas,
+          results,
+        });
+
+        if (enviadas === form.destinatarios.length) {
+          addToast(`${enviadas} mídias enviadas com sucesso!`, 'success');
+        } else if (enviadas > 0) {
+          addToast(`${enviadas} de ${form.destinatarios.length} mídias enviadas`, 'warning');
+        } else {
+          addToast('Falha ao enviar mídias', 'error');
+        }
+
+        onSuccess?.();
+        return enviadas > 0;
+      }
+
+      // Envio em massa de texto (usa endpoint bulk)
       const response = await fetch('/api/whatsapp/send-bulk', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
