@@ -5,8 +5,9 @@
  * Acesso: professor (view), coordenador+ (edit)
  */
 
-import { Box, Typography, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup } from '@mui/material';
-import { Schedule, ViewModule, ViewList } from '@mui/icons-material';
+import { useState } from 'react';
+import { Box, Typography, CircularProgress, Alert, Paper, ToggleButton, ToggleButtonGroup, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from '@mui/material';
+import { Schedule, ViewModule, ViewList, DeleteSweep, FileUpload, PersonOff } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useHorariosData } from './hooks';
@@ -16,12 +17,17 @@ import {
   HorarioGridByTurno,
   HorarioModal,
   WhatsAppSendButton,
+  ImportHorariosModal,
 } from './components';
 import { DiaSemana, HorarioSlot } from '@/types';
 
 export default function HorariosPage() {
   const { can } = usePermissions();
   const canView = can('horarios:view');
+  const [clearAllDialogOpen, setClearAllDialogOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [modoPessoal, setModoPessoal] = useState(false);
+  const [clearPessoalDialogOpen, setClearPessoalDialogOpen] = useState(false);
 
   const {
     // Visualizacao
@@ -57,10 +63,13 @@ export default function HorariosPage() {
     canEdit,
     canSendWhatsApp,
     userIsProfessor,
+    usuario,
     // Acoes
     createHorario,
     updateHorario,
     deleteHorario,
+    deleteAllHorarios,
+    importMultipleHorarios,
     sendScheduleToWhatsApp,
     sendScheduleToAllProfessors,
     saving,
@@ -84,6 +93,26 @@ export default function HorariosPage() {
   const selectedProfessor = professores.find(p => p.id === professorId);
   const isAllProfessors = professorId === 'todos';
   const hasSelection = viewMode === 'turma' ? !!turmaId : (!!professorId || isAllProfessors);
+
+  // Professor pode adicionar horarios pessoais na visualizacao de professor (seu proprio ou visto por coordenador)
+  const canAddPessoal = userIsProfessor && viewMode === 'professor' && professorId === usuario?.id;
+
+  // Horarios pessoais do professor logado
+  const horariosPessoais = horarios.filter(h => h.pessoal && h.createdBy === usuario?.id);
+  const canDeletePessoal = viewMode === 'professor' && professorId === usuario?.id && horariosPessoais.length > 0;
+
+  // Handler para adicionar horario pessoal
+  const handleAddPessoal = (slot: { dia: DiaSemana; slot: HorarioSlot }) => {
+    setModoPessoal(true);
+    openModal(undefined, slot);
+  };
+
+  // Handler para abrir modal normal (reseta modoPessoal)
+  const handleOpenModal = (horario?: typeof horarios[0], slot?: { dia: DiaSemana; slot: HorarioSlot }) => {
+    // Se e um horario pessoal, manter o modo pessoal
+    setModoPessoal(horario?.pessoal || false);
+    openModal(horario, slot);
+  };
 
   // Handler para click na grade por turno (passa turmaId adicional)
   const handleGridByTurnoClick = (
@@ -136,6 +165,34 @@ export default function HorariosPage() {
               </ToggleButton>
             </ToggleButtonGroup>
 
+            {/* Botao Importar Planilha (apenas coordenadores+) */}
+            {canEdit && (
+              <Button
+                variant="outlined"
+                color="primary"
+                size="small"
+                startIcon={<FileUpload />}
+                onClick={() => setImportModalOpen(true)}
+                disabled={saving}
+              >
+                Importar
+              </Button>
+            )}
+
+            {/* Botao Limpar Todos (apenas coordenadores+) */}
+            {canEdit && horarios.length > 0 && (
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                startIcon={<DeleteSweep />}
+                onClick={() => setClearAllDialogOpen(true)}
+                disabled={saving}
+              >
+                Limpar Todos
+              </Button>
+            )}
+
             {/* WhatsApp button para visualizacao de professor (apenas coordenadores+) */}
             {canSendWhatsApp && gridViewType === 'individual' && viewMode === 'professor' && (selectedProfessor || isAllProfessors) && horarios.length > 0 && (
               <WhatsAppSendButton
@@ -148,6 +205,20 @@ export default function HorariosPage() {
                 onSendToAll={sendScheduleToAllProfessors}
                 sending={sending}
               />
+            )}
+
+            {/* Botao Limpar Horarios Pessoais (apenas para professor vendo seus proprios horarios) */}
+            {canDeletePessoal && gridViewType === 'individual' && (
+              <Button
+                variant="outlined"
+                color="warning"
+                size="small"
+                startIcon={<PersonOff />}
+                onClick={() => setClearPessoalDialogOpen(true)}
+                disabled={saving}
+              >
+                Limpar Pessoais ({horariosPessoais.length})
+              </Button>
             )}
           </Box>
         </Box>
@@ -301,7 +372,9 @@ export default function HorariosPage() {
                   sextaVespertinoSlots={sextaVespertinoSlots}
                   isVespertino={isVespertino}
                   canEdit={canEdit}
-                  onCellClick={openModal}
+                  canAddPessoal={canAddPessoal}
+                  onCellClick={handleOpenModal}
+                  onAddPessoal={handleAddPessoal}
                   viewMode={viewMode}
                 />
               </Paper>
@@ -321,9 +394,12 @@ export default function HorariosPage() {
           ano={ano}
           selectedSlot={selectedSlot}
           saving={saving}
-          readOnly={!canEdit}
+          readOnly={!canEdit && !modoPessoal}
+          modoPessoal={modoPessoal}
+          usuarioId={usuario?.id}
           onClose={() => {
             closeModal();
+            setModoPessoal(false);
             // Recarregar dados ao fechar modal na visualizacao de grade
             if (gridViewType === 'grade') {
               refetch();
@@ -332,6 +408,88 @@ export default function HorariosPage() {
           onCreate={createHorario}
           onUpdate={updateHorario}
           onDelete={deleteHorario}
+        />
+
+        {/* Dialog de Confirmacao - Limpar Todos */}
+        <Dialog
+          open={clearAllDialogOpen}
+          onClose={() => setClearAllDialogOpen(false)}
+        >
+          <DialogTitle>Limpar Todos os Horarios</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Tem certeza que deseja remover todos os {horarios.length} horarios do ano {ano}?
+              Esta acao nao pode ser desfeita.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setClearAllDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              color="error"
+              variant="contained"
+              disabled={saving}
+              onClick={async () => {
+                await deleteAllHorarios(ano);
+                setClearAllDialogOpen(false);
+                refetch();
+              }}
+            >
+              {saving ? 'Removendo...' : 'Confirmar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Dialog de Confirmacao - Limpar Horarios Pessoais */}
+        <Dialog
+          open={clearPessoalDialogOpen}
+          onClose={() => setClearPessoalDialogOpen(false)}
+        >
+          <DialogTitle>Limpar Horarios Pessoais</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Tem certeza que deseja remover todos os seus {horariosPessoais.length} horarios pessoais?
+              Esta acao nao pode ser desfeita.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setClearPessoalDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              color="warning"
+              variant="contained"
+              disabled={saving}
+              onClick={async () => {
+                // Deletar todos os horarios pessoais do usuario
+                for (const h of horariosPessoais) {
+                  await deleteHorario(h.id);
+                }
+                setClearPessoalDialogOpen(false);
+                refetch();
+              }}
+            >
+              {saving ? 'Removendo...' : 'Confirmar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Modal de Importacao */}
+        <ImportHorariosModal
+          open={importModalOpen}
+          onClose={() => setImportModalOpen(false)}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professores={professores}
+          ano={ano}
+          onImport={async (horarios) => {
+            const count = await importMultipleHorarios(horarios);
+            if (count > 0) {
+              refetch();
+            }
+            return count;
+          }}
         />
       </Box>
     </MainLayout>
