@@ -19,6 +19,20 @@ import { HorarioGridProps } from '../types';
 // Dias da semana para exibicao (Segunda a Sexta)
 const DIAS_SEMANA: DiaSemana[] = [1, 2, 3, 4, 5];
 
+// Converte horario HH:MM para minutos desde meia-noite
+const timeToMinutes = (time: string): number => {
+  if (!time) return 0;
+  const [h, m] = time.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
+// Calcula sobreposicao em minutos entre dois intervalos
+const getOverlap = (start1: number, end1: number, start2: number, end2: number): number => {
+  const overlapStart = Math.max(start1, start2);
+  const overlapEnd = Math.min(end1, end2);
+  return Math.max(0, overlapEnd - overlapStart);
+};
+
 export function HorarioGrid({
   horarios,
   turmas,
@@ -28,24 +42,50 @@ export function HorarioGrid({
   sextaVespertinoSlots,
   isVespertino,
   canEdit,
+  canAddPessoal,
   onCellClick,
+  onAddPessoal,
   viewMode,
 }: HorarioGridProps) {
   // Obter o slot correto para um dia e indice
   const getSlotForDay = (index: number, dia: DiaSemana): HorarioSlot => {
-    // Sexta-feira (5) vespertino tem horarios diferentes
-    if (dia === 5 && isVespertino && sextaVespertinoSlots && sextaVespertinoSlots[index]) {
-      return sextaVespertinoSlots[index];
+    const slot = timeSlots[index];
+
+    // Sexta-feira (5) vespertino tem horarios de 35 minutos
+    // Verificar se o slot é vespertino baseado no horário (>= 13:00)
+    if (dia === 5 && sextaVespertinoSlots) {
+      const hora = parseInt(slot.horaInicio.split(':')[0] || '0');
+      if (hora >= 13) {
+        // Calcular índice do slot vespertino (0-6)
+        // Se timeSlots tem todos os 14 slots, vespertino começa no índice 7
+        // Se timeSlots tem apenas 7 vespertino slots, o índice já está correto
+        const vespertinoIndex = timeSlots.length > 7 ? index - 7 : index;
+        if (sextaVespertinoSlots[vespertinoIndex]) {
+          return sextaVespertinoSlots[vespertinoIndex];
+        }
+      }
     }
-    return timeSlots[index];
+
+    return slot;
   };
 
-  // Buscar horario no banco usando os horarios corretos do dia
+  // Buscar horario cujo ponto medio cai dentro do slot
   const getHorarioAt = (index: number, dia: DiaSemana) => {
     const slot = getSlotForDay(index, dia);
-    return horarios.find(
-      h => h.horaInicio === slot.horaInicio && h.horaFim === slot.horaFim && h.diaSemana === dia
-    ) || null;
+    const slotStart = timeToMinutes(slot.horaInicio);
+    const slotEnd = timeToMinutes(slot.horaFim);
+
+    return horarios.find(h => {
+      if (h.diaSemana !== dia) return false;
+
+      const hStart = timeToMinutes(h.horaInicio);
+      const hEnd = timeToMinutes(h.horaFim);
+      // Ponto medio do horario
+      const midpoint = (hStart + hEnd) / 2;
+
+      // Horario pertence ao slot onde seu ponto medio esta
+      return midpoint >= slotStart && midpoint < slotEnd;
+    }) || null;
   };
 
   return (
@@ -135,7 +175,7 @@ export function HorarioGrid({
                   >
                     <Box sx={{ mb: 0.25 }}>
                       <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6rem' }}>
-                        {daySlot.horaInicio}-{daySlot.horaFim}
+                        {horario ? `${horario.horaInicio}-${horario.horaFim}` : `${daySlot.horaInicio}-${daySlot.horaFim}`}
                       </Typography>
                     </Box>
                     <HorarioCell
@@ -145,7 +185,9 @@ export function HorarioGrid({
                       professor={viewMode === 'turma' ? professor : undefined}
                       professors={viewMode === 'turma' ? multipleProfessors : undefined}
                       canEdit={canEdit}
+                      canAddPessoal={canAddPessoal && !horario}
                       onClick={() => onCellClick(horario || undefined, { dia, slot: daySlot })}
+                      onAddPessoal={() => onAddPessoal?.({ dia, slot: daySlot })}
                     />
                   </TableCell>
                 );
