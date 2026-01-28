@@ -10,3 +10,4 @@ export { HorarioModal } from './HorarioModal';
 export { WhatsAppSendButton } from './WhatsAppSendButton';
 export { ImportHorariosModal } from './ImportHorariosModal';
 export { DownloadHorarioImage } from './DownloadHorarioImage';
+export { WhatsAppBulkSendModal } from './WhatsAppBulkSendModal';

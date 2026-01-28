@@ -11,6 +11,7 @@ import {
   ListItemText,
   CircularProgress,
   Divider,
+  Box,
 } from '@mui/material';
 import {
   WhatsApp as WhatsAppIcon,
@@ -20,6 +21,7 @@ import {
   Groups as GroupsIcon,
 } from '@mui/icons-material';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, DiasSemanaNomes } from '@/types';
+import { WhatsAppBulkSendModal } from './WhatsAppBulkSendModal';
 
 interface WhatsAppSendButtonProps {
   professor?: Usuario | null;
@@ -27,6 +29,7 @@ interface WhatsAppSendButtonProps {
   horarios: HorarioAula[];
   turmas: Turma[];
   disciplinas: Disciplina[];
+  ano: number;
   onSend: (
     professor: Usuario,
     horarios: HorarioAula[],
@@ -41,6 +44,8 @@ interface WhatsAppSendButtonProps {
     disciplinas: Disciplina[]
   ) => Promise<{ success: number; failed: number }>;
   sending: boolean;
+  enviadoPorId?: string;
+  enviadoPorNome?: string;
 }
 
 // Obter o dia da semana atual (0-6)
@@ -54,11 +59,15 @@ export function WhatsAppSendButton({
   horarios,
   turmas,
   disciplinas,
+  ano,
   onSend,
   onSendToAll,
   sending,
+  enviadoPorId,
+  enviadoPorNome,
 }: WhatsAppSendButtonProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const open = Boolean(anchorEl);
 
   const isAllMode = !professor && !!allProfessors;
@@ -102,16 +111,38 @@ export function WhatsAppSendButton({
     const professoresComCelular = allProfessors?.filter(p => p.celular && p.ativo) || [];
 
     return (
-      <Button
-        variant="contained"
-        color="success"
-        startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <GroupsIcon />}
-        onClick={handleSendToAllProfessors}
-        disabled={sending || horarios.length === 0 || professoresComCelular.length === 0}
-        size="small"
-      >
-        {sending ? 'Enviando...' : `Enviar para Todos (${professoresComCelular.length})`}
-      </Button>
+      <>
+        <Button
+          variant="contained"
+          color="success"
+          startIcon={sending ? <CircularProgress size={16} color="inherit" /> : <GroupsIcon />}
+          onClick={() => setBulkModalOpen(true)}
+          disabled={sending || horarios.length === 0 || professoresComCelular.length === 0}
+          size="small"
+          sx={{
+            minWidth: { xs: 40, sm: 'auto' },
+            px: { xs: 1, sm: 2 },
+          }}
+          title="Enviar para Todos"
+        >
+          <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+            Enviar para Todos
+          </Box>
+        </Button>
+
+        <WhatsAppBulkSendModal
+          open={bulkModalOpen}
+          onClose={() => setBulkModalOpen(false)}
+          professores={allProfessors || []}
+          horarios={horarios}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          ano={ano}
+          onSendText={onSend}
+          enviadoPorId={enviadoPorId}
+          enviadoPorNome={enviadoPorNome}
+        />
+      </>
     );
   }
 

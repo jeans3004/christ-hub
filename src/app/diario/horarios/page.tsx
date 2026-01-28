@@ -224,9 +224,12 @@ export default function HorariosPage() {
                 horarios={horarios}
                 turmas={turmas}
                 disciplinas={disciplinas}
+                ano={ano}
                 onSend={sendScheduleToWhatsApp}
                 onSendToAll={sendScheduleToAllProfessors}
                 sending={sending}
+                enviadoPorId={usuario?.id}
+                enviadoPorNome={usuario?.nome}
               />
             )}
 
