@@ -86,14 +86,22 @@ export function useHorariosData() {
   // Permissoes de edicao
   const canEdit = isCoordinatorOrAbove();
 
-  // Verificar se e vespertino
+  // Verificar se e vespertino (para ajustar slots de sexta-feira)
   const isVespertino = useMemo(() => {
     if (viewMode === 'turma' && turmaId) {
       const turma = turmas.find(t => t.id === turmaId);
       return turma?.turno === 'Vespertino';
     }
+    // Na visualização por professor, verificar se há horários vespertinos
+    if (viewMode === 'professor' && horarios.length > 0) {
+      // Considerar vespertino se houver algum horário após 12:00
+      return horarios.some(h => {
+        const hora = parseInt(h.horaInicio.split(':')[0] || '0');
+        return hora >= 12;
+      });
+    }
     return false;
-  }, [viewMode, turmaId, turmas]);
+  }, [viewMode, turmaId, turmas, horarios]);
 
   // Filtrar slots por turno da turma selecionada
   const timeSlots = useMemo(() => {
@@ -182,6 +190,7 @@ export function useHorariosData() {
     canEdit,
     canSendWhatsApp: isCoordinatorOrAbove(),
     userIsProfessor,
+    usuario,
 
     // Acoes
     ...actions,

@@ -32,7 +32,11 @@ export function useHorariosLoader({
   professorId,
 }: UseHorariosLoaderParams): UseHorariosLoaderReturn {
   const { addToast } = useUIStore();
-  const { isCoordinatorOrAbove, turmaIds } = usePermissions();
+  const { isCoordinatorOrAbove, turmaIds, usuario } = usePermissions();
+
+  // Calcular uma vez para evitar loop infinito no useCallback
+  const isCoordOrAbove = isCoordinatorOrAbove();
+  const usuarioId = usuario?.id;
 
   const [horarios, setHorarios] = useState<HorarioAula[]>([]);
   const [turmas, setTurmas] = useState<Turma[]>([]);
@@ -57,7 +61,7 @@ export function useHorariosLoader({
 
         // Filtrar turmas por permissao
         let turmasFiltradas = turmasData;
-        if (!isCoordinatorOrAbove() && turmaIds.length > 0) {
+        if (!isCoordOrAbove && turmaIds.length > 0) {
           turmasFiltradas = turmasData.filter(t => turmaIds.includes(t.id));
         }
 
@@ -94,14 +98,24 @@ export function useHorariosLoader({
         horariosData = await horarioService.getByAno(ano);
       }
 
-      setHorarios(horariosData);
+      // Filtrar horarios pessoais: visivel apenas para o criador ou coordenacao+
+      const horariosFiltered = horariosData.filter(h => {
+        // Horario oficial - sempre visivel
+        if (!h.pessoal) return true;
+        // Horario pessoal - visivel para coordenacao+
+        if (isCoordOrAbove) return true;
+        // Horario pessoal - visivel apenas para o criador
+        return h.createdBy === usuarioId || h.professorId === usuarioId;
+      });
+
+      setHorarios(horariosFiltered);
     } catch (err) {
       console.error('Erro ao carregar horarios:', err);
       setError('Erro ao carregar horarios');
     } finally {
       setLoading(false);
     }
-  }, [ano, turmaId, professorId]);
+  }, [ano, turmaId, professorId, isCoordOrAbove, usuarioId]);
 
   useEffect(() => {
     fetchHorarios();

@@ -17,6 +17,8 @@ interface UseHorariosActionsReturn {
   createHorario: (data: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'>) => Promise<string | null>;
   updateHorario: (id: string, data: Partial<HorarioAula>) => Promise<boolean>;
   deleteHorario: (id: string) => Promise<boolean>;
+  deleteAllHorarios: (ano: number) => Promise<number>;
+  importMultipleHorarios: (horarios: Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<number>;
   sendScheduleToWhatsApp: (
     professor: Usuario,
     horarios: HorarioAula[],
@@ -144,6 +146,143 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
       console.error('Erro ao remover horario:', error);
       addToast('Erro ao remover horario', 'error');
       return false;
+    } finally {
+      setSaving(false);
+    }
+  }, [addToast, onSuccess]);
+
+  const deleteAllHorarios = useCallback(async (ano: number): Promise<number> => {
+    setSaving(true);
+    try {
+      const count = await horarioService.deactivateByAno(ano);
+      addToast(`${count} horarios removidos com sucesso!`, 'success');
+      onSuccess?.();
+      return count;
+    } catch (error) {
+      console.error('Erro ao remover horarios:', error);
+      addToast('Erro ao remover horarios', 'error');
+      return 0;
+    } finally {
+      setSaving(false);
+    }
+  }, [addToast, onSuccess]);
+
+  const importMultipleHorarios = useCallback(async (
+    horarios: (Omit<HorarioAula, 'id' | 'createdAt' | 'updatedAt'> & { isTrilhas?: boolean })[]
+  ): Promise<number> => {
+    setSaving(true);
+    let successCount = 0;
+    let skippedCount = 0;
+    let trilhasCount = 0;
+    let errorCount = 0;
+
+    try {
+      // IMPORTANTE: Ordenar para processar disciplinas normais primeiro, Trilhas por último
+      const horariosOrdenados = [...horarios].sort((a, b) => {
+        if (a.isTrilhas && !b.isTrilhas) return 1;  // Trilhas vai para o final
+        if (!a.isTrilhas && b.isTrilhas) return -1; // Não-Trilhas vem primeiro
+        return 0;
+      });
+
+      for (const horario of horariosOrdenados) {
+        try {
+          const { isTrilhas, ...horarioData } = horario;
+
+          if (isTrilhas) {
+            // TRILHAS: adicionar apenas para professores que estão LIVRES neste horário
+            const professorIds = horarioData.professorIds || [horarioData.professorId];
+            const professoresLivres: string[] = [];
+
+            // Verificar quais professores estão livres neste horário
+            for (const profId of professorIds) {
+              const conflict = await horarioService.checkProfessorConflict(
+                profId,
+                horarioData.ano,
+                horarioData.diaSemana,
+                horarioData.horaInicio,
+                horarioData.horaFim
+              );
+
+              if (!conflict) {
+                professoresLivres.push(profId);
+              }
+            }
+
+            if (professoresLivres.length > 0) {
+              // Criar horário apenas com os professores livres
+              await horarioService.create({
+                ...horarioData,
+                professorId: professoresLivres[0],
+                professorIds: professoresLivres,
+              });
+              trilhasCount++;
+              successCount++;
+            } else {
+              // Todos os professores já têm horário neste tempo - pular
+              skippedCount++;
+            }
+          } else {
+            // NÃO-TRILHAS: verificar conflitos e pular se houver
+            // Verificar conflito de turma antes de importar
+            const turmaConflict = await horarioService.checkConflict(
+              horarioData.turmaId,
+              horarioData.ano,
+              horarioData.diaSemana,
+              horarioData.horaInicio,
+              horarioData.horaFim
+            );
+
+            if (turmaConflict) {
+              // Pular horario com conflito de turma
+              skippedCount++;
+              continue;
+            }
+
+            // Verificar conflito de professor
+            const professorConflict = await horarioService.checkProfessorConflict(
+              horarioData.professorId,
+              horarioData.ano,
+              horarioData.diaSemana,
+              horarioData.horaInicio,
+              horarioData.horaFim
+            );
+
+            if (professorConflict) {
+              // Pular horario com conflito de professor
+              skippedCount++;
+              continue;
+            }
+
+            await horarioService.create(horarioData);
+            successCount++;
+          }
+        } catch {
+          errorCount++;
+        }
+      }
+
+      if (successCount > 0) {
+        addToast(`${successCount} horarios importados com sucesso!`, 'success');
+        onSuccess?.();
+      }
+
+      if (trilhasCount > 0) {
+        addToast(`${trilhasCount} trilhas atribuídas a professores disponíveis`, 'info');
+      }
+
+      if (skippedCount > 0) {
+        addToast(`${skippedCount} horarios pulados (conflito ou sem professor livre)`, 'info');
+      }
+
+      if (errorCount > 0) {
+        addToast(`${errorCount} horarios falharam na importacao`, 'warning');
+      }
+
+      return successCount;
+    } catch (error) {
+      console.error('Erro ao importar horarios:', error);
+      addToast('Erro ao importar horarios', 'error');
+      return 0;
     } finally {
       setSaving(false);
     }
@@ -307,6 +446,8 @@ export function useHorariosActions(onSuccess?: () => void): UseHorariosActionsRe
     createHorario,
     updateHorario,
     deleteHorario,
+    deleteAllHorarios,
+    importMultipleHorarios,
     sendScheduleToWhatsApp,
     sendScheduleToAllProfessors,
   };
