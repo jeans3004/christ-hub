@@ -130,6 +130,15 @@ export interface Destinatario {
   email?: string;
 }
 
+// Dados de mídia anexada
+export interface MediaData {
+  type: TipoMensagemMedia;
+  base64?: string;
+  url?: string;
+  filename?: string;
+  mimetype?: string;
+}
+
 // Estado do formulario de envio
 export interface MensagemFormData {
   mensagem: string;
@@ -137,12 +146,14 @@ export interface MensagemFormData {
   tipo: MensagemTipo;
   grupoId?: string;
   templateId?: string;
+  media?: MediaData;
 }
 
 export const initialFormData: MensagemFormData = {
   mensagem: '',
   destinatarios: [],
   tipo: 'individual',
+  media: undefined,
 };
 
 // Filtro do historico
