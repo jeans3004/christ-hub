@@ -615,9 +615,12 @@ export const whatsappService = {
         mediaLength: media.base64?.length || 0,
         hasCaption: !!caption,
         hasBase64: !!media.base64,
+        bodyKeys: Object.keys(body),
+        mediaMessageKeys: Object.keys(body.mediaMessage as object),
       });
 
-      const response = await fetch(
+      // Tentar primeiro o endpoint sendMedia, se falhar tentar sendImage
+      let response = await fetch(
         `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
         {
           method: 'POST',
@@ -626,11 +629,45 @@ export const whatsappService = {
         }
       );
 
+      // Se sendMedia falhar com erro de mediatype, tentar endpoint alternativo
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('Evolution API sendImage error:', response.status, JSON.stringify(errorData));
-        const errorMsg = errorData.response?.message || errorData.message || `HTTP ${response.status}`;
-        return { success: false, error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) };
+        const errorStr = JSON.stringify(errorData);
+        console.error('Evolution API sendMedia error:', response.status, errorStr);
+
+        // Se o erro é sobre mediatype, tentar estrutura alternativa com endpoint sendMedia
+        if (errorStr.includes('mediatype')) {
+          console.log('Tentando estrutura alternativa...');
+
+          // Estrutura alternativa: campos no nível raiz
+          const altBody = {
+            number: formattedNumber,
+            mediatype: 'image',
+            media: media.base64 || media.url,
+            mimetype: media.mimetype || 'image/png',
+            caption: caption || '',
+            delay: 1200,
+          };
+
+          response = await fetch(
+            `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
+            {
+              method: 'POST',
+              headers: getHeaders(),
+              body: JSON.stringify(altBody),
+            }
+          );
+
+          if (!response.ok) {
+            const altErrorData = await response.json().catch(() => ({}));
+            console.error('Evolution API sendMedia (alt) error:', response.status, JSON.stringify(altErrorData));
+            const errorMsg = altErrorData.response?.message || altErrorData.message || `HTTP ${response.status}`;
+            return { success: false, error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) };
+          }
+        } else {
+          const errorMsg = errorData.response?.message || errorData.message || `HTTP ${response.status}`;
+          return { success: false, error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) };
+        }
       }
 
       const data = await response.json();
