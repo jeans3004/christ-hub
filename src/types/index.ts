@@ -507,6 +507,12 @@ export interface HorarioAula {
   sala?: string;
   ano: number;
   ativo: boolean;
+  // Conflitos (para Trilhas que podem ter duplicidade)
+  temConflito?: boolean;       // true = professor tem outro horario no mesmo slot
+  // Horarios pessoais (nao oficiais)
+  pessoal?: boolean;           // true = horario pessoal do professor
+  descricaoPessoal?: string;   // Descricao livre para horarios pessoais
+  createdBy?: string;          // ID do usuario que criou (para horarios pessoais)
   createdAt: Date;
   updatedAt: Date;
 }

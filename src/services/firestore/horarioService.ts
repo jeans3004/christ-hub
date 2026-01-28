@@ -25,20 +25,36 @@ export const horarioService = {
       where('ativo', '==', true),
     ]),
 
-  getByProfessor: (professorId: string, ano: number) =>
-    getDocuments<HorarioAula>(COLLECTION, [
-      where('professorId', '==', professorId),
+  getByProfessor: async (professorId: string, ano: number): Promise<HorarioAula[]> => {
+    // Buscar todos os horários do ano e filtrar client-side
+    // (evita problemas de índice composto com array-contains)
+    const todosHorarios = await getDocuments<HorarioAula>(COLLECTION, [
       where('ano', '==', ano),
       where('ativo', '==', true),
-    ]),
+    ]);
 
-  getByProfessorDia: (professorId: string, ano: number, diaSemana: DiaSemana) =>
-    getDocuments<HorarioAula>(COLLECTION, [
-      where('professorId', '==', professorId),
+    // Filtrar por professorId OU professorIds (array)
+    return todosHorarios.filter(h =>
+      h.professorId === professorId ||
+      (h.professorIds && h.professorIds.includes(professorId))
+    );
+  },
+
+  getByProfessorDia: async (professorId: string, ano: number, diaSemana: DiaSemana): Promise<HorarioAula[]> => {
+    // Buscar todos os horários do dia e filtrar client-side
+    // (evita problemas de índice composto com array-contains)
+    const horariosDia = await getDocuments<HorarioAula>(COLLECTION, [
       where('ano', '==', ano),
       where('diaSemana', '==', diaSemana),
       where('ativo', '==', true),
-    ]),
+    ]);
+
+    // Filtrar por professorId OU professorIds (array)
+    return horariosDia.filter(h =>
+      h.professorId === professorId ||
+      (h.professorIds && h.professorIds.includes(professorId))
+    );
+  },
 
   getByTurmaDia: (turmaId: string, ano: number, diaSemana: DiaSemana) =>
     getDocuments<HorarioAula>(COLLECTION, [
@@ -102,4 +118,15 @@ export const horarioService = {
   // Soft delete (desativa o horario)
   deactivate: (id: string) =>
     updateDocument(COLLECTION, id, { ativo: false }),
+
+  // Desativa todos os horarios de um ano
+  deactivateByAno: async (ano: number): Promise<number> => {
+    const horarios = await horarioService.getByAno(ano);
+    let count = 0;
+    for (const horario of horarios) {
+      await updateDocument(COLLECTION, horario.id, { ativo: false });
+      count++;
+    }
+    return count;
+  },
 };
