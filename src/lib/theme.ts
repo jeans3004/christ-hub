@@ -7,19 +7,19 @@ export const DRAWER_WIDTH = 260;
 export const DRAWER_WIDTH_COLLAPSED = 72;
 export const HEADER_HEIGHT = 64;
 
-// Luminar Dark Mode Premium Colors
+// Luminar Green Design System (based on design-system.md)
 const darkPalette = {
   primary: {
-    main: '#3D5A80',
-    light: '#58A6FF',
-    dark: '#2A3F5F',
+    main: '#00a63e',      // Green-600
+    light: '#4ade80',     // Green-400
+    dark: '#15803d',      // Green-700
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#F5C96B',
-    light: '#FFEAA7',
-    dark: '#E5A53A',
-    contrastText: '#0D1117',
+    main: '#155dfc',      // Blue-600
+    light: '#3b82f6',     // Blue-500
+    dark: '#1d4ed8',      // Blue-700
+    contrastText: '#FFFFFF',
   },
   background: {
     default: '#0D1117',
@@ -78,16 +78,16 @@ const darkPalette = {
 
 const lightPalette = {
   primary: {
-    main: '#2A3F5F',
-    light: '#3D5A80',
-    dark: '#1E2D45',
+    main: '#00a63e',      // Green-600
+    light: '#4ade80',     // Green-400
+    dark: '#016630',      // Green-800
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#E5A53A',
-    light: '#F5C96B',
-    dark: '#C4892E',
-    contrastText: '#1A202C',
+    main: '#155dfc',      // Blue-600
+    light: '#3b82f6',     // Blue-500
+    dark: '#1d4ed8',      // Blue-700
+    contrastText: '#FFFFFF',
   },
   background: {
     default: '#F5F7FA',
@@ -193,19 +193,16 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           sizeSmall: { height: 32, padding: '6px 12px', fontSize: '0.8125rem' },
           sizeLarge: { height: 48, padding: '12px 24px', fontSize: '0.9375rem' },
           containedPrimary: {
-            background: `linear-gradient(135deg, ${palette.primary.main} 0%, ${palette.primary.dark} 100%)`,
-            boxShadow: isDark ? '0 2px 8px rgba(61, 90, 128, 0.4)' : '0 2px 8px rgba(42, 63, 95, 0.25)',
+            backgroundColor: palette.primary.main,
             '&:hover': {
-              background: `linear-gradient(135deg, ${palette.primary.light} 0%, ${palette.primary.main} 100%)`,
-              boxShadow: isDark ? '0 4px 16px rgba(61, 90, 128, 0.5)' : '0 4px 16px rgba(42, 63, 95, 0.3)',
+              backgroundColor: palette.primary.dark,
             },
           },
           containedSecondary: {
-            background: `linear-gradient(135deg, ${palette.secondary.main} 0%, ${palette.secondary.dark} 100%)`,
-            color: isDark ? '#0D1117' : '#1A202C',
-            boxShadow: isDark ? '0 2px 8px rgba(245, 201, 107, 0.4)' : '0 2px 8px rgba(229, 165, 58, 0.3)',
+            backgroundColor: palette.secondary.main,
+            color: '#FFFFFF',
             '&:hover': {
-              background: `linear-gradient(135deg, ${palette.secondary.light} 0%, ${palette.secondary.main} 100%)`,
+              backgroundColor: palette.secondary.dark,
             },
           },
           outlined: {
@@ -268,7 +265,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? '#0D1117' : '#2A3F5F',
+            backgroundColor: isDark ? '#0D1117' : '#00a63e',
             color: '#F0F6FC',
             borderRight: `1px solid ${isDark ? '#21262D' : 'transparent'}`,
           },
@@ -287,7 +284,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             },
             '&.Mui-selected': {
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderLeft: '3px solid #F5C96B',
+              borderLeft: '3px solid #4ade80',
               paddingLeft: 13,
               color: '#F0F6FC',
               '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.12)' },
@@ -320,7 +317,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
               borderColor: isDark ? '#484F58' : '#CBD5E0',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: isDark ? '#58A6FF' : '#2A3F5F',
+              borderColor: isDark ? '#4ade80' : '#00a63e',
               borderWidth: 2,
             },
           },
@@ -335,7 +332,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             fontSize: '0.875rem',
             color: palette.text.secondary,
-            '&.Mui-focused': { color: isDark ? '#58A6FF' : '#2A3F5F' },
+            '&.Mui-focused': { color: isDark ? '#4ade80' : '#00a63e' },
           },
         },
       },
@@ -424,9 +421,9 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
               backgroundColor: isDark ? '#1C2128' : '#F8FAFC',
             },
             '&.Mui-selected': {
-              backgroundColor: isDark ? alpha('#58A6FF', 0.08) : alpha('#2A3F5F', 0.08),
+              backgroundColor: isDark ? alpha('#4ade80', 0.08) : alpha('#00a63e', 0.08),
               '&:hover': {
-                backgroundColor: isDark ? alpha('#58A6FF', 0.12) : alpha('#2A3F5F', 0.12),
+                backgroundColor: isDark ? alpha('#4ade80', 0.12) : alpha('#00a63e', 0.12),
               },
             },
           },
@@ -457,7 +454,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             color: isDark ? '#484F58' : '#A0AEC0',
             '&.Mui-checked': {
-              color: isDark ? '#58A6FF' : '#2A3F5F',
+              color: isDark ? '#4ade80' : '#00a63e',
             },
           },
         },
@@ -556,7 +553,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             minHeight: 44,
           },
           indicator: {
-            backgroundColor: isDark ? '#58A6FF' : '#2A3F5F',
+            backgroundColor: isDark ? '#4ade80' : '#00a63e',
             height: 3,
             borderRadius: '3px 3px 0 0',
           },
@@ -572,7 +569,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             padding: '8px 16px',
             color: palette.text.secondary,
             '&.Mui-selected': {
-              color: isDark ? '#F0F6FC' : '#2A3F5F',
+              color: isDark ? '#F0F6FC' : '#00a63e',
               fontWeight: 600,
             },
           },
@@ -656,7 +653,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           },
           colorPrimary: {
             '& .MuiLinearProgress-bar': {
-              backgroundColor: isDark ? '#58A6FF' : '#2A3F5F',
+              backgroundColor: isDark ? '#4ade80' : '#00a63e',
             },
           },
         },
@@ -688,11 +685,10 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiFab: {
         styleOverrides: {
           primary: {
-            background: `linear-gradient(135deg, ${palette.secondary.main} 0%, ${palette.secondary.dark} 100%)`,
-            color: isDark ? '#0D1117' : '#1A202C',
-            boxShadow: '0 4px 16px rgba(245, 201, 107, 0.4)',
+            backgroundColor: palette.primary.main,
+            color: '#FFFFFF',
             '&:hover': {
-              background: `linear-gradient(135deg, ${palette.secondary.light} 0%, ${palette.secondary.main} 100%)`,
+              backgroundColor: palette.primary.dark,
             },
           },
         },
