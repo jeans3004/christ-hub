@@ -28,13 +28,15 @@ import {
 } from '@mui/icons-material';
 import { TemplateMensagem } from '@/types';
 import { useFormatting } from '../hooks';
-import { FormatType } from '../types';
+import { FormatType, TipoMensagemMedia, MediaData } from '../types';
 import {
   FormatToolbar,
   TextEditor,
   TextEditorRef,
   MessagePreview,
   EmojiPicker,
+  MediaUploader,
+  MediaPreview,
 } from './composer';
 
 interface MensagemComposerProps {
@@ -47,6 +49,10 @@ interface MensagemComposerProps {
   disabled?: boolean;
   placeholder?: string;
   maxLength?: number;
+  // Media props
+  media?: MediaData;
+  onMediaChange?: (media: MediaData | undefined) => void;
+  allowMedia?: boolean;
 }
 
 const MAX_MESSAGE_LENGTH = 4096;
@@ -61,6 +67,9 @@ export function MensagemComposer({
   disabled = false,
   placeholder = 'Digite sua mensagem...',
   maxLength = MAX_MESSAGE_LENGTH,
+  media,
+  onMediaChange,
+  allowMedia = true,
 }: MensagemComposerProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [templateAnchor, setTemplateAnchor] = useState<null | HTMLElement>(null);
@@ -68,6 +77,32 @@ export function MensagemComposer({
 
   const charCount = value.length;
   const isOverLimit = charCount > maxLength;
+  const hasMedia = !!media;
+
+  // Handler para selecionar mídia
+  const handleMediaSelect = useCallback(
+    (mediaData: {
+      type: TipoMensagemMedia;
+      url?: string;
+      base64?: string;
+      filename?: string;
+      mimetype?: string;
+    }) => {
+      onMediaChange?.({
+        type: mediaData.type,
+        base64: mediaData.base64,
+        url: mediaData.url,
+        filename: mediaData.filename,
+        mimetype: mediaData.mimetype,
+      });
+    },
+    [onMediaChange]
+  );
+
+  // Handler para remover mídia
+  const handleMediaRemove = useCallback(() => {
+    onMediaChange?.(undefined);
+  }, [onMediaChange]);
 
   // Handler para selecionar emoji
   const handleEmojiSelect = useCallback(
@@ -144,6 +179,19 @@ export function MensagemComposer({
         </Box>
       </Box>
 
+      {/* Media Preview (se houver mídia anexada) */}
+      {hasMedia && media && (
+        <Box sx={{ mb: 2 }}>
+          <MediaPreview
+            type={media.type}
+            url={media.base64 ? `data:${media.mimetype};base64,${media.base64}` : media.url}
+            filename={media.filename}
+            onRemove={handleMediaRemove}
+            showRemove={!disabled && !sending}
+          />
+        </Box>
+      )}
+
       {/* Preview ou Editor */}
       {showPreview ? (
         <Paper
@@ -168,12 +216,12 @@ export function MensagemComposer({
           ref={textEditorRef}
           value={value}
           onChange={onChange}
-          placeholder={placeholder}
+          placeholder={hasMedia ? 'Legenda (opcional)...' : placeholder}
           disabled={disabled || sending}
           maxLength={maxLength}
           showToolbar={true}
           showCharCount={false}
-          minRows={6}
+          minRows={hasMedia ? 3 : 6}
         />
       )}
 
@@ -186,20 +234,32 @@ export function MensagemComposer({
           mt: 1,
         }}
       >
-        <Typography
-          variant="caption"
-          color={isOverLimit ? 'error' : 'text.secondary'}
-        >
-          {charCount.toLocaleString()} / {maxLength.toLocaleString()} caracteres
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Botão de anexar mídia */}
+          {allowMedia && onMediaChange && !hasMedia && (
+            <MediaUploader
+              onMediaSelect={handleMediaSelect}
+              disabled={disabled || sending}
+              allowedTypes={['image', 'document', 'audio', 'video']}
+              buttonVariant="text"
+              buttonSize="small"
+            />
+          )}
+          <Typography
+            variant="caption"
+            color={isOverLimit ? 'error' : 'text.secondary'}
+          >
+            {charCount.toLocaleString()} / {maxLength.toLocaleString()} caracteres
+          </Typography>
+        </Box>
 
         {onSend && (
-          <Tooltip title="Enviar mensagem">
+          <Tooltip title={hasMedia ? 'Enviar mídia' : 'Enviar mensagem'}>
             <span>
               <IconButton
                 color="primary"
                 onClick={onSend}
-                disabled={disabled || sending || !value.trim() || isOverLimit}
+                disabled={disabled || sending || (!value.trim() && !hasMedia) || isOverLimit}
                 sx={{
                   bgcolor: 'primary.main',
                   color: 'white',
