@@ -598,29 +598,23 @@ export const whatsappService = {
     const formattedNumber = formatPhoneNumber(numero);
 
     try {
-      // Evolution API aceita base64 com prefixo data URI
-      let mediaContent = media.base64 || '';
-      if (media.base64 && !media.base64.startsWith('data:')) {
-        mediaContent = `data:${media.mimetype || 'image/png'};base64,${media.base64}`;
-      }
-
-      // Estrutura para Evolution API 2.x (formato com mediaMessage)
+      // Estrutura igual ao sendDocument/sendVideo (que funcionam)
       const body: Record<string, unknown> = {
         number: formattedNumber,
-        options: {
-          delay: 1200,
-        },
         mediaMessage: {
           mediatype: 'image',
-          media: mediaContent || media.url,
-          caption: caption || undefined,
+          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(media.mimetype && { mimetype: media.mimetype }),
+          ...(caption && { caption }),
         },
+        delay: 1200,
       };
 
       console.log('Enviando imagem para Evolution API:', {
         number: formattedNumber,
-        mediaLength: mediaContent.length,
+        mediaLength: media.base64?.length || 0,
         hasCaption: !!caption,
+        hasBase64: !!media.base64,
       });
 
       const response = await fetch(
