@@ -18,6 +18,7 @@ import {
   HorarioModal,
   WhatsAppSendButton,
   ImportHorariosModal,
+  DownloadHorarioImage,
 } from './components';
 import { DiaSemana, HorarioSlot } from '@/types';
 
@@ -226,6 +227,17 @@ export default function HorariosPage() {
                 onSend={sendScheduleToWhatsApp}
                 onSendToAll={sendScheduleToAllProfessors}
                 sending={sending}
+              />
+            )}
+
+            {/* Botao Download Imagem para visualizacao de professor individual */}
+            {gridViewType === 'individual' && viewMode === 'professor' && selectedProfessor && !isAllProfessors && horarios.length > 0 && (
+              <DownloadHorarioImage
+                professor={selectedProfessor}
+                horarios={horarios}
+                turmas={turmas}
+                disciplinas={disciplinas}
+                ano={ano}
               />
             )}
 

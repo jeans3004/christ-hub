@@ -9,3 +9,4 @@ export { HorarioCell } from './HorarioCell';
 export { HorarioModal } from './HorarioModal';
 export { WhatsAppSendButton } from './WhatsAppSendButton';
 export { ImportHorariosModal } from './ImportHorariosModal';
+export { DownloadHorarioImage } from './DownloadHorarioImage';
