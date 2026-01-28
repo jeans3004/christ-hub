@@ -98,6 +98,14 @@ export default function MensagensPage() {
     [setForm]
   );
 
+  // Handler para mídia
+  const handleMediaChange = useCallback(
+    (media: typeof form.media) => {
+      setForm((prev) => ({ ...prev, media }));
+    },
+    [setForm]
+  );
+
   // Handler para envio
   const handleSend = useCallback(async () => {
     const success = await sendMessage();
@@ -294,6 +302,9 @@ export default function MensagensPage() {
                         onApplyTemplate={applyTemplate}
                         disabled={sending || !whatsappStatus.connected}
                         sending={sending}
+                        media={form.media}
+                        onMediaChange={handleMediaChange}
+                        allowMedia={true}
                       />
                     </CardContent>
                   </Card>
@@ -304,7 +315,7 @@ export default function MensagensPage() {
                   <Button
                     variant="outlined"
                     onClick={resetForm}
-                    disabled={sending || (!form.mensagem && form.destinatarios.length === 0)}
+                    disabled={sending || (!form.mensagem && !form.media && form.destinatarios.length === 0)}
                   >
                     Limpar
                   </Button>
@@ -316,7 +327,7 @@ export default function MensagensPage() {
                     disabled={
                       sending ||
                       !whatsappStatus.connected ||
-                      !form.mensagem.trim() ||
+                      (!form.mensagem.trim() && !form.media) ||
                       form.destinatarios.length === 0
                     }
                   >
