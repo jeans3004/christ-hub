@@ -20,6 +20,13 @@ import { DiaSemana, DiasSemanaNomesAbrev, HorarioAula, Turma, Disciplina, Usuari
 
 const DIAS_SEMANA: DiaSemana[] = [1, 2, 3, 4, 5]; // Segunda a Sexta
 
+// Converte horario HH:MM para minutos desde meia-noite
+const timeToMinutes = (time: string): number => {
+  if (!time) return 0;
+  const [h, m] = time.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+};
+
 // Slots Matutino
 const MATUTINO_SLOTS: HorarioSlot[] = [
   { horaInicio: '07:00', horaFim: '07:45', label: '1º' },
@@ -122,11 +129,22 @@ export function HorarioGridByTurno({
     return turno === 'Matutino' ? MATUTINO_SLOTS : VESPERTINO_SLOTS;
   };
 
-  // Buscar horario para uma turma/dia/slot
+  // Buscar horario cujo ponto medio cai dentro do slot
   const getHorario = (turmaId: string, dia: DiaSemana, slot: HorarioSlot) => {
-    return horarios.find(
-      h => h.turmaId === turmaId && h.diaSemana === dia && h.horaInicio === slot.horaInicio
-    ) || null;
+    const slotStart = timeToMinutes(slot.horaInicio);
+    const slotEnd = timeToMinutes(slot.horaFim);
+
+    return horarios.find(h => {
+      if (h.turmaId !== turmaId || h.diaSemana !== dia) return false;
+
+      const hStart = timeToMinutes(h.horaInicio);
+      const hEnd = timeToMinutes(h.horaFim);
+      // Ponto medio do horario
+      const midpoint = (hStart + hEnd) / 2;
+
+      // Horario pertence ao slot onde seu ponto medio esta
+      return midpoint >= slotStart && midpoint < slotEnd;
+    }) || null;
   };
 
   // Gerar linhas (dia + tempo)
@@ -268,13 +286,32 @@ export function HorarioGridByTurno({
                     {horario ? (
                       <Box
                         sx={{
-                          bgcolor: 'primary.light',
-                          color: 'primary.contrastText',
+                          bgcolor: horario.temConflito ? 'warning.main' : 'primary.light',
+                          color: horario.temConflito ? 'warning.contrastText' : 'primary.contrastText',
                           borderRadius: 1,
                           p: 0.5,
                           minHeight: 32,
+                          position: 'relative',
+                          ...(horario.temConflito && {
+                            border: '2px dashed',
+                            borderColor: 'warning.dark',
+                          }),
                         }}
+                        title={horario.temConflito ? 'Professor com duplicidade neste horário' : undefined}
                       >
+                        {horario.temConflito && (
+                          <Typography
+                            component="span"
+                            sx={{
+                              position: 'absolute',
+                              top: 1,
+                              right: 3,
+                              fontSize: '0.6rem',
+                            }}
+                          >
+                            ⚠
+                          </Typography>
+                        )}
                         <Typography
                           variant="caption"
                           sx={{
