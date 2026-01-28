@@ -28,7 +28,7 @@ import {
 } from '@mui/icons-material';
 import { TemplateMensagem } from '@/types';
 import { useFormatting } from '../hooks';
-import { FormatType, TipoMensagemMedia, MediaData } from '../types';
+import { FormatType, TipoMensagemMedia, MediaData, generateMediaId } from '../types';
 import {
   FormatToolbar,
   TextEditor,
@@ -49,10 +49,15 @@ interface MensagemComposerProps {
   disabled?: boolean;
   placeholder?: string;
   maxLength?: number;
-  // Media props
+  // Media props (single - retrocompatibilidade)
   media?: MediaData;
   onMediaChange?: (media: MediaData | undefined) => void;
+  // Media props (multiple)
+  medias?: MediaData[];
+  onMediasChange?: (medias: MediaData[]) => void;
   allowMedia?: boolean;
+  allowMultipleMedia?: boolean;
+  maxMediaCount?: number;
 }
 
 const MAX_MESSAGE_LENGTH = 4096;
@@ -69,7 +74,11 @@ export function MensagemComposer({
   maxLength = MAX_MESSAGE_LENGTH,
   media,
   onMediaChange,
+  medias = [],
+  onMediasChange,
   allowMedia = true,
+  allowMultipleMedia = true,
+  maxMediaCount = 10,
 }: MensagemComposerProps) {
   const [showPreview, setShowPreview] = useState(false);
   const [templateAnchor, setTemplateAnchor] = useState<null | HTMLElement>(null);
@@ -77,7 +86,11 @@ export function MensagemComposer({
 
   const charCount = value.length;
   const isOverLimit = charCount > maxLength;
-  const hasMedia = !!media;
+
+  // Usar medias se disponível, senão usar media (retrocompatibilidade)
+  const currentMedias = onMediasChange ? medias : (media ? [media] : []);
+  const hasMedia = currentMedias.length > 0;
+  const canAddMore = allowMultipleMedia ? currentMedias.length < maxMediaCount : currentMedias.length === 0;
 
   // Handler para selecionar mídia
   const handleMediaSelect = useCallback(
@@ -88,21 +101,36 @@ export function MensagemComposer({
       filename?: string;
       mimetype?: string;
     }) => {
-      onMediaChange?.({
+      const newMedia: MediaData = {
+        id: generateMediaId(),
         type: mediaData.type,
         base64: mediaData.base64,
         url: mediaData.url,
         filename: mediaData.filename,
         mimetype: mediaData.mimetype,
-      });
+      };
+
+      if (onMediasChange) {
+        // Modo múltiplas mídias
+        onMediasChange([...medias, newMedia]);
+      } else if (onMediaChange) {
+        // Modo mídia única (retrocompatibilidade)
+        onMediaChange(newMedia);
+      }
     },
-    [onMediaChange]
+    [onMediaChange, onMediasChange, medias]
   );
 
   // Handler para remover mídia
-  const handleMediaRemove = useCallback(() => {
-    onMediaChange?.(undefined);
-  }, [onMediaChange]);
+  const handleMediaRemove = useCallback((mediaId?: string) => {
+    if (onMediasChange && mediaId) {
+      // Modo múltiplas mídias - remover por ID
+      onMediasChange(medias.filter(m => m.id !== mediaId));
+    } else if (onMediaChange) {
+      // Modo mídia única
+      onMediaChange(undefined);
+    }
+  }, [onMediaChange, onMediasChange, medias]);
 
   // Handler para selecionar emoji
   const handleEmojiSelect = useCallback(
@@ -180,15 +208,38 @@ export function MensagemComposer({
       </Box>
 
       {/* Media Preview (se houver mídia anexada) */}
-      {hasMedia && media && (
+      {hasMedia && currentMedias.length > 0 && (
         <Box sx={{ mb: 2 }}>
-          <MediaPreview
-            type={media.type}
-            url={media.base64 ? `data:${media.mimetype};base64,${media.base64}` : media.url}
-            filename={media.filename}
-            onRemove={handleMediaRemove}
-            showRemove={!disabled && !sending}
-          />
+          {currentMedias.length === 1 ? (
+            // Mídia única - preview grande
+            <MediaPreview
+              type={currentMedias[0].type}
+              url={currentMedias[0].base64 ? `data:${currentMedias[0].mimetype};base64,${currentMedias[0].base64}` : currentMedias[0].url}
+              filename={currentMedias[0].filename}
+              onRemove={() => handleMediaRemove(currentMedias[0].id)}
+              showRemove={!disabled && !sending}
+            />
+          ) : (
+            // Múltiplas mídias - preview compacto
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {currentMedias.map((m) => (
+                <MediaPreview
+                  key={m.id}
+                  type={m.type}
+                  url={m.base64 ? `data:${m.mimetype};base64,${m.base64}` : m.url}
+                  filename={m.filename}
+                  onRemove={() => handleMediaRemove(m.id)}
+                  showRemove={!disabled && !sending}
+                  compact
+                />
+              ))}
+            </Box>
+          )}
+          {currentMedias.length > 1 && (
+            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+              {currentMedias.length} anexos selecionados
+            </Typography>
+          )}
         </Box>
       )}
 
@@ -236,7 +287,7 @@ export function MensagemComposer({
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {/* Botão de anexar mídia */}
-          {allowMedia && onMediaChange && !hasMedia && (
+          {allowMedia && (onMediaChange || onMediasChange) && canAddMore && (
             <MediaUploader
               onMediaSelect={handleMediaSelect}
               disabled={disabled || sending}
@@ -250,6 +301,7 @@ export function MensagemComposer({
             color={isOverLimit ? 'error' : 'text.secondary'}
           >
             {charCount.toLocaleString()} / {maxLength.toLocaleString()} caracteres
+            {hasMedia && allowMultipleMedia && ` | ${currentMedias.length}/${maxMediaCount} anexos`}
           </Typography>
         </Box>
 

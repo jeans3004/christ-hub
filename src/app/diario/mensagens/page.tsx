@@ -98,10 +98,18 @@ export default function MensagensPage() {
     [setForm]
   );
 
-  // Handler para mídia
+  // Handler para mídia (retrocompatibilidade)
   const handleMediaChange = useCallback(
     (media: typeof form.media) => {
       setForm((prev) => ({ ...prev, media }));
+    },
+    [setForm]
+  );
+
+  // Handler para múltiplas mídias
+  const handleMediasChange = useCallback(
+    (medias: typeof form.medias) => {
+      setForm((prev) => ({ ...prev, medias }));
     },
     [setForm]
   );
@@ -302,9 +310,11 @@ export default function MensagensPage() {
                         onApplyTemplate={applyTemplate}
                         disabled={sending || !whatsappStatus.connected}
                         sending={sending}
-                        media={form.media}
-                        onMediaChange={handleMediaChange}
+                        medias={form.medias}
+                        onMediasChange={handleMediasChange}
                         allowMedia={true}
+                        allowMultipleMedia={true}
+                        maxMediaCount={10}
                       />
                     </CardContent>
                   </Card>
@@ -315,7 +325,7 @@ export default function MensagensPage() {
                   <Button
                     variant="outlined"
                     onClick={resetForm}
-                    disabled={sending || (!form.mensagem && !form.media && form.destinatarios.length === 0)}
+                    disabled={sending || (!form.mensagem && (!form.medias || form.medias.length === 0) && form.destinatarios.length === 0)}
                   >
                     Limpar
                   </Button>
@@ -327,7 +337,7 @@ export default function MensagensPage() {
                     disabled={
                       sending ||
                       !whatsappStatus.connected ||
-                      (!form.mensagem.trim() && !form.media) ||
+                      (!form.mensagem.trim() && (!form.medias || form.medias.length === 0)) ||
                       form.destinatarios.length === 0
                     }
                   >

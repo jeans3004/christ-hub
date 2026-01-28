@@ -102,7 +102,9 @@ export function useMensagensActions(
 
   // Enviar mensagem (individual ou broadcast)
   const sendMessage = useCallback(async (): Promise<boolean> => {
-    const hasMedia = !!form.media;
+    // Suporte para múltiplas mídias ou mídia única
+    const medias = form.medias && form.medias.length > 0 ? form.medias : (form.media ? [form.media] : []);
+    const hasMedia = medias.length > 0;
     const hasText = !!form.mensagem.trim();
 
     if (!hasMedia && !hasText) {
@@ -128,10 +130,24 @@ export function useMensagensActions(
       if (form.destinatarios.length === 1) {
         const dest = form.destinatarios[0];
         let success = false;
+        let allMediaSuccess = true;
 
-        if (hasMedia && form.media) {
-          // Enviar mídia com caption opcional
-          success = await sendMediaMessage(dest, form.media, form.mensagem);
+        if (hasMedia) {
+          // Enviar todas as mídias (caption apenas na primeira)
+          for (let i = 0; i < medias.length; i++) {
+            const mediaSuccess = await sendMediaMessage(
+              dest,
+              medias[i],
+              i === 0 ? form.mensagem : '' // Caption apenas na primeira mídia
+            );
+            if (!mediaSuccess) allMediaSuccess = false;
+
+            // Delay entre mídias
+            if (i < medias.length - 1) {
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+          }
+          success = allMediaSuccess;
         } else {
           // Enviar texto
           success = await sendTextMessage(dest, form.mensagem);
@@ -160,8 +176,8 @@ export function useMensagensActions(
       }
 
       // Envio em massa (broadcast)
-      if (hasMedia && form.media) {
-        // Envio em massa de mídia - enviar um a um com delay
+      if (hasMedia) {
+        // Envio em massa de mídias - enviar para cada destinatário com delay
         let enviadas = 0;
         let falhas = 0;
         const results: Array<{ id: string; nome: string; success: boolean; error?: string }> = [];
@@ -169,8 +185,24 @@ export function useMensagensActions(
         for (let i = 0; i < form.destinatarios.length; i++) {
           const dest = form.destinatarios[i];
           try {
-            const success = await sendMediaMessage(dest, form.media, form.mensagem);
-            if (success) {
+            let destSuccess = true;
+
+            // Enviar todas as mídias para este destinatário
+            for (let j = 0; j < medias.length; j++) {
+              const mediaSuccess = await sendMediaMessage(
+                dest,
+                medias[j],
+                j === 0 ? form.mensagem : '' // Caption apenas na primeira mídia
+              );
+              if (!mediaSuccess) destSuccess = false;
+
+              // Delay entre mídias para o mesmo destinatário
+              if (j < medias.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+              }
+            }
+
+            if (destSuccess) {
               enviadas++;
               results.push({ id: dest.id, nome: dest.nome, success: true });
             } else {
@@ -182,7 +214,7 @@ export function useMensagensActions(
             results.push({ id: dest.id, nome: dest.nome, success: false, error: 'Erro de conexão' });
           }
 
-          // Delay entre envios para evitar bloqueio
+          // Delay entre destinatários para evitar bloqueio
           if (i < form.destinatarios.length - 1) {
             await new Promise(resolve => setTimeout(resolve, 1500));
           }
@@ -196,10 +228,11 @@ export function useMensagensActions(
           results,
         });
 
+        const mediaLabel = medias.length > 1 ? `${medias.length} anexos` : 'mídia';
         if (enviadas === form.destinatarios.length) {
-          addToast(`${enviadas} mídias enviadas com sucesso!`, 'success');
+          addToast(`${mediaLabel} enviados para ${enviadas} destinatários!`, 'success');
         } else if (enviadas > 0) {
-          addToast(`${enviadas} de ${form.destinatarios.length} mídias enviadas`, 'warning');
+          addToast(`${mediaLabel} enviados para ${enviadas} de ${form.destinatarios.length} destinatários`, 'warning');
         } else {
           addToast('Falha ao enviar mídias', 'error');
         }

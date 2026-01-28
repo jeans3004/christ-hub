@@ -132,6 +132,7 @@ export interface Destinatario {
 
 // Dados de mídia anexada
 export interface MediaData {
+  id: string; // ID único para identificar cada mídia
   type: TipoMensagemMedia;
   base64?: string;
   url?: string;
@@ -146,7 +147,8 @@ export interface MensagemFormData {
   tipo: MensagemTipo;
   grupoId?: string;
   templateId?: string;
-  media?: MediaData;
+  media?: MediaData; // Mídia única (retrocompatibilidade)
+  medias?: MediaData[]; // Múltiplas mídias
 }
 
 export const initialFormData: MensagemFormData = {
@@ -154,7 +156,13 @@ export const initialFormData: MensagemFormData = {
   destinatarios: [],
   tipo: 'individual',
   media: undefined,
+  medias: [],
 };
+
+// Helper para gerar ID único para mídia
+export function generateMediaId(): string {
+  return `media_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
 
 // Filtro do historico
 export interface HistoricoFiltro {
