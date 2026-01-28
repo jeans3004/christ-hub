@@ -280,7 +280,15 @@ export default function HorariosPage() {
                     <Box sx={{ width: 12, height: 12, bgcolor: 'warning.main', borderRadius: '50%' }} />
                     Matutino
                   </Typography>
-                  <Box sx={{ borderRadius: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                  <Box
+                    sx={{
+                      borderRadius: { xs: 0, sm: 1 },
+                      overflow: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      '&::-webkit-scrollbar': { height: 6 },
+                      '&::-webkit-scrollbar-thumb': { bgcolor: 'primary.light', borderRadius: 3 },
+                    }}
+                  >
                     <HorarioGridByTurno
                       turno="Matutino"
                       horarios={horarios}
@@ -309,7 +317,15 @@ export default function HorariosPage() {
                     <Box sx={{ width: 12, height: 12, bgcolor: 'info.main', borderRadius: '50%' }} />
                     Vespertino
                   </Typography>
-                  <Box sx={{ borderRadius: { xs: 0, sm: 1 }, overflow: 'hidden' }}>
+                  <Box
+                    sx={{
+                      borderRadius: { xs: 0, sm: 1 },
+                      overflow: 'auto',
+                      WebkitOverflowScrolling: 'touch',
+                      '&::-webkit-scrollbar': { height: 6 },
+                      '&::-webkit-scrollbar-thumb': { bgcolor: 'primary.light', borderRadius: 3 },
+                    }}
+                  >
                     <HorarioGridByTurno
                       turno="Vespertino"
                       horarios={horarios}

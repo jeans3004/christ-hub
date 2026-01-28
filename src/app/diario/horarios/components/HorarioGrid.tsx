@@ -92,7 +92,9 @@ export function HorarioGrid({
     <TableContainer
       sx={{
         overflowX: 'auto',
+        overflowY: 'visible',
         WebkitOverflowScrolling: 'touch',
+        touchAction: 'pan-x pan-y',
         '&::-webkit-scrollbar': {
           height: 8,
         },
@@ -106,15 +108,19 @@ export function HorarioGrid({
         },
       }}
     >
-      <Table size="small" sx={{ minWidth: 600, tableLayout: 'fixed' }}>
+      <Table size="small" sx={{ minWidth: 550, tableLayout: 'fixed' }}>
         <TableHead>
           <TableRow>
             <TableCell
               sx={{
-                width: 80,
-                bgcolor: 'background.default',
+                width: { xs: 60, sm: 80 },
+                minWidth: { xs: 60, sm: 80 },
+                bgcolor: 'background.paper',
                 borderBottom: 2,
                 borderColor: 'divider',
+                position: 'sticky',
+                left: 0,
+                zIndex: 2,
               }}
             >
               <Typography variant="caption" fontWeight={600} color="text.secondary">
@@ -143,10 +149,15 @@ export function HorarioGrid({
             <TableRow key={`tempo-${index}`}>
               <TableCell
                 sx={{
-                  bgcolor: 'background.default',
+                  bgcolor: 'background.paper',
                   borderRight: 1,
                   borderColor: 'divider',
                   py: 1,
+                  position: 'sticky',
+                  left: 0,
+                  zIndex: 1,
+                  width: { xs: 60, sm: 80 },
+                  minWidth: { xs: 60, sm: 80 },
                 }}
               >
                 <Typography variant="caption" fontWeight={600} display="block">
@@ -170,7 +181,8 @@ export function HorarioGrid({
                     sx={{
                       p: 0.5,
                       verticalAlign: 'top',
-                      minWidth: 100,
+                      minWidth: { xs: 85, sm: 100 },
+                      width: { xs: 85, sm: 'auto' },
                     }}
                   >
                     <Box sx={{ mb: 0.25 }}>
