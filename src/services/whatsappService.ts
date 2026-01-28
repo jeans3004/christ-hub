@@ -598,33 +598,29 @@ export const whatsappService = {
     const formattedNumber = formatPhoneNumber(numero);
 
     try {
-      // Evolution API 2.x espera base64 com prefixo data URI
+      // Evolution API aceita base64 com prefixo data URI
       let mediaContent = media.base64 || '';
       if (media.base64 && !media.base64.startsWith('data:')) {
         mediaContent = `data:${media.mimetype || 'image/png'};base64,${media.base64}`;
       }
 
-      // Estrutura para Evolution API 2.x
+      // Estrutura para Evolution API 2.x (formato com mediaMessage)
       const body: Record<string, unknown> = {
         number: formattedNumber,
-        mediatype: 'image',
-        mimetype: media.mimetype || 'image/png',
-        caption: caption || '',
-        media: mediaContent || undefined,
-        mediaurl: !mediaContent ? media.url : undefined,
-        delay: 1200,
+        options: {
+          delay: 1200,
+        },
+        mediaMessage: {
+          mediatype: 'image',
+          media: mediaContent || media.url,
+          caption: caption || undefined,
+        },
       };
-
-      // Remover campos undefined
-      Object.keys(body).forEach(key => {
-        if (body[key] === undefined) delete body[key];
-      });
 
       console.log('Enviando imagem para Evolution API:', {
         number: formattedNumber,
         mediaLength: mediaContent.length,
         hasCaption: !!caption,
-        mediatype: 'image',
       });
 
       const response = await fetch(
