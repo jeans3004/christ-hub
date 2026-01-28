@@ -598,16 +598,28 @@ export const whatsappService = {
     const formattedNumber = formatPhoneNumber(numero);
 
     try {
+      // Evolution API espera base64 com prefixo data URI
+      let mediaContent = media.base64 || '';
+      if (media.base64 && !media.base64.startsWith('data:')) {
+        mediaContent = `data:${media.mimetype || 'image/png'};base64,${media.base64}`;
+      }
+
       const body: Record<string, unknown> = {
         number: formattedNumber,
         mediaMessage: {
           mediatype: 'image',
-          ...(media.base64 ? { media: media.base64 } : { mediaurl: media.url }),
+          ...(mediaContent ? { media: mediaContent } : { mediaurl: media.url }),
           ...(media.mimetype && { mimetype: media.mimetype }),
           ...(caption && { caption }),
         },
         delay: 1200,
       };
+
+      console.log('Enviando imagem para Evolution API:', {
+        number: formattedNumber,
+        mediaLength: mediaContent.length,
+        hasCaption: !!caption,
+      });
 
       const response = await fetch(
         `${EVOLUTION_API_URL}/message/sendMedia/${INSTANCE_NAME}`,
@@ -620,7 +632,9 @@ export const whatsappService = {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+        console.error('Evolution API sendImage error:', response.status, JSON.stringify(errorData));
+        const errorMsg = errorData.response?.message || errorData.message || `HTTP ${response.status}`;
+        return { success: false, error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) };
       }
 
       const data = await response.json();

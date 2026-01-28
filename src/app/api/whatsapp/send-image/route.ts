@@ -31,24 +31,37 @@ export async function POST(request: NextRequest) {
       enviadoPorNome,
     } = body;
 
+    console.log('Recebido request send-image:', {
+      destinatarioId,
+      destinatarioNome,
+      numero,
+      imageBase64Length: imageBase64?.length || 0,
+      caption,
+      enviadoPorId,
+      enviadoPorNome,
+    });
+
     // Validacoes
     if (!numero) {
+      console.log('Erro: numero vazio');
       return NextResponse.json(
-        { error: 'Numero e obrigatorio' },
+        { error: 'Numero do professor e obrigatorio' },
         { status: 400 }
       );
     }
 
-    if (!imageBase64) {
+    if (!imageBase64 || imageBase64.length < 100) {
+      console.log('Erro: imagem vazia ou muito pequena');
       return NextResponse.json(
-        { error: 'Imagem e obrigatoria' },
+        { error: 'Imagem invalida ou vazia' },
         { status: 400 }
       );
     }
 
     if (!enviadoPorId || !enviadoPorNome) {
+      console.log('Erro: dados do remetente vazios', { enviadoPorId, enviadoPorNome });
       return NextResponse.json(
-        { error: 'Dados do remetente sao obrigatorios' },
+        { error: 'Dados do remetente sao obrigatorios (faca login novamente)' },
         { status: 400 }
       );
     }
