@@ -25,7 +25,7 @@ import {
   ToggleButtonGroup,
   Divider,
 } from '@mui/material';
-import { Download, Close, Image, WhatsApp, WbSunny, NightsStay } from '@mui/icons-material';
+import { Download, Close, Image, WhatsApp, WbSunny, NightsStay, Schedule } from '@mui/icons-material';
 import html2canvas from 'html2canvas';
 import { HorarioAula, Turma, Disciplina, Usuario, DiaSemana, HorarioSlot } from '@/types';
 
@@ -71,7 +71,7 @@ const SEXTA_VESPERTINO_SLOTS: HorarioSlot[] = [
   { horaInicio: '16:30', horaFim: '17:05', label: '7º' },
 ];
 
-type TurnoView = 'matutino' | 'vespertino';
+type TurnoView = 'matutino' | 'vespertino' | 'ambos';
 
 interface DownloadHorarioImageProps {
   professor: Usuario;
@@ -115,15 +115,26 @@ export function DownloadHorarioImage({
 
   // Obter disciplinas do professor para o turno selecionado
   const getDisciplinasProfessor = (turno: TurnoView) => {
-    const horariosDoTurno = horarios.filter(h => {
-      const hora = parseInt(h.horaInicio.split(':')[0] || '0');
-      return turno === 'matutino' ? hora < 12 : hora >= 12;
-    });
+    const horariosDoTurno = turno === 'ambos'
+      ? horarios
+      : horarios.filter(h => {
+          const hora = parseInt(h.horaInicio.split(':')[0] || '0');
+          return turno === 'matutino' ? hora < 12 : hora >= 12;
+        });
     const discIds = new Set(horariosDoTurno.map(h => h.disciplinaId));
     return Array.from(discIds)
       .map(id => disciplinas.find(d => d.id === id)?.nome)
       .filter(Boolean)
       .join(' / ');
+  };
+
+  // Obter label do turno
+  const getTurnoLabel = (turno: TurnoView) => {
+    if (turno === 'matutino') return 'Matutino';
+    if (turno === 'vespertino') return 'Vespertino';
+    if (hasMatutino && hasVespertino) return 'Integral';
+    if (hasMatutino) return 'Matutino';
+    return 'Vespertino';
   };
 
   // Obter slots baseado no turno e dia
@@ -186,7 +197,7 @@ export function DownloadHorarioImage({
         useCORS: true,
       });
 
-      const turnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
+      const turnoLabel = getTurnoLabel(selectedTurno);
       const link = document.createElement('a');
       link.download = `Horario_${professor.nome.replace(/\s+/g, '_')}_${turnoLabel}_${ano}.png`;
       link.href = canvas.toDataURL('image/png');
@@ -218,7 +229,7 @@ export function DownloadHorarioImage({
         throw new Error('Falha ao gerar imagem');
       }
 
-      const turnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
+      const turnoLabel = getTurnoLabel(selectedTurno);
       const response = await fetch('/api/whatsapp/send-image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -389,8 +400,7 @@ export function DownloadHorarioImage({
     );
   };
 
-  const currentTurnoLabel = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
-  const currentTurnoForTable = selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino';
+  const currentTurnoLabel = getTurnoLabel(selectedTurno);
 
   return (
     <>
@@ -445,6 +455,12 @@ export function DownloadHorarioImage({
                 <NightsStay sx={{ mr: 1 }} />
                 Vespertino
               </ToggleButton>
+              {hasMatutino && hasVespertino && (
+                <ToggleButton value="ambos">
+                  <Schedule sx={{ mr: 1 }} />
+                  Integral
+                </ToggleButton>
+              )}
             </ToggleButtonGroup>
           </Box>
 
@@ -466,10 +482,29 @@ export function DownloadHorarioImage({
               </Typography>
             </Box>
 
-            {/* Tabela do turno selecionado */}
-            <Box>
-              {renderTable(currentTurnoForTable)}
-            </Box>
+            {/* Tabela(s) do turno selecionado */}
+            {selectedTurno === 'ambos' ? (
+              <>
+                <Box sx={{ mb: 2 }}>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '0.9rem', mb: 1, color: '#1976d2' }}>
+                    <WbSunny sx={{ fontSize: '1rem', mr: 0.5, verticalAlign: 'middle' }} />
+                    MATUTINO
+                  </Typography>
+                  {renderTable('Matutino')}
+                </Box>
+                <Box>
+                  <Typography sx={{ fontWeight: 'bold', fontSize: '0.9rem', mb: 1, color: '#7b1fa2' }}>
+                    <NightsStay sx={{ fontSize: '1rem', mr: 0.5, verticalAlign: 'middle' }} />
+                    VESPERTINO
+                  </Typography>
+                  {renderTable('Vespertino')}
+                </Box>
+              </>
+            ) : (
+              <Box>
+                {renderTable(selectedTurno === 'matutino' ? 'Matutino' : 'Vespertino')}
+              </Box>
+            )}
 
             {/* Footer */}
             <Box sx={{ mt: 2, pt: 1, borderTop: '1px solid #ccc', textAlign: 'right' }}>
