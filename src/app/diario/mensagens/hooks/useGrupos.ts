@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { GrupoWhatsApp } from '@/types';
+import { MediaData } from '../types';
 
 interface UseGruposReturn {
   grupos: GrupoWhatsApp[];
@@ -11,6 +12,7 @@ interface UseGruposReturn {
   error: string | null;
   refreshGrupos: () => Promise<void>;
   sendToGroup: (groupId: string, mensagem: string) => Promise<{ success: boolean; error?: string }>;
+  sendMediaToGroup: (groupId: string, media: MediaData, caption?: string) => Promise<{ success: boolean; error?: string }>;
   sending: boolean;
 }
 
@@ -92,6 +94,47 @@ export function useGrupos(): UseGruposReturn {
     }
   }, []);
 
+  const sendMediaToGroup = useCallback(async (groupId: string, media: MediaData, caption?: string) => {
+    setSending(true);
+    try {
+      const response = await fetch('/api/whatsapp/send-group-media', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          groupId,
+          mediaType: media.type,
+          mediaBase64: media.base64,
+          mediaUrl: media.url,
+          filename: media.filename,
+          mimetype: media.mimetype,
+          caption,
+        }),
+      });
+
+      let data: { error?: string } = {};
+      try {
+        const text = await response.text();
+        if (text && text.trim()) {
+          data = JSON.parse(text);
+        }
+      } catch (parseError) {
+        console.warn('Erro ao parsear resposta JSON:', parseError);
+        data = { error: 'Resposta invalida do servidor' };
+      }
+
+      if (!response.ok) {
+        return { success: false, error: data.error || 'Erro ao enviar mídia' };
+      }
+
+      return { success: true };
+    } catch (err) {
+      console.error('Erro ao enviar mídia para grupo:', err);
+      return { success: false, error: err instanceof Error ? err.message : 'Erro desconhecido' };
+    } finally {
+      setSending(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchGrupos();
   }, [fetchGrupos]);
@@ -102,6 +145,7 @@ export function useGrupos(): UseGruposReturn {
     error,
     refreshGrupos: fetchGrupos,
     sendToGroup,
+    sendMediaToGroup,
     sending,
   };
 }

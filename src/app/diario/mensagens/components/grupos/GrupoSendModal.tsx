@@ -16,11 +16,12 @@ import {
   Avatar,
   Alert,
   CircularProgress,
-  TextField,
 } from '@mui/material';
 import { Group, Send, Close } from '@mui/icons-material';
 import { GrupoWhatsApp } from '@/types';
 import { useGrupos } from '../../hooks';
+import { MediaData } from '../../types';
+import { MensagemComposer } from '../MensagemComposer';
 
 interface GrupoSendModalProps {
   open: boolean;
@@ -31,26 +32,38 @@ interface GrupoSendModalProps {
 
 export function GrupoSendModal({ open, onClose, grupo, onSuccess }: GrupoSendModalProps) {
   const [mensagem, setMensagem] = useState('');
+  const [media, setMedia] = useState<MediaData | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { sendToGroup, sending } = useGrupos();
+  const { sendToGroup, sendMediaToGroup, sending } = useGrupos();
 
   const handleClose = useCallback(() => {
     setMensagem('');
+    setMedia(undefined);
     setError(null);
     setSuccess(false);
     onClose();
   }, [onClose]);
 
   const handleSend = useCallback(async () => {
-    if (!grupo || !mensagem.trim()) return;
+    if (!grupo) return;
+    if (!mensagem.trim() && !media) return;
 
     setError(null);
-    const result = await sendToGroup(grupo.id, mensagem.trim());
+    let result: { success: boolean; error?: string };
+
+    if (media) {
+      // Enviar mídia para grupo
+      result = await sendMediaToGroup(grupo.id, media, mensagem.trim());
+    } else {
+      // Enviar texto para grupo
+      result = await sendToGroup(grupo.id, mensagem.trim());
+    }
 
     if (result.success) {
       setSuccess(true);
       setMensagem('');
+      setMedia(undefined);
       onSuccess?.();
       // Fechar apos delay para mostrar sucesso
       setTimeout(() => {
@@ -59,7 +72,7 @@ export function GrupoSendModal({ open, onClose, grupo, onSuccess }: GrupoSendMod
     } else {
       setError(result.error || 'Erro ao enviar mensagem');
     }
-  }, [grupo, mensagem, sendToGroup, onSuccess, handleClose]);
+  }, [grupo, mensagem, media, sendToGroup, sendMediaToGroup, onSuccess, handleClose]);
 
   if (!grupo) return null;
 
@@ -90,16 +103,15 @@ export function GrupoSendModal({ open, onClose, grupo, onSuccess }: GrupoSendMod
           </Alert>
         )}
 
-        <TextField
-          label="Mensagem"
-          multiline
-          rows={6}
-          fullWidth
+        <MensagemComposer
           value={mensagem}
-          onChange={(e) => setMensagem(e.target.value)}
+          onChange={setMensagem}
           disabled={sending || success}
-          placeholder="Digite sua mensagem..."
-          helperText="Use *negrito*, _italico_, ~tachado~ para formatar"
+          sending={sending}
+          media={media}
+          onMediaChange={setMedia}
+          allowMedia={true}
+          placeholder="Digite sua mensagem para o grupo..."
         />
       </DialogContent>
 
@@ -115,9 +127,9 @@ export function GrupoSendModal({ open, onClose, grupo, onSuccess }: GrupoSendMod
           variant="contained"
           onClick={handleSend}
           startIcon={sending ? <CircularProgress size={20} color="inherit" /> : <Send />}
-          disabled={!mensagem.trim() || sending || success}
+          disabled={(!mensagem.trim() && !media) || sending || success}
         >
-          {sending ? 'Enviando...' : 'Enviar'}
+          {sending ? 'Enviando...' : (media ? 'Enviar Mídia' : 'Enviar')}
         </Button>
       </DialogActions>
     </Dialog>
