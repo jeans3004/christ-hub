@@ -27,6 +27,7 @@ interface UsePollSenderReturn {
   updateOpcao: (index: number, value: string) => void;
   updatePergunta: (value: string) => void;
   setMultiplaEscolha: (value: boolean) => void;
+  setMaxSelecoes: (value: number) => void;
 }
 
 export function usePollSender(): UsePollSenderReturn {
@@ -73,6 +74,13 @@ export function usePollSender(): UsePollSenderReturn {
       ...prev,
       multiplaEscolha: value,
       maxSelecoes: value ? prev.opcoes.length : 1,
+    }));
+  }, []);
+
+  const setMaxSelecoes = useCallback((value: number) => {
+    setForm((prev) => ({
+      ...prev,
+      maxSelecoes: Math.max(2, Math.min(value, prev.opcoes.length)),
     }));
   }, []);
 
@@ -200,5 +208,6 @@ export function usePollSender(): UsePollSenderReturn {
     updateOpcao,
     updatePergunta,
     setMultiplaEscolha,
+    setMaxSelecoes,
   };
 }

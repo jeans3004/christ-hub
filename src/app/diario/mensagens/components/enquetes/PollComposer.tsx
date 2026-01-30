@@ -47,6 +47,7 @@ export function PollComposer({ destinatarios, grupos, disabled }: PollComposerPr
     updateOpcao,
     updatePergunta,
     setMultiplaEscolha,
+    setMaxSelecoes,
     resetForm,
   } = usePollSender();
 
@@ -190,11 +191,11 @@ export function PollComposer({ destinatarios, grupos, disabled }: PollComposerPr
                 </Typography>
                 <Slider
                   value={form.maxSelecoes}
-                  onChange={(_, v) =>
-                    typeof v === 'number' &&
-                    setMultiplaEscolha(true) &&
-                    (form.maxSelecoes = v)
-                  }
+                  onChange={(_, v) => {
+                    if (typeof v === 'number') {
+                      setMaxSelecoes(v);
+                    }
+                  }}
                   min={2}
                   max={validOpcoes.length || 2}
                   disabled={sending || disabled}

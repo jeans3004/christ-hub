@@ -29,32 +29,65 @@ function getHeaders(): HeadersInit {
   };
 }
 
+function isValidPhoneNumber(numero: string): boolean {
+  const digits = numero.replace(/\D/g, '');
+  // Número brasileiro: 55 + DDD (2) + número (8 ou 9) = 12-13 dígitos
+  // Ou sem 55: DDD (2) + número (8 ou 9) = 10-11 dígitos
+  // Grupos: terminam em @g.us
+  if (numero.includes('@g.us')) return true;
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 async function sendPollToNumber(numero: string, poll: PollPayload): Promise<{ success: boolean; error?: string }> {
   try {
-    const formattedNumber = formatPhoneNumber(numero);
+    // Validar número antes de formatar
+    if (!isValidPhoneNumber(numero)) {
+      console.error(`Numero invalido: ${numero} (${numero.length} caracteres)`);
+      return { success: false, error: `Numero invalido: ${numero.substring(0, 20)}...` };
+    }
+
+    // Não formatar se for ID de grupo (termina em @g.us)
+    const isGroup = numero.includes('@g.us');
+    const formattedNumber = isGroup ? numero : formatPhoneNumber(numero);
+
+    console.log(`Enviando enquete para ${formattedNumber}:`, {
+      name: poll.name,
+      optionsCount: poll.values.length,
+      selectableCount: poll.selectableCount,
+    });
+
+    // Estrutura para Evolution API 2.x - propriedades no nível raiz
+    const requestBody = {
+      number: formattedNumber,
+      name: poll.name,
+      selectableCount: poll.selectableCount,
+      values: poll.values,
+    };
+
+    console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
     const response = await fetch(
       `${EVOLUTION_API_URL}/message/sendPoll/${INSTANCE_NAME}`,
       {
         method: 'POST',
         headers: getHeaders(),
-        body: JSON.stringify({
-          number: formattedNumber,
-          pollMessage: {
-            name: poll.name,
-            selectableCount: poll.selectableCount,
-            values: poll.values,
-          },
-          delay: 1200,
-        }),
+        body: JSON.stringify(requestBody),
       }
     );
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      // Extrair mensagem de erro corretamente (pode ser array aninhado)
+      let errorMsg = errorData.response?.message || errorData.message || `HTTP ${response.status}`;
+      if (Array.isArray(errorMsg)) {
+        errorMsg = errorMsg.flat().join(', ');
+      }
+      console.error('Evolution API sendPoll error:', response.status, JSON.stringify(errorData, null, 2));
+      return { success: false, error: typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg) };
     }
 
+    const result = await response.json();
+    console.log('Enquete enviada com sucesso:', result.key?.id);
     return { success: true };
   } catch (error) {
     console.error('sendPollToNumber error:', error);
@@ -65,14 +98,31 @@ async function sendPollToNumber(numero: string, poll: PollPayload): Promise<{ su
 export async function POST(request: NextRequest) {
   try {
     // Validar configuracao
-    if (!EVOLUTION_API_URL || !EVOLUTION_API_KEY) {
+    if (!EVOLUTION_API_URL) {
+      console.error('EVOLUTION_API_URL nao configurada');
       return NextResponse.json(
-        { error: 'Evolution API nao configurada' },
+        { error: 'Evolution API nao configurada (URL)' },
+        { status: 500 }
+      );
+    }
+    if (!EVOLUTION_API_KEY) {
+      console.error('EVOLUTION_API_KEY nao configurada');
+      return NextResponse.json(
+        { error: 'Evolution API nao configurada (API Key)' },
         { status: 500 }
       );
     }
 
-    const body: SendPollRequest = await request.json();
+    let body: SendPollRequest;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      console.error('Erro ao parsear body:', parseError);
+      return NextResponse.json(
+        { error: 'Corpo da requisicao invalido' },
+        { status: 400 }
+      );
+    }
     const { destinatarios, groupId, poll } = body;
 
     // Validacoes

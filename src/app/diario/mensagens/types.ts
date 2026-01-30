@@ -207,7 +207,7 @@ export interface SendResult {
 }
 
 // Tab ativa na pagina
-export type TabValue = 'enviar' | 'grupos' | 'templates' | 'enquetes' | 'historico';
+export type TabValue = 'enviar' | 'grupos' | 'templates' | 'enquetes' | 'botoes' | 'historico';
 
 // ===== TIPOS DE ENQUETES/POLLS =====
 
@@ -233,6 +233,35 @@ export const initialEnqueteForm: EnqueteFormData = {
   opcoes: ['', ''],
   multiplaEscolha: false,
   maxSelecoes: 1,
+};
+
+// ===== TIPOS DE BOTÕES INTERATIVOS =====
+
+export interface ButtonItem {
+  type: 'reply';
+  displayText: string;
+  id: string;
+}
+
+export interface ButtonPayload {
+  title: string;
+  description: string;
+  footer?: string;
+  buttons: ButtonItem[];
+}
+
+export interface ButtonFormData {
+  titulo: string;
+  descricao: string;
+  rodape: string;
+  botoes: { texto: string }[];
+}
+
+export const initialButtonForm: ButtonFormData = {
+  titulo: '',
+  descricao: '',
+  rodape: '',
+  botoes: [{ texto: '' }, { texto: '' }],
 };
 
 // ===== TIPOS DE QUICK ACTIONS =====
@@ -277,9 +306,25 @@ export const TEMPLATE_CATEGORIAS_EXPANDIDAS = [
   { value: 'outro', label: 'Outros', icon: '📝', color: '#6b7280' },
 ] as const;
 
+// Validar se um numero de telefone e valido
+export function isValidPhoneNumber(numero: string): boolean {
+  if (!numero) return false;
+  const digits = numero.replace(/\D/g, '');
+  // Numero brasileiro: 55 + DDD (2) + numero (8 ou 9) = 12-13 digitos
+  // Ou sem 55: DDD (2) + numero (8 ou 9) = 10-11 digitos
+  // Maximo 15 digitos para numeros internacionais
+  return digits.length >= 10 && digits.length <= 15;
+}
+
 // Converter Usuario para Destinatario
 export function usuarioToDestinatario(usuario: Usuario): Destinatario | null {
   if (!usuario.celular) return null;
+
+  // Validar numero antes de converter
+  if (!isValidPhoneNumber(usuario.celular)) {
+    console.warn(`Numero invalido para ${usuario.nome}: ${usuario.celular}`);
+    return null;
+  }
 
   return {
     id: usuario.id,
@@ -290,10 +335,10 @@ export function usuarioToDestinatario(usuario: Usuario): Destinatario | null {
   };
 }
 
-// Filtrar usuarios com celular
+// Filtrar usuarios com celular valido
 export function filterUsuariosComCelular(usuarios: Usuario[]): Destinatario[] {
   return usuarios
-    .filter((u) => u.ativo && u.celular)
+    .filter((u) => u.ativo && u.celular && isValidPhoneNumber(u.celular))
     .map(usuarioToDestinatario)
     .filter((d): d is Destinatario => d !== null);
 }
