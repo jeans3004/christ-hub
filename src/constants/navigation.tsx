@@ -20,6 +20,7 @@ import {
   WhatsApp,
   Schedule,
   CloudQueue,
+  Casino,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -109,6 +110,7 @@ export const NAVIGATION: NavSection[] = [
       { label: 'Calendario', icon: <CalendarMonth />, href: '/diario/agenda', permission: 'agenda:view' },
       { label: 'Horarios', icon: <Schedule />, href: '/diario/horarios', permission: 'horarios:view' },
       { label: 'Mapeamento', icon: <GridView />, href: '/diario/mapeamento', permission: 'chamada:view' },
+      { label: 'Sorteador', icon: <Casino />, href: '/diario/sorteador', permission: 'sorteador:view' },
       { label: 'Aniversariantes', icon: <Cake />, href: '/diario/aniversariantes', permission: 'aniversariantes:view', minRole: 'coordenador' },
     ],
   },
@@ -170,6 +172,7 @@ export const ROUTES = {
   SENHA: '/diario/senha',
   MENSAGENS: '/diario/mensagens',
   CLASSROOM: '/diario/classroom',
+  SORTEADOR: '/diario/sorteador',
 } as const;
 
 /**

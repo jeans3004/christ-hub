@@ -25,6 +25,7 @@ export {
   horarioService,
   classroomTemplateService,
   grupoWhatsappService,
+  sorteioService,
   extractVariables,
   replaceVariables,
   getDocument,
@@ -38,4 +39,4 @@ export {
   Timestamp,
 } from './firestore/index';
 
-export type { QueryConstraint, ChamadaTrilhaInput } from './firestore/index';
+export type { QueryConstraint, ChamadaTrilhaInput, Sorteio } from './firestore/index';

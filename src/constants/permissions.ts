@@ -79,7 +79,9 @@ export type Permission =
   // Google Classroom
   | 'classroom:view'
   | 'classroom:export'
-  | 'classroom:post';
+  | 'classroom:post'
+  // Sorteador (Draw)
+  | 'sorteador:view';
 
 /**
  * Permissoes base que todos os usuarios tem.
@@ -113,6 +115,7 @@ const PROFESSOR_PERMISSIONS: Permission[] = [
   'horarios:view',
   'classroom:view',
   'classroom:post',
+  'sorteador:view',
 ];
 
 /**
@@ -183,6 +186,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
  */
 export const ADMIN_EMAILS: string[] = [
   'jeanmachado@christmaster.com.br',
+  'roberta.karoline@christmaster.com.br',
 ];
 
 /**

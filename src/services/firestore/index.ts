@@ -24,6 +24,8 @@ export { chamadaTrilhaService } from './chamadaTrilhaService';
 export type { ChamadaTrilhaInput } from './chamadaTrilhaService';
 export { classroomTemplateService } from './classroomTemplateService';
 export { grupoWhatsappService } from './grupoWhatsappService';
+export { sorteioService } from './sorteioService';
+export type { Sorteio } from './sorteioService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';
