@@ -17,6 +17,15 @@ interface HeaderColor {
   text: string;
 }
 
+interface SidebarPalette {
+  background: string;
+  text: string;
+  active: string;
+  activeText: string;
+  hover: string;
+  section: string;
+}
+
 declare module '@mui/material/styles' {
   interface Palette {
     outline: CustomPaletteColor;
@@ -25,6 +34,7 @@ declare module '@mui/material/styles' {
     primaryContainer: CustomPaletteColor;
     onPrimaryContainer: CustomPaletteColor;
     header: HeaderColor;
+    sidebar: SidebarPalette;
   }
   interface PaletteOptions {
     outline?: CustomPaletteColor;
@@ -33,5 +43,6 @@ declare module '@mui/material/styles' {
     primaryContainer?: CustomPaletteColor;
     onPrimaryContainer?: CustomPaletteColor;
     header?: HeaderColor;
+    sidebar?: SidebarPalette;
   }
 }

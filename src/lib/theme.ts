@@ -7,19 +7,19 @@ export const DRAWER_WIDTH = 260;
 export const DRAWER_WIDTH_COLLAPSED = 72;
 export const HEADER_HEIGHT = 64;
 
-// Luminar Green Design System (based on design-system.md)
+// Luminar Navy & Gold Design System
 const darkPalette = {
   primary: {
-    main: '#00a63e',      // Green-600
-    light: '#4ade80',     // Green-400
-    dark: '#15803d',      // Green-700
+    main: '#3D5A80',      // Navy-500
+    light: '#58A6FF',     // Blue accent
+    dark: '#2A3F5F',      // Navy-700
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#155dfc',      // Blue-600
-    light: '#3b82f6',     // Blue-500
-    dark: '#1d4ed8',      // Blue-700
-    contrastText: '#FFFFFF',
+    main: '#F5C96B',      // Gold-400
+    light: '#FADA8E',     // Gold-300
+    dark: '#E5A53A',      // Gold-600
+    contrastText: '#1A202C',
   },
   background: {
     default: '#0D1117',
@@ -78,16 +78,16 @@ const darkPalette = {
 
 const lightPalette = {
   primary: {
-    main: '#00a63e',      // Green-600
-    light: '#4ade80',     // Green-400
-    dark: '#016630',      // Green-800
+    main: '#2A3F5F',      // Navy-700
+    light: '#3D5A80',     // Navy-500
+    dark: '#1E2D45',      // Navy-900
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#155dfc',      // Blue-600
-    light: '#3b82f6',     // Blue-500
-    dark: '#1d4ed8',      // Blue-700
-    contrastText: '#FFFFFF',
+    main: '#E5A53A',      // Gold-600
+    light: '#F5C96B',     // Gold-400
+    dark: '#C4892E',      // Gold-800
+    contrastText: '#1A202C',
   },
   background: {
     default: '#F5F7FA',
@@ -118,6 +118,44 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
     palette: {
       mode,
       ...palette,
+      // MD3 custom palette tokens (used by MenuCard and other components)
+      outline: {
+        main: isDark ? '#30363D' : '#E2E8F0',
+        light: isDark ? '#484F58' : '#CBD5E0',
+        dark: isDark ? '#21262D' : '#CBD5E0',
+      },
+      onSurface: {
+        main: isDark ? '#F0F6FC' : '#1A202C',
+        light: isDark ? '#C9D1D9' : '#4A5568',
+        dark: isDark ? '#F0F6FC' : '#171923',
+      },
+      surfaceContainerLow: {
+        main: isDark ? '#161B22' : '#F8FAFC',
+        light: isDark ? '#1C2128' : '#FFFFFF',
+        dark: isDark ? '#0D1117' : '#F1F5F9',
+      },
+      primaryContainer: {
+        main: isDark ? alpha('#3D5A80', 0.2) : alpha('#2A3F5F', 0.1),
+        light: isDark ? alpha('#3D5A80', 0.3) : alpha('#2A3F5F', 0.15),
+        dark: isDark ? alpha('#3D5A80', 0.15) : alpha('#2A3F5F', 0.08),
+      },
+      onPrimaryContainer: {
+        main: isDark ? '#58A6FF' : '#2A3F5F',
+        light: isDark ? '#79C0FF' : '#3D5A80',
+        dark: isDark ? '#388BFD' : '#1E2D45',
+      },
+      header: {
+        background: isDark ? '#161B22' : '#FFFFFF',
+        text: isDark ? '#F0F6FC' : '#1A202C',
+      },
+      sidebar: {
+        background: isDark ? '#0D1117' : '#2A3F5F',
+        text: '#F0F6FC',
+        active: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.12)',
+        activeText: '#F0F6FC',
+        hover: 'rgba(255, 255, 255, 0.06)',
+        section: isDark ? '#8B949E' : 'rgba(255, 255, 255, 0.6)',
+      },
     },
     typography: {
       fontFamily: '"Inter", "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
@@ -133,19 +171,19 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       button: { fontSize: '0.875rem', fontWeight: 500, textTransform: 'none' as const, letterSpacing: '0.01em' },
       overline: { fontSize: '0.6875rem', fontWeight: 600, textTransform: 'uppercase' as const, letterSpacing: '0.08em', color: palette.text.secondary },
     },
-    shape: { borderRadius: 12 },
+    shape: { borderRadius: 16 },
     shadows: [
       'none',
-      isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
-      isDark ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.08)',
-      isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.08)',
-      isDark ? '0 4px 8px rgba(0,0,0,0.4)' : '0 4px 8px rgba(0,0,0,0.08)',
-      isDark ? '0 6px 12px rgba(0,0,0,0.4)' : '0 6px 12px rgba(0,0,0,0.1)',
-      isDark ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.1)',
-      isDark ? '0 12px 24px rgba(0,0,0,0.5)' : '0 12px 24px rgba(0,0,0,0.12)',
-      isDark ? '0 16px 32px rgba(0,0,0,0.5)' : '0 16px 32px rgba(0,0,0,0.12)',
-      isDark ? '0 20px 40px rgba(0,0,0,0.5)' : '0 20px 40px rgba(0,0,0,0.15)',
-      isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 24px 48px rgba(0,0,0,0.15)',
+      isDark ? '0 1px 2px rgba(0,0,0,0.3)' : '0 1px 2px rgba(0,0,0,0.04)',
+      isDark ? '0 1px 3px rgba(0,0,0,0.4)' : '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+      isDark ? '0 2px 4px rgba(0,0,0,0.4)' : '0 2px 4px rgba(0,0,0,0.05)',
+      isDark ? '0 4px 8px rgba(0,0,0,0.4)' : '0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03)',
+      isDark ? '0 6px 12px rgba(0,0,0,0.4)' : '0 6px 12px rgba(0,0,0,0.06)',
+      isDark ? '0 8px 16px rgba(0,0,0,0.4)' : '0 8px 16px rgba(0,0,0,0.06)',
+      isDark ? '0 12px 24px rgba(0,0,0,0.5)' : '0 12px 24px rgba(0,0,0,0.08)',
+      isDark ? '0 16px 32px rgba(0,0,0,0.5)' : '0 16px 32px rgba(0,0,0,0.08)',
+      isDark ? '0 20px 40px rgba(0,0,0,0.5)' : '0 20px 40px rgba(0,0,0,0.1)',
+      isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 24px 48px rgba(0,0,0,0.1)',
       ...Array(14).fill('none'),
     ] as ThemeOptions['shadows'],
     components: {
@@ -179,7 +217,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
         defaultProps: { disableElevation: true },
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: 12,
             textTransform: 'none',
             fontWeight: 500,
             padding: '8px 16px',
@@ -200,7 +238,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           },
           containedSecondary: {
             backgroundColor: palette.secondary.main,
-            color: '#FFFFFF',
+            color: palette.secondary.contrastText,
             '&:hover': {
               backgroundColor: palette.secondary.dark,
             },
@@ -225,13 +263,18 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
-            borderRadius: 16,
+            borderRadius: 20,
             backgroundColor: palette.background.paper,
             border: `1px solid ${isDark ? '#21262D' : '#E2E8F0'}`,
             transition: 'all 0.2s ease',
+            boxShadow: isDark
+              ? 'none'
+              : '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
             '&:hover': {
               borderColor: isDark ? '#30363D' : '#CBD5E0',
-              boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
+              boxShadow: isDark
+                ? '0 8px 24px rgba(0,0,0,0.4)'
+                : '0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03)',
             },
           },
         },
@@ -265,7 +308,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? '#0D1117' : '#00a63e',
+            backgroundColor: isDark ? '#0D1117' : '#2A3F5F',
             color: '#F0F6FC',
             borderRight: `1px solid ${isDark ? '#21262D' : 'transparent'}`,
           },
@@ -284,7 +327,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             },
             '&.Mui-selected': {
               backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderLeft: '3px solid #4ade80',
+              borderLeft: '3px solid #F5C96B',
               paddingLeft: 13,
               color: '#F0F6FC',
               '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.12)' },
@@ -317,7 +360,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
               borderColor: isDark ? '#484F58' : '#CBD5E0',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: isDark ? '#4ade80' : '#00a63e',
+              borderColor: isDark ? '#58A6FF' : '#2A3F5F',
               borderWidth: 2,
             },
           },
@@ -332,7 +375,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             fontSize: '0.875rem',
             color: palette.text.secondary,
-            '&.Mui-focused': { color: isDark ? '#4ade80' : '#00a63e' },
+            '&.Mui-focused': { color: isDark ? '#58A6FF' : '#2A3F5F' },
           },
         },
       },
@@ -421,9 +464,9 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
               backgroundColor: isDark ? '#1C2128' : '#F8FAFC',
             },
             '&.Mui-selected': {
-              backgroundColor: isDark ? alpha('#4ade80', 0.08) : alpha('#00a63e', 0.08),
+              backgroundColor: isDark ? alpha('#3D5A80', 0.12) : alpha('#2A3F5F', 0.08),
               '&:hover': {
-                backgroundColor: isDark ? alpha('#4ade80', 0.12) : alpha('#00a63e', 0.12),
+                backgroundColor: isDark ? alpha('#3D5A80', 0.18) : alpha('#2A3F5F', 0.12),
               },
             },
           },
@@ -454,7 +497,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             color: isDark ? '#484F58' : '#A0AEC0',
             '&.Mui-checked': {
-              color: isDark ? '#4ade80' : '#00a63e',
+              color: isDark ? '#58A6FF' : '#2A3F5F',
             },
           },
         },
@@ -483,7 +526,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             borderRadius: 20,
             backgroundColor: palette.background.paper,
             border: `1px solid ${isDark ? '#30363D' : '#E2E8F0'}`,
-            boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 24px 48px rgba(0,0,0,0.15)',
+            boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 24px 48px rgba(0,0,0,0.1)',
           },
         },
       },
@@ -553,7 +596,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             minHeight: 44,
           },
           indicator: {
-            backgroundColor: isDark ? '#4ade80' : '#00a63e',
+            backgroundColor: isDark ? '#F5C96B' : '#2A3F5F',
             height: 3,
             borderRadius: '3px 3px 0 0',
           },
@@ -569,7 +612,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             padding: '8px 16px',
             color: palette.text.secondary,
             '&.Mui-selected': {
-              color: isDark ? '#F0F6FC' : '#00a63e',
+              color: isDark ? '#F0F6FC' : '#2A3F5F',
               fontWeight: 600,
             },
           },
@@ -616,7 +659,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             borderRadius: 12,
             backgroundColor: palette.background.paper,
             border: `1px solid ${isDark ? '#30363D' : '#E2E8F0'}`,
-            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.12)',
+            boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.08)',
           },
         },
       },
@@ -653,7 +696,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           },
           colorPrimary: {
             '& .MuiLinearProgress-bar': {
-              backgroundColor: isDark ? '#4ade80' : '#00a63e',
+              backgroundColor: isDark ? '#58A6FF' : '#2A3F5F',
             },
           },
         },
