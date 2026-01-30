@@ -5,4 +5,5 @@ export { useFormatting } from './useFormatting';
 export { useTemplates } from './useTemplates';
 export { useGrupos } from './useGrupos';
 export { usePollSender } from './usePollSender';
+export { useButtonSender } from './useButtonSender';
 export { useQuickActions } from './useQuickActions';

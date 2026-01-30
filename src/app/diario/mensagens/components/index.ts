@@ -16,3 +16,6 @@ export * from './templates';
 
 // Enquetes tab
 export * from './enquetes';
+
+// Buttons tab
+export * from './buttons';

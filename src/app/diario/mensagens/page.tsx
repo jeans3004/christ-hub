@@ -18,7 +18,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { Send, History, WhatsApp, Group, Description, Poll } from '@mui/icons-material';
+import { Send, History, WhatsApp, Group, Description, Poll, SmartButton } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMensagensLoader, useMensagensActions, useGrupos, useQuickActions } from './hooks';
@@ -32,6 +32,7 @@ import {
 import { GruposTab } from './components/grupos';
 import { TemplatesTab } from './components/templates';
 import { PollComposer } from './components/enquetes';
+import { ButtonComposer } from './components/buttons';
 import { TabValue, QuickActionType, TemplatePreset } from './types';
 import { getVariaveisSistema, TEMPLATE_PRESETS } from './constants';
 
@@ -257,6 +258,13 @@ export default function MensagensPage() {
               disabled={!canSend}
             />
             <Tab
+              icon={<SmartButton />}
+              iconPosition="start"
+              label="Botoes"
+              value="botoes"
+              disabled={!canSend}
+            />
+            <Tab
               icon={<History />}
               iconPosition="start"
               label="Historico"
@@ -367,6 +375,15 @@ export default function MensagensPage() {
             {/* Tab: Enquetes */}
             {activeTab === 'enquetes' && (
               <PollComposer
+                destinatarios={destinatarios}
+                grupos={grupos}
+                disabled={!whatsappStatus.connected}
+              />
+            )}
+
+            {/* Tab: Botoes */}
+            {activeTab === 'botoes' && (
+              <ButtonComposer
                 destinatarios={destinatarios}
                 grupos={grupos}
                 disabled={!whatsappStatus.connected}
