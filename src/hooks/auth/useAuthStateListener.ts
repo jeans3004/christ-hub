@@ -14,7 +14,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useDriveStore } from '@/store/driveStore';
 import { Usuario, UserRole } from '@/types';
-import { getRoleForEmail, isAllowedDomain, ALLOWED_DOMAIN } from '@/lib/permissions';
+import { getRoleForEmail, isAllowedDomain, isAdminEmail, ALLOWED_DOMAIN } from '@/lib/permissions';
 import { usuarioService } from '@/services/firestore';
 import { DEMO_MODE } from './authConstants';
 
@@ -140,6 +140,13 @@ export function useAuthStateListener() {
 
           if (userDoc.exists()) {
             const userData = { id: userDoc.id, ...userDoc.data() } as Usuario;
+
+            // Promover para administrador se email esta em ADMIN_EMAILS
+            if (isAdminEmail(firebaseUser.email) && userData.tipo !== 'administrador') {
+              await usuarioService.update(userData.id, { tipo: 'administrador' });
+              userData.tipo = 'administrador';
+            }
+
             setUsuario(userData);
           } else {
             // Usuario nao existe pelo UID - verificar se existe pelo e-mail
@@ -166,6 +173,11 @@ export function useAuthStateListener() {
                 // Usar o usuario existente (com dados atualizados)
                 const updatedUser = await usuarioService.getByGoogleEmail(email);
                 if (updatedUser) {
+                  // Promover para administrador se email esta em ADMIN_EMAILS
+                  if (isAdminEmail(email) && updatedUser.tipo !== 'administrador') {
+                    await usuarioService.update(updatedUser.id, { tipo: 'administrador' });
+                    updatedUser.tipo = 'administrador';
+                  }
                   setUsuario(updatedUser);
                   setLoading(false);
                   return;
