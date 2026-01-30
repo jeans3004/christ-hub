@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json; charset=utf-8',
           apikey: EVOLUTION_API_KEY,
         },
         body: JSON.stringify(mediaBody),

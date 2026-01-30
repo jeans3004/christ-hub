@@ -85,9 +85,10 @@ export const TextEditor = forwardRef<TextEditorRef, TextEditorProps>(function Te
     [applyFormat, onChange]
   );
 
-  // Atalhos de teclado
+  // Atalhos de teclado (ignora composicao de acentos/dead keys)
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (e.nativeEvent.isComposing) return;
       if (e.ctrlKey || e.metaKey) {
         switch (e.key.toLowerCase()) {
           case 'b':

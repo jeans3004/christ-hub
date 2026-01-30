@@ -24,7 +24,7 @@ interface SendPollRequest {
 
 function getHeaders(): HeadersInit {
   return {
-    'Content-Type': 'application/json',
+    'Content-Type': 'application/json; charset=utf-8',
     'apikey': EVOLUTION_API_KEY,
   };
 }
