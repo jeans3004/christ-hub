@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { GrupoWhatsApp } from '@/types';
+import { useAuthStore } from '@/store/authStore';
 import { MediaData } from '../types';
 
 interface UseGruposReturn {
@@ -17,10 +18,13 @@ interface UseGruposReturn {
 }
 
 export function useGrupos(): UseGruposReturn {
+  const { usuario } = useAuthStore();
   const [grupos, setGrupos] = useState<GrupoWhatsApp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
+
+  const assinatura = usuario?.nome ? `\n\n_Enviado por: ${usuario.nome} - Christ Master_` : '';
 
   const fetchGrupos = useCallback(async () => {
     setLoading(true);
@@ -65,7 +69,7 @@ export function useGrupos(): UseGruposReturn {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupId,
-          mensagem,
+          mensagem: mensagem + assinatura,
         }),
       });
 
@@ -92,7 +96,7 @@ export function useGrupos(): UseGruposReturn {
     } finally {
       setSending(false);
     }
-  }, []);
+  }, [assinatura]);
 
   const sendMediaToGroup = useCallback(async (groupId: string, media: MediaData, caption?: string) => {
     setSending(true);
@@ -107,7 +111,7 @@ export function useGrupos(): UseGruposReturn {
           mediaUrl: media.url,
           filename: media.filename,
           mimetype: media.mimetype,
-          caption,
+          caption: caption ? caption + assinatura : assinatura.trim(),
         }),
       });
 
@@ -133,7 +137,7 @@ export function useGrupos(): UseGruposReturn {
     } finally {
       setSending(false);
     }
-  }, []);
+  }, [assinatura]);
 
   useEffect(() => {
     fetchGrupos();
