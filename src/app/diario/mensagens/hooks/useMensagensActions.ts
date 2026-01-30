@@ -58,6 +58,9 @@ export function useMensagensActions(
     setSendResult(null);
   }, []);
 
+  // Assinatura do usuario logado
+  const assinatura = usuario?.nome ? `\n\n_Enviado por: ${usuario.nome} - Christ Master_` : '';
+
   // Enviar mensagem de texto para um destinatário
   const sendTextMessage = async (dest: Destinatario, mensagem: string): Promise<boolean> => {
     const response = await fetch('/api/whatsapp/send', {
@@ -67,7 +70,7 @@ export function useMensagensActions(
         destinatarioId: dest.id,
         destinatarioNome: dest.nome,
         numero: dest.numero,
-        mensagem,
+        mensagem: mensagem + assinatura,
         enviadoPorId: usuario?.id,
         enviadoPorNome: usuario?.nome,
         templateId: form.templateId,
@@ -91,7 +94,7 @@ export function useMensagensActions(
         mediaUrl: media.url,
         filename: media.filename,
         mimetype: media.mimetype,
-        caption,
+        caption: caption ? caption + assinatura : assinatura.trim(),
         enviadoPorId: usuario?.id,
         enviadoPorNome: usuario?.nome,
       }),
@@ -251,7 +254,7 @@ export function useMensagensActions(
             nome: d.nome,
             numero: d.numero,
           })),
-          mensagem: form.mensagem,
+          mensagem: form.mensagem + assinatura,
           enviadoPorId: usuario.id,
           enviadoPorNome: usuario.nome,
           templateId: form.templateId,
@@ -310,7 +313,7 @@ export function useMensagensActions(
             destinatarioId: groupId,
             destinatarioNome: groupName,
             numero: groupId,
-            mensagem: form.mensagem,
+            mensagem: form.mensagem + assinatura,
             enviadoPorId: usuario.id,
             enviadoPorNome: usuario.nome,
             tipo: 'grupo',

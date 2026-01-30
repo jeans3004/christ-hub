@@ -3,6 +3,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { useAuthStore } from '@/store/authStore';
 import { ButtonFormData, ButtonPayload, initialButtonForm } from '../types';
 
 interface SendButtonsResult {
@@ -30,6 +31,7 @@ interface UseButtonSenderReturn {
 }
 
 export function useButtonSender(): UseButtonSenderReturn {
+  const { usuario } = useAuthStore();
   const [form, setForm] = useState<ButtonFormData>(initialButtonForm);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<SendButtonsResult | null>(null);
@@ -83,10 +85,16 @@ export function useButtonSender(): UseButtonSenderReturn {
       return null;
     }
 
+    const rodape = form.rodape.trim();
+    const nomeUsuario = usuario?.nome;
+    const footerTexto = nomeUsuario
+      ? (rodape ? `${rodape} | Enviado por: ${nomeUsuario}` : `Enviado por: ${nomeUsuario} - Christ Master`)
+      : (rodape || undefined);
+
     return {
       title: form.titulo.trim(),
       description: form.descricao.trim(),
-      footer: form.rodape.trim() || undefined,
+      footer: footerTexto,
       buttons: validBotoes.map((b, i) => ({
         type: 'reply' as const,
         displayText: b.texto.trim(),
