@@ -66,8 +66,8 @@ novoSISTEMAbase/
 PROMPT/
 trilhas-module.zip
 
-# Modelo de prompt (não versionar)
-modeloDePrompt.md
+# Arquivos .md de referência (não versionar)
+filesMD/
 
 # Windows Zone.Identifier files
 *:Zone.Identifier
