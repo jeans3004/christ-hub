@@ -14,7 +14,7 @@ export function Logo() {
           fontFamily: '"Orelega One", serif',
           fontSize: { xs: '1.25rem', sm: '1.5rem' },
           fontWeight: 400,
-          color: '#F5C96B', // Gold para contraste no dark mode
+          color: '#D97706', // Amber para contraste no header branco
           letterSpacing: '0.02em',
           lineHeight: 1,
           userSelect: 'none',

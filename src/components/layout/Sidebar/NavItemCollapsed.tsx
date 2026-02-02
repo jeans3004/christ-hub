@@ -25,10 +25,10 @@ export function NavItemCollapsed({ item, isActive, onNavigate }: NavItemCollapse
             width: 44,
             height: 44,
             borderRadius: 1,
-            color: isActive ? 'sidebar.activeText' : 'sidebar.text',
-            bgcolor: isActive ? 'sidebar.active' : 'transparent',
+            color: isActive ? '#F0F6FC' : 'sidebar.text',
+            bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
             '&:hover': {
-              bgcolor: isActive ? 'sidebar.active' : 'sidebar.hover',
+              bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
             },
           }}
         >

@@ -48,14 +48,14 @@ export default function LoginPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          bgcolor: '#F5F7FA',
+          bgcolor: '#EEF6FF',
           p: 2,
         }}
       >
         <Logo />
 
         <Box sx={{ width: '100%', maxWidth: 400 }}>
-          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: '#E2E8F0', bgcolor: '#FFFFFF' }}>
+          <Paper elevation={0} sx={{ p: 4, borderRadius: 3, border: '1px solid', borderColor: '#E5E7EB', bgcolor: '#FFFFFF' }}>
             <Typography variant="h6" textAlign="center" fontWeight={600} sx={{ mb: 1, color: '#1A202C' }}>
               Bem-vindo
             </Typography>
@@ -75,7 +75,7 @@ export default function LoginPage() {
                 type="button"
                 underline="hover"
                 onClick={() => setShowEmailLogin(!showEmailLogin)}
-                sx={{ color: '#2A3F5F', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
+                sx={{ color: '#3B82F6', fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}
               >
                 {showEmailLogin ? 'Ocultar login com credenciais' : 'Entrar com usuario e senha'}
               </Link>
@@ -96,10 +96,10 @@ export default function LoginPage() {
                 href="/termos-servico"
                 variant="caption"
                 sx={{
-                  color: '#2A3F5F',
+                  color: '#3B82F6',
                   textDecoration: 'underline',
                   cursor: 'pointer',
-                  '&:hover': { color: '#E5A53A' },
+                  '&:hover': { color: '#2563EB' },
                 }}
               >
                 Termos de Servico
@@ -110,10 +110,10 @@ export default function LoginPage() {
                 href="/politica-privacidade"
                 variant="caption"
                 sx={{
-                  color: '#2A3F5F',
+                  color: '#3B82F6',
                   textDecoration: 'underline',
                   cursor: 'pointer',
-                  '&:hover': { color: '#E5A53A' },
+                  '&:hover': { color: '#2563EB' },
                 }}
               >
                 Politica de Privacidade

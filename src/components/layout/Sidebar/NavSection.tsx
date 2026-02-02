@@ -35,14 +35,15 @@ export function NavSection({
         <Typography
           variant="overline"
           sx={{
-            pl: 2,
-            pr: 0,
-            py: 0.5,
+            px: 2,
+            pt: 2,
+            pb: 1,
+            mt: 1,
             display: 'block',
             color: 'sidebar.section',
             fontSize: '0.6875rem',
             fontWeight: 600,
-            letterSpacing: '0.08em',
+            letterSpacing: '0.05em',
           }}
         >
           {section.title}

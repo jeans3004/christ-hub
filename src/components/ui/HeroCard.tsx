@@ -87,7 +87,7 @@ export default function HeroCard({
             >
               <IconCircle
                 icon={item.icon as React.ReactElement}
-                color={item.color || '#F5C96B'}
+                color={item.color || '#60A5FA'}
                 size="sm"
                 sx={{ backgroundColor: 'rgba(255,255,255,0.1)' }}
               />

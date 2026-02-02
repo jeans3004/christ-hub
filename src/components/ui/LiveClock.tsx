@@ -38,7 +38,7 @@ export default function LiveClock({ format = '24h', showDate = false, sx }: Live
 
   return (
     <>
-      <Typography variant="h3" sx={{ fontVariantNumeric: 'tabular-nums', ...sx }}>
+      <Typography variant="h3" sx={{ fontFamily: "'Roboto Mono', 'Consolas', monospace", fontVariantNumeric: 'tabular-nums', ...sx }}>
         {timeStr}
       </Typography>
       {dateStr && (

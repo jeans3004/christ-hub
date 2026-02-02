@@ -20,34 +20,32 @@ export function QuickAccessCard({ title, icon, href }: QuickAccessCardProps) {
     <Card
       sx={{
         height: '100%',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
+        borderRadius: '12px',
         transition: 'all 150ms ease',
         '&:hover': {
-          borderColor: 'primary.light',
-          boxShadow: 1,
+          transform: 'translateY(-2px)',
         },
       }}
     >
       <CardActionArea
         onClick={() => router.push(href)}
         sx={{
-          p: 2.5,
+          p: 3,
           height: '100%',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'flex-start',
           justifyContent: 'flex-start',
+          gap: 1.5,
         }}
       >
-        <Box sx={{ color: 'primary.main', mb: 1.5 }}>
+        <Box sx={{ color: '#6B7280' }}>
           {icon}
         </Box>
         <Typography
-          variant="body2"
           sx={{
             fontWeight: 500,
+            fontSize: '1rem',
             color: 'text.primary',
             lineHeight: 1.4,
           }}

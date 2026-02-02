@@ -58,15 +58,18 @@ export function NavItem({
             ml: 0,
             mr: 0,
             my: 0,
-            color: isActive ? 'sidebar.activeText' : 'sidebar.text',
-            bgcolor: isActive ? 'sidebar.active' : 'transparent',
+            color: isActive ? '#F0F6FC' : 'sidebar.text',
+            bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+            borderLeft: isActive ? '3px solid #3B82F6' : '3px solid transparent',
             '&:hover': {
-              bgcolor: isActive ? 'sidebar.active' : 'sidebar.hover',
+              bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
             },
             '&.Mui-selected': {
-              bgcolor: 'sidebar.active',
+              bgcolor: 'rgba(59, 130, 246, 0.15)',
+              borderLeft: '3px solid #3B82F6',
+              color: '#F0F6FC',
               '&:hover': {
-                bgcolor: 'sidebar.active',
+                bgcolor: 'rgba(59, 130, 246, 0.15)',
               },
             },
           }}
@@ -74,7 +77,7 @@ export function NavItem({
           <ListItemIcon
             sx={{
               minWidth: 36,
-              color: isActive ? 'sidebar.activeText' : 'sidebar.text',
+              color: isActive ? '#F0F6FC' : 'sidebar.text',
             }}
           >
             {item.icon}

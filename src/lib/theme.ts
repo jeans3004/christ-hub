@@ -7,19 +7,19 @@ export const DRAWER_WIDTH = 260;
 export const DRAWER_WIDTH_COLLAPSED = 72;
 export const HEADER_HEIGHT = 64;
 
-// Luminar Navy & Gold Design System
+// Sistema de Pontos Design System
 const darkPalette = {
   primary: {
-    main: '#3D5A80',      // Navy-500
-    light: '#58A6FF',     // Blue accent
-    dark: '#2A3F5F',      // Navy-700
+    main: '#3B82F6',      // Blue-500
+    light: '#60A5FA',     // Blue-400
+    dark: '#2563EB',      // Blue-600
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#F5C96B',      // Gold-400
-    light: '#FADA8E',     // Gold-300
-    dark: '#E5A53A',      // Gold-600
-    contrastText: '#1A202C',
+    main: '#22C55E',      // Green-500
+    light: '#4ADE80',     // Green-400
+    dark: '#16A34A',      // Green-600
+    contrastText: '#FFFFFF',
   },
   background: {
     default: '#0D1117',
@@ -32,40 +32,40 @@ const darkPalette = {
   },
   divider: '#30363D',
   success: {
-    main: '#3FB950',
-    light: alpha('#3FB950', 0.15),
-    dark: '#2EA043',
+    main: '#22C55E',
+    light: alpha('#22C55E', 0.15),
+    dark: '#16A34A',
     contrastText: '#FFFFFF',
   },
   warning: {
-    main: '#D29922',
-    light: alpha('#D29922', 0.15),
-    dark: '#9E6A03',
+    main: '#F59E0B',
+    light: alpha('#F59E0B', 0.15),
+    dark: '#D97706',
     contrastText: '#FFFFFF',
   },
   error: {
-    main: '#F85149',
-    light: alpha('#F85149', 0.15),
-    dark: '#DA3633',
+    main: '#EF4444',
+    light: alpha('#EF4444', 0.15),
+    dark: '#DC2626',
     contrastText: '#FFFFFF',
   },
   info: {
-    main: '#58A6FF',
-    light: alpha('#58A6FF', 0.15),
-    dark: '#388BFD',
+    main: '#3B82F6',
+    light: alpha('#3B82F6', 0.15),
+    dark: '#2563EB',
     contrastText: '#FFFFFF',
   },
   grey: {
-    50: '#F0F6FC',
-    100: '#C9D1D9',
-    200: '#B1BAC4',
-    300: '#8B949E',
-    400: '#6E7681',
-    500: '#484F58',
-    600: '#30363D',
-    700: '#21262D',
-    800: '#161B22',
-    900: '#0D1117',
+    50: '#F9FAFB',
+    100: '#F3F4F6',
+    200: '#E5E7EB',
+    300: '#D1D5DB',
+    400: '#9CA3AF',
+    500: '#6B7280',
+    600: '#4B5563',
+    700: '#374151',
+    800: '#1F2937',
+    900: '#111827',
   },
   action: {
     active: '#F0F6FC',
@@ -78,35 +78,35 @@ const darkPalette = {
 
 const lightPalette = {
   primary: {
-    main: '#2A3F5F',      // Navy-700
-    light: '#3D5A80',     // Navy-500
-    dark: '#1E2D45',      // Navy-900
+    main: '#3B82F6',      // Blue-500
+    light: '#60A5FA',     // Blue-400
+    dark: '#1E40AF',      // Blue-800
     contrastText: '#FFFFFF',
   },
   secondary: {
-    main: '#E5A53A',      // Gold-600
-    light: '#F5C96B',     // Gold-400
-    dark: '#C4892E',      // Gold-800
-    contrastText: '#1A202C',
+    main: '#22C55E',      // Green-500
+    light: '#4ADE80',     // Green-400
+    dark: '#16A34A',      // Green-600
+    contrastText: '#FFFFFF',
   },
   background: {
-    default: '#F5F7FA',
+    default: '#166534',   // Green-800 (page background)
     paper: '#FFFFFF',
   },
   text: {
-    primary: '#1A202C',
-    secondary: '#4A5568',
-    disabled: '#A0AEC0',
+    primary: '#111827',   // Grey-900
+    secondary: '#6B7280', // Grey-500
+    disabled: '#9CA3AF',  // Grey-400
   },
-  divider: '#E2E8F0',
+  divider: '#E5E7EB',    // Grey-200
   success: { main: '#22C55E', light: '#DCFCE7', dark: '#16A34A', contrastText: '#FFFFFF' },
-  warning: { main: '#F59E0B', light: '#FEF3C7', dark: '#D97706', contrastText: '#1A202C' },
+  warning: { main: '#F59E0B', light: '#FEF3C7', dark: '#D97706', contrastText: '#111827' },
   error: { main: '#EF4444', light: '#FEE2E2', dark: '#DC2626', contrastText: '#FFFFFF' },
   info: { main: '#3B82F6', light: '#DBEAFE', dark: '#2563EB', contrastText: '#FFFFFF' },
   grey: {
-    50: '#F8FAFC', 100: '#F1F5F9', 200: '#E2E8F0', 300: '#CBD5E0',
-    400: '#A0AEC0', 500: '#718096', 600: '#4A5568', 700: '#2D3748',
-    800: '#1A202C', 900: '#171923',
+    50: '#F9FAFB', 100: '#F3F4F6', 200: '#E5E7EB', 300: '#D1D5DB',
+    400: '#9CA3AF', 500: '#6B7280', 600: '#4B5563', 700: '#374151',
+    800: '#1F2937', 900: '#111827',
   },
 };
 
@@ -120,40 +120,40 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       ...palette,
       // MD3 custom palette tokens (used by MenuCard and other components)
       outline: {
-        main: isDark ? '#30363D' : '#E2E8F0',
-        light: isDark ? '#484F58' : '#CBD5E0',
-        dark: isDark ? '#21262D' : '#CBD5E0',
+        main: isDark ? '#30363D' : '#E5E7EB',
+        light: isDark ? '#484F58' : '#D1D5DB',
+        dark: isDark ? '#21262D' : '#D1D5DB',
       },
       onSurface: {
-        main: isDark ? '#F0F6FC' : '#1A202C',
-        light: isDark ? '#C9D1D9' : '#4A5568',
-        dark: isDark ? '#F0F6FC' : '#171923',
+        main: isDark ? '#F0F6FC' : '#111827',
+        light: isDark ? '#C9D1D9' : '#6B7280',
+        dark: isDark ? '#F0F6FC' : '#111827',
       },
       surfaceContainerLow: {
-        main: isDark ? '#161B22' : '#F8FAFC',
+        main: isDark ? '#161B22' : '#F9FAFB',
         light: isDark ? '#1C2128' : '#FFFFFF',
-        dark: isDark ? '#0D1117' : '#F1F5F9',
+        dark: isDark ? '#0D1117' : '#F3F4F6',
       },
       primaryContainer: {
-        main: isDark ? alpha('#3D5A80', 0.2) : alpha('#2A3F5F', 0.1),
-        light: isDark ? alpha('#3D5A80', 0.3) : alpha('#2A3F5F', 0.15),
-        dark: isDark ? alpha('#3D5A80', 0.15) : alpha('#2A3F5F', 0.08),
+        main: isDark ? alpha('#3B82F6', 0.2) : alpha('#3B82F6', 0.1),
+        light: isDark ? alpha('#3B82F6', 0.3) : alpha('#3B82F6', 0.15),
+        dark: isDark ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.08),
       },
       onPrimaryContainer: {
-        main: isDark ? '#58A6FF' : '#2A3F5F',
-        light: isDark ? '#79C0FF' : '#3D5A80',
-        dark: isDark ? '#388BFD' : '#1E2D45',
+        main: isDark ? '#60A5FA' : '#1E40AF',
+        light: isDark ? '#93C5FD' : '#3B82F6',
+        dark: isDark ? '#2563EB' : '#1E3A8A',
       },
       header: {
-        background: isDark ? '#161B22' : '#FFFFFF',
-        text: isDark ? '#F0F6FC' : '#1A202C',
+        background: '#FFFFFF',
+        text: '#1F2937',
       },
       sidebar: {
-        background: isDark ? '#0D1117' : '#2A3F5F',
+        background: '#1F2937',
         text: '#F0F6FC',
-        active: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.12)',
+        active: 'rgba(59, 130, 246, 0.15)',
         activeText: '#F0F6FC',
-        hover: 'rgba(255, 255, 255, 0.06)',
+        hover: 'rgba(255, 255, 255, 0.05)',
         section: isDark ? '#8B949E' : 'rgba(255, 255, 255, 0.6)',
       },
     },
@@ -196,13 +196,13 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           },
           body: {
             scrollbarWidth: 'thin',
-            scrollbarColor: `${isDark ? '#30363D' : '#CBD5E0'} transparent`,
+            scrollbarColor: `${isDark ? '#30363D' : '#D1D5DB'} transparent`,
             '&::-webkit-scrollbar': { width: 8, height: 8 },
             '&::-webkit-scrollbar-track': { background: 'transparent' },
             '&::-webkit-scrollbar-thumb': {
-              background: isDark ? '#30363D' : '#CBD5E0',
+              background: isDark ? '#30363D' : '#D1D5DB',
               borderRadius: 4,
-              '&:hover': { background: isDark ? '#484F58' : '#A0AEC0' },
+              '&:hover': { background: isDark ? '#484F58' : '#9CA3AF' },
             },
           },
           '::selection': {
@@ -231,28 +231,28 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           sizeSmall: { height: 32, padding: '6px 12px', fontSize: '0.8125rem' },
           sizeLarge: { height: 48, padding: '12px 24px', fontSize: '0.9375rem' },
           containedPrimary: {
-            backgroundColor: palette.primary.main,
+            backgroundColor: '#3B82F6',
             '&:hover': {
-              backgroundColor: palette.primary.dark,
+              backgroundColor: '#2563EB',
             },
           },
           containedSecondary: {
-            backgroundColor: palette.secondary.main,
-            color: palette.secondary.contrastText,
+            backgroundColor: '#22C55E',
+            color: '#FFFFFF',
             '&:hover': {
-              backgroundColor: palette.secondary.dark,
+              backgroundColor: '#16A34A',
             },
           },
           outlined: {
-            borderColor: isDark ? '#30363D' : '#E2E8F0',
+            borderColor: isDark ? '#30363D' : '#E5E7EB',
             '&:hover': {
-              borderColor: isDark ? '#484F58' : '#CBD5E0',
-              backgroundColor: isDark ? alpha('#F0F6FC', 0.04) : alpha('#2A3F5F', 0.04),
+              borderColor: isDark ? '#484F58' : '#D1D5DB',
+              backgroundColor: isDark ? alpha('#F0F6FC', 0.04) : alpha('#3B82F6', 0.04),
             },
           },
           text: {
             '&:hover': {
-              backgroundColor: isDark ? alpha('#F0F6FC', 0.08) : alpha('#2A3F5F', 0.08),
+              backgroundColor: isDark ? alpha('#F0F6FC', 0.08) : alpha('#3B82F6', 0.08),
             },
           },
         },
@@ -263,18 +263,18 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
         defaultProps: { elevation: 0 },
         styleOverrides: {
           root: {
-            borderRadius: 20,
+            borderRadius: 12,
             backgroundColor: palette.background.paper,
-            border: `1px solid ${isDark ? '#21262D' : '#E2E8F0'}`,
+            border: isDark ? `1px solid #21262D` : 'none',
             transition: 'all 0.2s ease',
             boxShadow: isDark
               ? 'none'
-              : '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+              : '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
             '&:hover': {
-              borderColor: isDark ? '#30363D' : '#CBD5E0',
+              borderColor: isDark ? '#30363D' : 'transparent',
               boxShadow: isDark
                 ? '0 8px 24px rgba(0,0,0,0.4)'
-                : '0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.03)',
+                : '0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06)',
             },
           },
         },
@@ -300,7 +300,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             backgroundImage: 'none',
             backgroundColor: palette.background.paper,
           },
-          rounded: { borderRadius: 16 },
+          rounded: { borderRadius: 12 },
         },
       },
 
@@ -308,29 +308,30 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? '#0D1117' : '#2A3F5F',
+            backgroundColor: '#1F2937',
             color: '#F0F6FC',
-            borderRight: `1px solid ${isDark ? '#21262D' : 'transparent'}`,
+            borderRight: `1px solid ${isDark ? '#374151' : 'transparent'}`,
           },
         },
       },
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: 0,
+            borderRadius: 8,
+            margin: '4px 8px',
             padding: '10px 16px',
             color: 'rgba(255, 255, 255, 0.7)',
             transition: 'all 0.15s ease',
             '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 0.06)',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
               color: '#F0F6FC',
             },
             '&.Mui-selected': {
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderLeft: '3px solid #F5C96B',
+              backgroundColor: 'rgba(59, 130, 246, 0.15)',
+              borderLeft: '3px solid #3B82F6',
               paddingLeft: 13,
               color: '#F0F6FC',
-              '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.12)' },
+              '&:hover': { backgroundColor: 'rgba(59, 130, 246, 0.2)' },
             },
           },
         },
@@ -353,14 +354,14 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             borderRadius: 8,
             backgroundColor: isDark ? '#0D1117' : '#FFFFFF',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: isDark ? '#30363D' : '#E2E8F0',
+              borderColor: isDark ? '#30363D' : '#E5E7EB',
               transition: 'border-color 0.15s ease',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: isDark ? '#484F58' : '#CBD5E0',
+              borderColor: isDark ? '#484F58' : '#D1D5DB',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: isDark ? '#58A6FF' : '#2A3F5F',
+              borderColor: '#3B82F6',
               borderWidth: 2,
             },
           },
@@ -375,7 +376,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             fontSize: '0.875rem',
             color: palette.text.secondary,
-            '&.Mui-focused': { color: isDark ? '#58A6FF' : '#2A3F5F' },
+            '&.Mui-focused': { color: '#3B82F6' },
           },
         },
       },
@@ -398,34 +399,34 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             height: 24,
           },
           colorSuccess: {
-            backgroundColor: isDark ? 'rgba(63, 185, 80, 0.15)' : '#DCFCE7',
-            color: isDark ? '#3FB950' : '#166534',
-            border: `1px solid ${isDark ? 'rgba(63, 185, 80, 0.4)' : '#86EFAC'}`,
+            backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : '#DCFCE7',
+            color: isDark ? '#22C55E' : '#166534',
+            border: `1px solid ${isDark ? 'rgba(34, 197, 94, 0.4)' : '#86EFAC'}`,
           },
           colorWarning: {
-            backgroundColor: isDark ? 'rgba(210, 153, 34, 0.15)' : '#FEF3C7',
-            color: isDark ? '#D29922' : '#92400E',
-            border: `1px solid ${isDark ? 'rgba(210, 153, 34, 0.4)' : '#FCD34D'}`,
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.15)' : '#FEF3C7',
+            color: isDark ? '#F59E0B' : '#92400E',
+            border: `1px solid ${isDark ? 'rgba(245, 158, 11, 0.4)' : '#FCD34D'}`,
           },
           colorError: {
-            backgroundColor: isDark ? 'rgba(248, 81, 73, 0.15)' : '#FEE2E2',
-            color: isDark ? '#F85149' : '#991B1B',
-            border: `1px solid ${isDark ? 'rgba(248, 81, 73, 0.4)' : '#FCA5A5'}`,
+            backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#FEE2E2',
+            color: isDark ? '#EF4444' : '#991B1B',
+            border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.4)' : '#FCA5A5'}`,
           },
           colorInfo: {
-            backgroundColor: isDark ? 'rgba(88, 166, 255, 0.15)' : '#DBEAFE',
-            color: isDark ? '#58A6FF' : '#1E40AF',
-            border: `1px solid ${isDark ? 'rgba(88, 166, 255, 0.4)' : '#93C5FD'}`,
+            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.15)' : '#DBEAFE',
+            color: isDark ? '#60A5FA' : '#1E40AF',
+            border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.4)' : '#93C5FD'}`,
           },
           colorPrimary: {
-            backgroundColor: isDark ? 'rgba(61, 90, 128, 0.2)' : alpha('#2A3F5F', 0.1),
-            color: isDark ? '#58A6FF' : '#2A3F5F',
-            border: `1px solid ${isDark ? 'rgba(61, 90, 128, 0.4)' : alpha('#2A3F5F', 0.3)}`,
+            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.2)' : alpha('#3B82F6', 0.1),
+            color: isDark ? '#60A5FA' : '#1E40AF',
+            border: `1px solid ${isDark ? 'rgba(59, 130, 246, 0.4)' : alpha('#3B82F6', 0.3)}`,
           },
           colorSecondary: {
-            backgroundColor: isDark ? 'rgba(245, 201, 107, 0.15)' : alpha('#E5A53A', 0.15),
-            color: isDark ? '#F5C96B' : '#92400E',
-            border: `1px solid ${isDark ? 'rgba(245, 201, 107, 0.4)' : alpha('#E5A53A', 0.4)}`,
+            backgroundColor: isDark ? 'rgba(34, 197, 94, 0.15)' : alpha('#22C55E', 0.15),
+            color: isDark ? '#4ADE80' : '#166534',
+            border: `1px solid ${isDark ? 'rgba(34, 197, 94, 0.4)' : alpha('#22C55E', 0.4)}`,
           },
         },
       },
@@ -435,7 +436,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
         styleOverrides: {
           root: {
             borderRadius: 12,
-            border: `1px solid ${isDark ? '#21262D' : '#E2E8F0'}`,
+            border: `1px solid ${isDark ? '#21262D' : '#E5E7EB'}`,
             backgroundColor: palette.background.paper,
           },
         },
@@ -444,13 +445,13 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
         styleOverrides: {
           root: {
             '& .MuiTableCell-head': {
-              backgroundColor: isDark ? '#161B22' : '#F8FAFC',
+              backgroundColor: isDark ? '#161B22' : '#F9FAFB',
               fontWeight: 600,
               fontSize: '0.75rem',
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
               color: palette.text.secondary,
-              borderBottom: `1px solid ${isDark ? '#30363D' : '#E2E8F0'}`,
+              borderBottom: `1px solid ${isDark ? '#30363D' : '#E5E7EB'}`,
               padding: '12px 16px',
             },
           },
@@ -461,12 +462,12 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             transition: 'background-color 0.15s ease',
             '&:hover': {
-              backgroundColor: isDark ? '#1C2128' : '#F8FAFC',
+              backgroundColor: isDark ? '#1C2128' : '#F9FAFB',
             },
             '&.Mui-selected': {
-              backgroundColor: isDark ? alpha('#3D5A80', 0.12) : alpha('#2A3F5F', 0.08),
+              backgroundColor: isDark ? alpha('#3B82F6', 0.12) : alpha('#3B82F6', 0.08),
               '&:hover': {
-                backgroundColor: isDark ? alpha('#3D5A80', 0.18) : alpha('#2A3F5F', 0.12),
+                backgroundColor: isDark ? alpha('#3B82F6', 0.18) : alpha('#3B82F6', 0.12),
               },
             },
           },
@@ -475,7 +476,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiTableCell: {
         styleOverrides: {
           root: {
-            borderBottom: `1px solid ${isDark ? '#21262D' : '#EDF2F7'}`,
+            borderBottom: `1px solid ${isDark ? '#21262D' : '#F3F4F6'}`,
             padding: '12px 16px',
             fontSize: '0.875rem',
           },
@@ -484,7 +485,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiTablePagination: {
         styleOverrides: {
           root: {
-            borderTop: `1px solid ${isDark ? '#21262D' : '#E2E8F0'}`,
+            borderTop: `1px solid ${isDark ? '#21262D' : '#E5E7EB'}`,
           },
           selectLabel: { fontSize: '0.8125rem' },
           displayedRows: { fontSize: '0.8125rem' },
@@ -495,9 +496,9 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiCheckbox: {
         styleOverrides: {
           root: {
-            color: isDark ? '#484F58' : '#A0AEC0',
+            color: isDark ? '#484F58' : '#9CA3AF',
             '&.Mui-checked': {
-              color: isDark ? '#58A6FF' : '#2A3F5F',
+              color: '#3B82F6',
             },
           },
         },
@@ -523,10 +524,10 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiDialog: {
         styleOverrides: {
           paper: {
-            borderRadius: 20,
+            borderRadius: 16,
             backgroundColor: palette.background.paper,
-            border: `1px solid ${isDark ? '#30363D' : '#E2E8F0'}`,
-            boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 24px 48px rgba(0,0,0,0.1)',
+            border: `1px solid ${isDark ? '#30363D' : '#E5E7EB'}`,
+            boxShadow: isDark ? '0 24px 48px rgba(0,0,0,0.6)' : '0 20px 25px rgba(0,0,0,0.15)',
           },
         },
       },
@@ -563,28 +564,28 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             border: '1px solid',
           },
           standardSuccess: {
-            backgroundColor: isDark ? 'rgba(63, 185, 80, 0.1)' : '#DCFCE7',
-            borderColor: isDark ? 'rgba(63, 185, 80, 0.3)' : '#86EFAC',
-            color: isDark ? '#3FB950' : '#166534',
-            '& .MuiAlert-icon': { color: isDark ? '#3FB950' : '#22C55E' },
+            backgroundColor: isDark ? 'rgba(34, 197, 94, 0.1)' : '#DCFCE7',
+            borderColor: isDark ? 'rgba(34, 197, 94, 0.3)' : '#86EFAC',
+            color: isDark ? '#22C55E' : '#166534',
+            '& .MuiAlert-icon': { color: '#22C55E' },
           },
           standardWarning: {
-            backgroundColor: isDark ? 'rgba(210, 153, 34, 0.1)' : '#FEF3C7',
-            borderColor: isDark ? 'rgba(210, 153, 34, 0.3)' : '#FCD34D',
-            color: isDark ? '#D29922' : '#92400E',
-            '& .MuiAlert-icon': { color: isDark ? '#D29922' : '#F59E0B' },
+            backgroundColor: isDark ? 'rgba(245, 158, 11, 0.1)' : '#FEF3C7',
+            borderColor: isDark ? 'rgba(245, 158, 11, 0.3)' : '#FCD34D',
+            color: isDark ? '#F59E0B' : '#92400E',
+            '& .MuiAlert-icon': { color: '#F59E0B' },
           },
           standardError: {
-            backgroundColor: isDark ? 'rgba(248, 81, 73, 0.1)' : '#FEE2E2',
-            borderColor: isDark ? 'rgba(248, 81, 73, 0.3)' : '#FCA5A5',
-            color: isDark ? '#F85149' : '#991B1B',
-            '& .MuiAlert-icon': { color: isDark ? '#F85149' : '#EF4444' },
+            backgroundColor: isDark ? 'rgba(239, 68, 68, 0.1)' : '#FEE2E2',
+            borderColor: isDark ? 'rgba(239, 68, 68, 0.3)' : '#FCA5A5',
+            color: isDark ? '#EF4444' : '#991B1B',
+            '& .MuiAlert-icon': { color: '#EF4444' },
           },
           standardInfo: {
-            backgroundColor: isDark ? 'rgba(88, 166, 255, 0.1)' : '#DBEAFE',
-            borderColor: isDark ? 'rgba(88, 166, 255, 0.3)' : '#93C5FD',
-            color: isDark ? '#58A6FF' : '#1E40AF',
-            '& .MuiAlert-icon': { color: isDark ? '#58A6FF' : '#3B82F6' },
+            backgroundColor: isDark ? 'rgba(59, 130, 246, 0.1)' : '#DBEAFE',
+            borderColor: isDark ? 'rgba(59, 130, 246, 0.3)' : '#93C5FD',
+            color: isDark ? '#60A5FA' : '#1E40AF',
+            '& .MuiAlert-icon': { color: '#3B82F6' },
           },
         },
       },
@@ -596,7 +597,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             minHeight: 44,
           },
           indicator: {
-            backgroundColor: isDark ? '#F5C96B' : '#2A3F5F',
+            backgroundColor: '#3B82F6',
             height: 3,
             borderRadius: '3px 3px 0 0',
           },
@@ -612,7 +613,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             padding: '8px 16px',
             color: palette.text.secondary,
             '&.Mui-selected': {
-              color: isDark ? '#F0F6FC' : '#2A3F5F',
+              color: isDark ? '#F0F6FC' : '#3B82F6',
               fontWeight: 600,
             },
           },
@@ -623,12 +624,12 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiAvatar: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#30363D' : '#E2E8F0',
+            backgroundColor: isDark ? '#30363D' : '#E5E7EB',
             color: palette.text.primary,
             fontWeight: 600,
           },
           colorDefault: {
-            backgroundColor: palette.primary.main,
+            backgroundColor: '#3B82F6',
             color: '#FFFFFF',
           },
         },
@@ -638,7 +639,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiTooltip: {
         styleOverrides: {
           tooltip: {
-            backgroundColor: isDark ? '#30363D' : '#1A202C',
+            backgroundColor: isDark ? '#30363D' : '#111827',
             color: '#F0F6FC',
             fontSize: '0.75rem',
             fontWeight: 500,
@@ -647,7 +648,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
           },
           arrow: {
-            color: isDark ? '#30363D' : '#1A202C',
+            color: isDark ? '#30363D' : '#111827',
           },
         },
       },
@@ -658,7 +659,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           paper: {
             borderRadius: 12,
             backgroundColor: palette.background.paper,
-            border: `1px solid ${isDark ? '#30363D' : '#E2E8F0'}`,
+            border: `1px solid ${isDark ? '#30363D' : '#E5E7EB'}`,
             boxShadow: isDark ? '0 8px 24px rgba(0,0,0,0.5)' : '0 8px 24px rgba(0,0,0,0.08)',
           },
         },
@@ -671,12 +672,12 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
             borderRadius: 6,
             margin: '2px 8px',
             '&:hover': {
-              backgroundColor: isDark ? '#21262D' : '#F1F5F9',
+              backgroundColor: isDark ? '#21262D' : '#F3F4F6',
             },
             '&.Mui-selected': {
-              backgroundColor: isDark ? '#30363D' : '#E2E8F0',
+              backgroundColor: isDark ? '#30363D' : '#E5E7EB',
               '&:hover': {
-                backgroundColor: isDark ? '#484F58' : '#CBD5E0',
+                backgroundColor: isDark ? '#484F58' : '#D1D5DB',
               },
             },
           },
@@ -689,14 +690,14 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
           root: {
             borderRadius: 4,
             height: 6,
-            backgroundColor: isDark ? '#21262D' : '#E2E8F0',
+            backgroundColor: isDark ? '#21262D' : '#E5E7EB',
           },
           bar: {
             borderRadius: 4,
           },
           colorPrimary: {
             '& .MuiLinearProgress-bar': {
-              backgroundColor: isDark ? '#58A6FF' : '#2A3F5F',
+              backgroundColor: '#3B82F6',
             },
           },
         },
@@ -728,10 +729,10 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiFab: {
         styleOverrides: {
           primary: {
-            backgroundColor: palette.primary.main,
+            backgroundColor: '#3B82F6',
             color: '#FFFFFF',
             '&:hover': {
-              backgroundColor: palette.primary.dark,
+              backgroundColor: '#2563EB',
             },
           },
         },
@@ -741,7 +742,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiSkeleton: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#21262D' : '#E2E8F0',
+            backgroundColor: isDark ? '#21262D' : '#E5E7EB',
           },
         },
       },
@@ -750,7 +751,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiSnackbarContent: {
         styleOverrides: {
           root: {
-            backgroundColor: isDark ? '#30363D' : '#1A202C',
+            backgroundColor: isDark ? '#30363D' : '#111827',
             color: '#F0F6FC',
             borderRadius: 12,
           },
@@ -761,10 +762,10 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiAppBar: {
         styleOverrides: {
           root: {
-            backgroundColor: palette.background.paper,
-            color: palette.text.primary,
-            boxShadow: 'none',
-            borderBottom: `1px solid ${isDark ? '#21262D' : '#E2E8F0'}`,
+            backgroundColor: '#FFFFFF',
+            color: '#1F2937',
+            boxShadow: isDark ? 'none' : '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
+            borderBottom: `1px solid ${isDark ? '#21262D' : '#E5E7EB'}`,
           },
         },
       },
@@ -773,7 +774,7 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiDivider: {
         styleOverrides: {
           root: {
-            borderColor: isDark ? '#21262D' : '#E2E8F0',
+            borderColor: isDark ? '#21262D' : '#E5E7EB',
           },
         },
       },
@@ -782,15 +783,15 @@ const getDesignTokens = (mode: 'light' | 'dark'): ThemeOptions => {
       MuiToggleButton: {
         styleOverrides: {
           root: {
-            borderColor: isDark ? '#30363D' : '#E2E8F0',
+            borderColor: isDark ? '#30363D' : '#E5E7EB',
             color: palette.text.secondary,
             textTransform: 'none',
             '&.Mui-selected': {
-              backgroundColor: isDark ? '#21262D' : '#E2E8F0',
+              backgroundColor: isDark ? '#21262D' : '#E5E7EB',
               color: palette.text.primary,
-              borderColor: isDark ? '#484F58' : '#CBD5E0',
+              borderColor: isDark ? '#484F58' : '#D1D5DB',
               '&:hover': {
-                backgroundColor: isDark ? '#30363D' : '#CBD5E0',
+                backgroundColor: isDark ? '#30363D' : '#D1D5DB',
               },
             },
           },

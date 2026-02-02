@@ -18,3 +18,6 @@ export { default as HeroCard } from './HeroCard';
 export { default as ActionCard } from './ActionCard';
 export { default as ProfileCard } from './ProfileCard';
 export { default as LevelSelector } from './LevelSelector';
+export { default as PageBackground } from './PageBackground';
+export { default as StatCard } from './StatCard';
+export { default as ColoredAvatar } from './ColoredAvatar';

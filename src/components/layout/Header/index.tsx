@@ -34,10 +34,11 @@ export default function Header({ showMenuButton = true }: HeaderProps) {
       elevation={0}
       sx={{
         zIndex: theme.zIndex.drawer + 1,
-        bgcolor: 'background.paper',
-        color: 'text.primary',
+        bgcolor: '#FFFFFF',
+        color: '#1F2937',
         borderBottom: 1,
         borderColor: 'divider',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)',
       }}
     >
       <Toolbar sx={{ gap: 1 }}>

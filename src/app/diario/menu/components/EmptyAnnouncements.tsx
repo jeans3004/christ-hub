@@ -8,18 +8,15 @@ export function EmptyAnnouncements() {
   return (
     <Paper
       sx={{
-        p: 4,
+        p: 6,
         textAlign: 'center',
-        border: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
-        borderRadius: 3,
+        borderRadius: '12px',
       }}
     >
-      <Typography variant="h6" fontWeight={600} gutterBottom>
+      <Typography sx={{ fontSize: '1rem', fontWeight: 500, color: '#374151', mb: 1 }}>
         Nenhum comunicado no momento
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography sx={{ fontSize: '0.875rem', color: '#6B7280', maxWidth: 400, mx: 'auto' }}>
         Os comunicados de coordenadores e administradores aparecerao aqui.
       </Typography>
     </Paper>
