@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import { Box, Button, Typography, Chip, Alert, Avatar, FormControl, InputLabel, Select, MenuItem, Menu } from '@mui/material';
-import { Add, Edit, Delete, Upload, DeleteSweep, MoreVert } from '@mui/icons-material';
+import { Add, Edit, Delete, Upload, DeleteSweep, Download } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { DataTable, ConfirmDialog, FormModal } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -132,6 +132,20 @@ export default function AlunosPage() {
                 ))}
               </Select>
             </FormControl>
+            <Button
+              variant="outlined"
+              startIcon={<Download />}
+              disabled={alunos.length === 0}
+              onClick={() => {
+                const url = filterTurmaId
+                  ? `/api/alunos/export?turmaId=${filterTurmaId}`
+                  : '/api/alunos/export';
+                window.open(url, '_blank');
+              }}
+              sx={{ textTransform: 'none' }}
+            >
+              Exportar
+            </Button>
             <Button
               variant="outlined"
               startIcon={<Upload />}
