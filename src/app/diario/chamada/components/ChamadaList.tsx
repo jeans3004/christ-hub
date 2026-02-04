@@ -213,16 +213,41 @@ export function ChamadaList({
                   </Typography>
                   {atestado && (
                     <Tooltip
-                      title={`Atestado ${atestado.tipo}: ${atestado.descricao}`}
+                      title={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            Atestado {atestado.tipo}
+                          </Typography>
+                          <Typography variant="caption">
+                            {atestado.descricao}
+                          </Typography>
+                          {atestado.arquivoUrl && (
+                            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                              Clique para ver o arquivo
+                            </Typography>
+                          )}
+                          <Typography variant="caption" display="block" color="warning.light">
+                            {atestado.status === 'pendente' ? '(Pendente aprovacao)' : ''}
+                          </Typography>
+                        </Box>
+                      }
                       arrow
                     >
-                      <MedicalServices
-                        sx={{
-                          fontSize: 18,
-                          color: 'info.main',
-                          flexShrink: 0,
+                      <IconButton
+                        size="small"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (atestado.arquivoUrl) {
+                            window.open(atestado.arquivoUrl, '_blank');
+                          }
                         }}
-                      />
+                        sx={{
+                          p: 0.25,
+                          color: atestado.status === 'aprovado' ? 'info.main' : 'warning.main',
+                        }}
+                      >
+                        <MedicalServices sx={{ fontSize: 18 }} />
+                      </IconButton>
                     </Tooltip>
                   )}
                 </Box>
