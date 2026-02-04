@@ -26,6 +26,8 @@ export { classroomTemplateService } from './classroomTemplateService';
 export { grupoWhatsappService } from './grupoWhatsappService';
 export { sorteioService } from './sorteioService';
 export type { Sorteio } from './sorteioService';
+export { atrasoService } from './atrasoService';
+export { atestadoService } from './atestadoService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';

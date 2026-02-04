@@ -202,6 +202,49 @@ export interface PresencaAluno {
   justificativa?: string;
 }
 
+// Controle de Atrasos
+export interface Atraso {
+  id: string;
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;
+  turmaNome: string;
+  data: Date;
+  horarioChegada: string; // HH:MM
+  tempoAtraso: number; // minutos de atraso
+  justificativa?: string;
+  registradoPorId: string;
+  registradoPorNome: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Controle de Atestados
+export type TipoAtestado = 'medico' | 'judicial' | 'familiar' | 'outro';
+export type StatusAtestado = 'pendente' | 'aprovado' | 'rejeitado';
+
+export interface Atestado {
+  id: string;
+  alunoId: string;
+  alunoNome: string;
+  turmaId: string;
+  turmaNome: string;
+  tipo: TipoAtestado;
+  dataInicio: Date;
+  dataFim: Date;
+  descricao: string;
+  arquivoUrl?: string;
+  arquivoNome?: string;
+  status: StatusAtestado;
+  registradoPorId: string;
+  registradoPorNome: string;
+  aprovadoPorId?: string;
+  aprovadoPorNome?: string;
+  motivoRejeicao?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 // Chamada de Trilhas (Novo Ensino Medio)
 export type SerieEnsinoMedioTrilha = '1ª Série' | '2ª Série' | '3ª Série';
 

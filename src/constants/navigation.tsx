@@ -21,6 +21,8 @@ import {
   Schedule,
   CloudQueue,
   Casino,
+  AccessTime,
+  MedicalServices,
 } from '@mui/icons-material';
 import { Permission } from '@/lib/permissions';
 import { UserRole } from '@/types';
@@ -86,6 +88,8 @@ export const NAVIGATION: NavSection[] = [
         children: [
           { label: 'Professores', icon: <People />, href: '/diario/professores', permission: 'professores:view' },
           { label: 'Ocorrencias', icon: <ReportProblem />, href: '/diario/ocorrencias', permission: 'ocorrencias:view' },
+          { label: 'Atrasos', icon: <AccessTime />, href: '/diario/atrasos', permission: 'chamada:view' },
+          { label: 'Atestados', icon: <MedicalServices />, href: '/diario/atestados', permission: 'chamada:view' },
         ],
       },
       {
@@ -159,6 +163,8 @@ export const ROUTES = {
   HORARIOS: '/diario/horarios',
   PROFESSORES: '/diario/professores',
   OCORRENCIAS: '/diario/ocorrencias',
+  ATRASOS: '/diario/atrasos',
+  ATESTADOS: '/diario/atestados',
   FAMILIA: '/diario/familia',
   AGENDA: '/diario/agenda',
   ANIVERSARIANTES: '/diario/aniversariantes',

@@ -212,10 +212,93 @@ export async function getAlunoPhotoUrl(alunoId: string): Promise<string | null> 
   }
 }
 
+/**
+ * Valida arquivo de atestado (PDF ou imagem)
+ */
+const ATESTADO_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+const ATESTADO_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+export function validateAtestadoFile(file: File): { valid: boolean; error?: string } {
+  if (!ATESTADO_ALLOWED_TYPES.includes(file.type)) {
+    return { valid: false, error: 'Tipo de arquivo nao permitido. Use PDF, JPG, PNG ou WebP.' };
+  }
+  if (file.size > ATESTADO_MAX_SIZE) {
+    return { valid: false, error: 'Arquivo muito grande. Tamanho maximo: 10MB.' };
+  }
+  return { valid: true };
+}
+
+/**
+ * Faz upload de arquivo de atestado para o Firebase Storage
+ */
+export async function uploadAtestadoFile(
+  atestadoId: string,
+  file: File,
+  onProgress?: (progress: UploadProgress) => void
+): Promise<UploadResult> {
+  const validation = validateAtestadoFile(file);
+  if (!validation.valid) {
+    throw new Error(validation.error);
+  }
+
+  const extension = file.name.split('.').pop() || 'pdf';
+  const path = `atestados/${atestadoId}/arquivo.${extension}`;
+  const storageRef = ref(storage, path);
+
+  return new Promise((resolve, reject) => {
+    const uploadTask = uploadBytesResumable(storageRef, file);
+
+    uploadTask.on(
+      'state_changed',
+      (snapshot: UploadTaskSnapshot) => {
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        const state = snapshot.state as UploadProgress['state'];
+        onProgress?.({ progress, state });
+      },
+      (error) => {
+        reject(error);
+      },
+      async () => {
+        try {
+          const url = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve({ url, path });
+        } catch (error) {
+          reject(error);
+        }
+      }
+    );
+  });
+}
+
+/**
+ * Remove arquivo de atestado do Firebase Storage
+ */
+export async function deleteAtestadoFile(arquivoUrl: string): Promise<void> {
+  try {
+    const urlParts = arquivoUrl.split('/o/');
+    if (urlParts.length < 2) {
+      throw new Error('URL invalida');
+    }
+    const encodedPath = urlParts[1].split('?')[0];
+    const path = decodeURIComponent(encodedPath);
+
+    const storageRef = ref(storage, path);
+    await deleteObject(storageRef);
+  } catch (error: any) {
+    if (error?.code === 'storage/object-not-found') {
+      return;
+    }
+    throw error;
+  }
+}
+
 export const storageService = {
   uploadAlunoPhoto,
   deleteAlunoPhoto,
   getAlunoPhotoUrl,
   validateImageFile,
   resizeImage,
+  uploadAtestadoFile,
+  deleteAtestadoFile,
+  validateAtestadoFile,
 };
