@@ -79,6 +79,9 @@ export default function ChamadaPage() {
   const [conteudoModalOpen, setConteudoModalOpen] = useState(false);
   const [dataConteudo, setDataConteudo] = useState(new Date().toISOString().split('T')[0]);
 
+  // Obter turno da turma selecionada
+  const turmaSelecionada = turmas.find(t => t.id === serieId);
+
   // Chamada data hook
   const {
     presencas,
@@ -98,6 +101,7 @@ export default function ChamadaPage() {
     disciplinaId,
     dataChamada,
     alunos,
+    turno: turmaSelecionada?.turno,
   });
 
   // Clear disciplinaId when turma changes and current disciplina is not linked

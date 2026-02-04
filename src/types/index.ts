@@ -188,7 +188,7 @@ export interface Chamada {
   disciplinaId: string;
   professorId: string;
   data: Date;
-  tempo: 1 | 2;
+  tempo: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   presencas: PresencaAluno[];
   conteudo?: string;
   createdAt: Date;

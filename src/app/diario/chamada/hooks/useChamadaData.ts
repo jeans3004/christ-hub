@@ -6,13 +6,96 @@ import { useState, useEffect, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { chamadaService } from '@/services/firestore';
-import { Aluno, PresencaAluno } from '@/types';
+import { Aluno, PresencaAluno, Turno } from '@/types';
+
+/**
+ * Calcula o tempo (período) da aula baseado no horário atual e turno.
+ *
+ * Manhã: 1º 7:00, 2º 7:45, 3º 8:30, 4º 9:15, 5º 10:00, 6º 10:45, 7º 11:30 (45 min)
+ * Tarde: 1º 13:00, 2º 13:45, 3º 14:30, 4º 15:15, 5º 16:00, 6º 16:45, 7º 17:30 (45 min)
+ * Sexta tarde: 1º 13:00, 2º 13:35, 3º 14:10, 4º 14:45, 5º 15:20, 6º 15:55, 7º 16:30 (35 min)
+ */
+function calcularTempo(turno?: Turno): number {
+  const now = new Date();
+  const hours = now.getHours();
+  const minutes = now.getMinutes();
+  const totalMinutes = hours * 60 + minutes;
+  const dayOfWeek = now.getDay(); // 0 = domingo, 5 = sexta
+
+  if (turno === 'Matutino') {
+    // Manhã: aulas de 45 minutos começando às 7:00
+    const horarios = [
+      7 * 60,        // 1º tempo: 7:00
+      7 * 60 + 45,   // 2º tempo: 7:45
+      8 * 60 + 30,   // 3º tempo: 8:30
+      9 * 60 + 15,   // 4º tempo: 9:15
+      10 * 60,       // 5º tempo: 10:00
+      10 * 60 + 45,  // 6º tempo: 10:45
+      11 * 60 + 30,  // 7º tempo: 11:30
+    ];
+
+    for (let i = horarios.length - 1; i >= 0; i--) {
+      if (totalMinutes >= horarios[i]) {
+        return i + 1;
+      }
+    }
+    return 1;
+  } else if (turno === 'Vespertino') {
+    // Sexta-feira: aulas de 35 minutos
+    if (dayOfWeek === 5) {
+      const horarios = [
+        13 * 60,       // 1º tempo: 13:00
+        13 * 60 + 35,  // 2º tempo: 13:35
+        14 * 60 + 10,  // 3º tempo: 14:10
+        14 * 60 + 45,  // 4º tempo: 14:45
+        15 * 60 + 20,  // 5º tempo: 15:20
+        15 * 60 + 55,  // 6º tempo: 15:55
+        16 * 60 + 30,  // 7º tempo: 16:30
+      ];
+
+      for (let i = horarios.length - 1; i >= 0; i--) {
+        if (totalMinutes >= horarios[i]) {
+          return i + 1;
+        }
+      }
+      return 1;
+    } else {
+      // Outros dias: aulas de 45 minutos
+      const horarios = [
+        13 * 60,       // 1º tempo: 13:00
+        13 * 60 + 45,  // 2º tempo: 13:45
+        14 * 60 + 30,  // 3º tempo: 14:30
+        15 * 60 + 15,  // 4º tempo: 15:15
+        16 * 60,       // 5º tempo: 16:00
+        16 * 60 + 45,  // 6º tempo: 16:45
+        17 * 60 + 30,  // 7º tempo: 17:30
+      ];
+
+      for (let i = horarios.length - 1; i >= 0; i--) {
+        if (totalMinutes >= horarios[i]) {
+          return i + 1;
+        }
+      }
+      return 1;
+    }
+  }
+
+  // Fallback: detectar pelo horário atual
+  if (totalMinutes >= 13 * 60) {
+    return Math.min(7, Math.floor((totalMinutes - 13 * 60) / 45) + 1);
+  } else if (totalMinutes >= 7 * 60) {
+    return Math.min(7, Math.floor((totalMinutes - 7 * 60) / 45) + 1);
+  }
+
+  return 1;
+}
 
 interface UseChamadaDataParams {
   serieId: string;
   disciplinaId: string;
   dataChamada: string;
   alunos: Aluno[];
+  turno?: Turno;
 }
 
 interface UseChamadaDataReturn {
@@ -36,6 +119,7 @@ export function useChamadaData({
   disciplinaId,
   dataChamada,
   alunos,
+  turno,
 }: UseChamadaDataParams): UseChamadaDataReturn {
   const { addToast } = useUIStore();
   const { usuario } = useAuth();
@@ -157,13 +241,16 @@ export function useChamadaData({
       if (existingChamada) {
         await chamadaService.update(existingChamada.id, chamadaData);
       } else {
+        // Calcular tempo baseado no horário atual e turno da turma
+        const tempoCalculado = calcularTempo(turno) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
         // Usar T12:00:00 para evitar problemas de timezone
         await chamadaService.create({
           turmaId: serieId,
           disciplinaId,
           professorId: usuario.id,
           data: new Date(dataChamada + 'T12:00:00'),
-          tempo: 1,
+          tempo: tempoCalculado,
           ...chamadaData,
         });
       }
@@ -175,7 +262,7 @@ export function useChamadaData({
     } finally {
       setSaving(false);
     }
-  }, [serieId, disciplinaId, usuario, alunos, presencas, observacoes, dataChamada, conteudo, addToast]);
+  }, [serieId, disciplinaId, usuario, alunos, presencas, observacoes, dataChamada, conteudo, turno, addToast]);
 
   const totalPresentes = Object.values(presencas).filter(Boolean).length;
   const totalAusentes = alunos.length - totalPresentes;
