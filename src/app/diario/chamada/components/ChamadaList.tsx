@@ -155,17 +155,20 @@ export function ChamadaList({
             return 'transparent';
           };
 
+          // Estudante com atestado tem presenca bloqueada (justificada)
+          const isBloqueado = Boolean(atestado);
+
           return (
             <Box
               key={aluno.id}
-              onClick={() => onPresencaChange(aluno.id)}
+              onClick={() => !isBloqueado && onPresencaChange(aluno.id)}
               sx={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: { xs: 1, sm: 2 },
                 py: { xs: 1.5, sm: 2 },
                 px: { xs: 1, sm: 2 },
-                cursor: 'pointer',
+                cursor: isBloqueado ? 'default' : 'pointer',
                 borderBottom: index < alunos.length - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
                 transition: 'all 0.2s ease',
@@ -173,7 +176,7 @@ export function ChamadaList({
                 borderLeft: '4px solid',
                 borderLeftColor: getRowBorderColor(),
                 '&:hover': {
-                  bgcolor: getRowHoverColor(),
+                  bgcolor: isBloqueado ? getRowBgColor() : getRowHoverColor(),
                 },
               }}
             >
@@ -191,12 +194,16 @@ export function ChamadaList({
               </Typography>
 
               <Checkbox
-                checked={isPresente}
+                checked={isBloqueado ? true : isPresente}
+                disabled={isBloqueado}
                 sx={{
                   p: { xs: 0.5, sm: 1 },
-                  color: isPresente ? 'success.main' : 'error.main',
+                  color: isBloqueado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
                   '&.Mui-checked': {
-                    color: 'success.main',
+                    color: isBloqueado ? 'info.main' : 'success.main',
+                  },
+                  '&.Mui-disabled': {
+                    color: 'info.main !important',
                   },
                 }}
               />
@@ -323,6 +330,12 @@ export function ChamadaList({
                 size="small"
                 variant="contained"
                 disableElevation
+                disabled={isBloqueado}
+                onClick={(e) => {
+                  if (isBloqueado) {
+                    e.stopPropagation();
+                  }
+                }}
                 sx={{
                   minWidth: { xs: 75, sm: 95 },
                   fontSize: { xs: '0.75rem', sm: '0.85rem' },
@@ -331,14 +344,18 @@ export function ChamadaList({
                   px: { xs: 1.5, sm: 2 },
                   py: 0.75,
                   fontWeight: 600,
-                  bgcolor: atestado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
-                  boxShadow: atestado ? 'none' : (isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)'),
+                  bgcolor: isBloqueado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
+                  boxShadow: isBloqueado ? 'none' : (isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)'),
                   '&:hover': {
-                    bgcolor: atestado ? 'info.dark' : (isPresente ? 'success.dark' : 'error.dark'),
+                    bgcolor: isBloqueado ? 'info.main' : (isPresente ? 'success.dark' : 'error.dark'),
+                  },
+                  '&.Mui-disabled': {
+                    bgcolor: 'info.main',
+                    color: 'white',
                   },
                 }}
               >
-                {atestado ? 'Justificado' : (isPresente ? 'Presente' : 'Ausente')}
+                {isBloqueado ? 'Justificado' : (isPresente ? 'Presente' : 'Ausente')}
               </Button>
             </Box>
           );
