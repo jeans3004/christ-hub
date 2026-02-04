@@ -1,8 +1,8 @@
 /**
- * Relatorio do Dia - Espelho da chamada de um dia especifico.
+ * Relatorio do Dia - Lista de chamadas do dia com acesso ao detalhe.
  */
 
-import { useRef } from 'react';
+import { useState, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -14,16 +14,18 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Divider,
   Button,
+  IconButton,
 } from '@mui/material';
 import {
   Print as PrintIcon,
   CheckCircle as PresentIcon,
   Cancel as AbsentIcon,
+  ChevronRight,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
 import { formatDate, formatDateFull, printReport } from './utils';
+import { ChamadaDetalhe } from './ChamadaDetalhe';
 
 interface RelatorioDiaProps {
   chamadas: Chamada[];
@@ -31,15 +33,19 @@ interface RelatorioDiaProps {
   disciplinas: Disciplina[];
   professor: Usuario | null;
   data: string;
+  onChamadaUpdate?: (updatedChamada: Chamada) => void;
 }
 
 export function RelatorioDia({
-  chamadas,
+  chamadas: initialChamadas,
   turmas,
   disciplinas,
   professor,
   data,
+  onChamadaUpdate,
 }: RelatorioDiaProps) {
+  const [chamadas, setChamadas] = useState(initialChamadas);
+  const [selectedChamada, setSelectedChamada] = useState<Chamada | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
   // Calcular totais gerais
@@ -57,13 +63,92 @@ export function RelatorioDia({
   );
 
   const handlePrint = () => {
+    const tableRows = chamadas.map((chamada) => {
+      const turma = turmas.find(t => t.id === chamada.turmaId);
+      const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
+      const presentes = chamada.presencas.filter(p => p.presente).length;
+      const ausentes = chamada.presencas.filter(p => !p.presente).length;
+
+      return `
+        <tr>
+          <td>${turma?.nome || 'N/A'}</td>
+          <td>${disciplina?.nome || 'N/A'}</td>
+          <td style="text-align: center">${chamada.tempo}o</td>
+          <td style="text-align: center" class="presente">${presentes}</td>
+          <td style="text-align: center" class="ausente">${ausentes}</td>
+          <td style="text-align: center">${chamada.presencas.length}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const content = `
+      <div class="summary-box">
+        <div class="summary-title">Resumo do Dia</div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-value">${chamadas.length}</div>
+            <div class="summary-label">Chamadas</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-value" style="color: green">${totaisGerais.presentes}</div>
+            <div class="summary-label">Presencas</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-value" style="color: red">${totaisGerais.ausentes}</div>
+            <div class="summary-label">Faltas</div>
+          </div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Turma</th>
+            <th>Disciplina</th>
+            <th style="width: 80px; text-align: center">Tempo</th>
+            <th style="width: 80px; text-align: center">Presentes</th>
+            <th style="width: 80px; text-align: center">Ausentes</th>
+            <th style="width: 80px; text-align: center">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRows}
+        </tbody>
+      </table>
+    `;
+
     printReport({
       title: 'Espelho da Chamada',
       subtitle: formatDateFull(data),
       professor: professor?.nome || 'N/A',
-      content: printRef.current?.innerHTML || '',
+      content,
     });
   };
+
+  const handleChamadaUpdate = (updatedChamada: Chamada) => {
+    setChamadas(prev => prev.map(c => c.id === updatedChamada.id ? updatedChamada : c));
+    onChamadaUpdate?.(updatedChamada);
+  };
+
+  // Se uma chamada esta selecionada, mostra o detalhe
+  if (selectedChamada) {
+    const turma = turmas.find(t => t.id === selectedChamada.turmaId);
+    const disciplina = disciplinas.find(d => d.id === selectedChamada.disciplinaId);
+
+    return (
+      <ChamadaDetalhe
+        chamada={selectedChamada}
+        turma={turma}
+        disciplina={disciplina}
+        professor={professor}
+        data={data}
+        onBack={() => setSelectedChamada(null)}
+        onUpdate={(updated) => {
+          handleChamadaUpdate(updated);
+          setSelectedChamada(updated);
+        }}
+      />
+    );
+  }
 
   return (
     <Box>
@@ -115,122 +200,88 @@ export function RelatorioDia({
         </Box>
       </Paper>
 
-      {/* Conteudo para impressao */}
-      <Box ref={printRef}>
-        {chamadas.map((chamada) => {
-          const turma = turmas.find(t => t.id === chamada.turmaId);
-          const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
-          const presentes = chamada.presencas.filter(p => p.presente);
-          const ausentes = chamada.presencas.filter(p => !p.presente);
+      {/* Lista de Chamadas */}
+      <Paper sx={{ overflow: 'hidden' }}>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'grey.100' }}>
+                <TableCell>Turma</TableCell>
+                <TableCell>Disciplina</TableCell>
+                <TableCell align="center" sx={{ width: 80 }}>Tempo</TableCell>
+                <TableCell align="center" sx={{ width: 100 }}>Presentes</TableCell>
+                <TableCell align="center" sx={{ width: 100 }}>Ausentes</TableCell>
+                <TableCell align="center" sx={{ width: 80 }}>Total</TableCell>
+                <TableCell sx={{ width: 50 }}></TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {chamadas.map((chamada) => {
+                const turma = turmas.find(t => t.id === chamada.turmaId);
+                const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
+                const presentes = chamada.presencas.filter(p => p.presente).length;
+                const ausentes = chamada.presencas.filter(p => !p.presente).length;
 
-          return (
-            <Paper key={chamada.id} sx={{ mb: 3, overflow: 'hidden' }} className="chamada-section">
-              {/* Cabecalho da Turma */}
-              <Box
-                sx={{
-                  p: 2,
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                }}
-                className="section-header"
-              >
-                <Typography variant="subtitle1" fontWeight={600} className="section-title">
-                  {turma?.nome || 'Turma N/A'}
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }} className="section-subtitle">
-                  {disciplina?.nome || 'Disciplina N/A'} - {chamada.tempo}o Tempo
-                </Typography>
-              </Box>
+                return (
+                  <TableRow
+                    key={chamada.id}
+                    hover
+                    sx={{ cursor: 'pointer' }}
+                    onClick={() => setSelectedChamada(chamada)}
+                  >
+                    <TableCell>
+                      <Typography variant="body2" fontWeight={500}>
+                        {turma?.nome || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {disciplina?.nome || 'N/A'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip label={`${chamada.tempo}o`} size="small" variant="outlined" />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        icon={<PresentIcon sx={{ fontSize: 16 }} />}
+                        label={presentes}
+                        size="small"
+                        color="success"
+                        sx={{ minWidth: 60 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        icon={<AbsentIcon sx={{ fontSize: 16 }} />}
+                        label={ausentes}
+                        size="small"
+                        color="error"
+                        sx={{ minWidth: 60 }}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <Typography variant="body2" fontWeight={500}>
+                        {chamada.presencas.length}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <IconButton size="small">
+                        <ChevronRight />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-              {/* Estatisticas */}
-              <Box sx={{ p: 2, display: 'flex', gap: 2, flexWrap: 'wrap' }} className="stats">
-                <Chip
-                  icon={<PresentIcon />}
-                  label={`${presentes.length} Presentes`}
-                  color="success"
-                  size="small"
-                />
-                <Chip
-                  icon={<AbsentIcon />}
-                  label={`${ausentes.length} Ausentes`}
-                  color="error"
-                  size="small"
-                />
-                <Chip
-                  label={`${chamada.presencas.length} Total`}
-                  variant="outlined"
-                  size="small"
-                />
-              </Box>
-
-              <Divider />
-
-              {/* Lista de Alunos */}
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: 50 }}>#</TableCell>
-                      <TableCell>Aluno</TableCell>
-                      <TableCell sx={{ width: 100 }} align="center">Status</TableCell>
-                      <TableCell>Observacao</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {chamada.presencas.map((presenca, idx) => (
-                      <TableRow
-                        key={presenca.alunoId}
-                        sx={{
-                          bgcolor: presenca.presente ? 'inherit' : 'error.50',
-                        }}
-                      >
-                        <TableCell>{String(idx + 1).padStart(2, '0')}</TableCell>
-                        <TableCell>{presenca.alunoNome}</TableCell>
-                        <TableCell align="center">
-                          {presenca.presente ? (
-                            <Chip
-                              label="P"
-                              size="small"
-                              color="success"
-                              sx={{ minWidth: 40 }}
-                              className="presente"
-                            />
-                          ) : (
-                            <Chip
-                              label="F"
-                              size="small"
-                              color="error"
-                              sx={{ minWidth: 40 }}
-                              className="ausente"
-                            />
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color="text.secondary">
-                            {presenca.justificativa || '-'}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Conteudo Ministrado */}
-              {chamada.conteudo && (
-                <Box sx={{ p: 2, bgcolor: 'warning.50' }} className="conteudo">
-                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                    Conteudo Ministrado:
-                  </Typography>
-                  <Typography variant="body2">
-                    {chamada.conteudo}
-                  </Typography>
-                </Box>
-              )}
-            </Paper>
-          );
-        })}
-      </Box>
+      {/* Dica */}
+      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
+        Clique em uma chamada para visualizar detalhes e editar
+      </Typography>
     </Box>
   );
 }

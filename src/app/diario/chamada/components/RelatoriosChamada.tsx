@@ -97,18 +97,48 @@ export function RelatoriosChamada({
   // Estado do tipo de relatorio selecionado
   const [tipoRelatorio, setTipoRelatorio] = useState<TipoRelatorio>(null);
 
-  // Filtros
-  const [dataInicio, setDataInicio] = useState(new Date().toISOString().split('T')[0]);
-  const [dataFim, setDataFim] = useState(new Date().toISOString().split('T')[0]);
+  // Filtros - usando funcao para garantir data valida
+  const getToday = () => {
+    try {
+      return new Date().toISOString().split('T')[0];
+    } catch {
+      // Fallback se algo der errado
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+  };
+  const [dataInicio, setDataInicio] = useState(getToday);
+  const [dataFim, setDataFim] = useState(getToday);
   const [turmaId, setTurmaId] = useState('');
 
   // Dados carregados
   const [chamadas, setChamadas] = useState<Chamada[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Validar se uma string de data e valida
+  const isValidDate = (dateStr: string): boolean => {
+    if (!dateStr || typeof dateStr !== 'string') return false;
+    const date = new Date(dateStr + 'T12:00:00');
+    return !isNaN(date.getTime());
+  };
+
   // Carregar dados do relatorio
   const loadRelatorio = useCallback(async () => {
     if (!professor?.id || !tipoRelatorio) return;
+
+    // Validar datas antes de prosseguir
+    if (!isValidDate(dataInicio)) {
+      addToast('Data invalida', 'error');
+      return;
+    }
+
+    if (tipoRelatorio !== 'dia' && !isValidDate(dataFim)) {
+      addToast('Data fim invalida', 'error');
+      return;
+    }
 
     setLoading(true);
     try {
