@@ -48,8 +48,8 @@ import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useAlunosByTurma } from '@/hooks';
+import { useDriveUpload } from '@/hooks/useDriveUpload';
 import { atestadoService } from '@/services/firestore/atestadoService';
-import { storageService } from '@/services/storageService';
 import { Atestado, TipoAtestado, Aluno } from '@/types';
 
 const tiposAtestado: { value: TipoAtestado; label: string }[] = [
@@ -64,6 +64,9 @@ export default function AtestadosPage() {
   const { addToast } = useUIStore();
   const { usuario } = useAuth();
   const { turmas } = useTurmas(ano);
+
+  // Hook para upload no Google Drive
+  const { upload: uploadToDrive, uploadState, isConnected: isDriveConnected } = useDriveUpload();
 
   // Verificar se usuario pode aprovar (admin ou coordenador)
   const podeAprovar = usuario?.tipo === 'administrador' || usuario?.tipo === 'coordenador';
@@ -87,7 +90,6 @@ export default function AtestadosPage() {
   const [descricao, setDescricao] = useState('');
   const [arquivo, setArquivo] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Alunos da turma selecionada no modal
@@ -140,7 +142,6 @@ export default function AtestadosPage() {
     }
 
     setSaving(true);
-    setUploadProgress(0);
 
     try {
       const turma = turmas.find(t => t.id === turmaId);
@@ -160,19 +161,29 @@ export default function AtestadosPage() {
         registradoPorNome: usuario.nome,
       });
 
-      // Se tem arquivo, fazer upload
+      // Se tem arquivo, fazer upload para o Google Drive
       if (arquivo) {
-        const result = await storageService.uploadAtestadoFile(
-          atestadoId,
-          arquivo,
-          (progress) => setUploadProgress(progress.progress)
-        );
+        try {
+          // Renomear arquivo para incluir nome do aluno e data
+          const dataFormatada = dataInicio.replace(/-/g, '');
+          const nomeArquivo = `${alunoSelecionado.nome}_${dataFormatada}_${arquivo.name}`;
+          const arquivoRenomeado = new File([arquivo], nomeArquivo, { type: arquivo.type });
 
-        // Atualizar atestado com URL do arquivo
-        await atestadoService.update(atestadoId, {
-          arquivoUrl: result.url,
-          arquivoNome: arquivo.name,
-        });
+          const driveFile = await uploadToDrive(arquivoRenomeado, 'ATESTADOS');
+
+          if (driveFile) {
+            // Atualizar atestado com URL do arquivo no Drive
+            await atestadoService.update(atestadoId, {
+              arquivoUrl: driveFile.webViewLink,
+              arquivoNome: nomeArquivo,
+            });
+          } else {
+            addToast('Atestado salvo, mas erro ao anexar arquivo', 'warning');
+          }
+        } catch (uploadError) {
+          console.error('Erro no upload do arquivo:', uploadError);
+          addToast('Atestado salvo, mas erro ao anexar arquivo', 'warning');
+        }
       }
 
       addToast('Atestado registrado com sucesso!', 'success');
@@ -184,7 +195,6 @@ export default function AtestadosPage() {
       addToast('Erro ao registrar atestado', 'error');
     } finally {
       setSaving(false);
-      setUploadProgress(0);
     }
   };
 
@@ -226,12 +236,10 @@ export default function AtestadosPage() {
   };
 
   // Deletar atestado
-  const handleDelete = async (atestadoId: string, arquivoUrl?: string) => {
+  const handleDelete = async (atestadoId: string) => {
     try {
-      // Deletar arquivo se existir
-      if (arquivoUrl) {
-        await storageService.deleteAtestadoFile(arquivoUrl);
-      }
+      // Nota: Arquivo no Drive nao e deletado automaticamente
+      // Pode ser removido manualmente se necessario
       await atestadoService.delete(atestadoId);
       addToast('Atestado removido!', 'success');
       loadAtestados();
@@ -257,9 +265,10 @@ export default function AtestadosPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validation = storageService.validateAtestadoFile(file);
-      if (!validation.valid) {
-        addToast(validation.error || 'Arquivo invalido', 'error');
+      // Validar tamanho maximo (25MB para Drive)
+      const maxSize = 25 * 1024 * 1024;
+      if (file.size > maxSize) {
+        addToast('Arquivo muito grande. Tamanho maximo: 25MB', 'error');
         return;
       }
       setArquivo(file);
@@ -360,7 +369,7 @@ export default function AtestadosPage() {
                           title: 'Excluir Atestado',
                           message: 'Tem certeza que deseja excluir este atestado?',
                           action: () => {
-                            handleDelete(atestado.id, atestado.arquivoUrl);
+                            handleDelete(atestado.id);
                             setConfirmDialog(prev => ({ ...prev, open: false }));
                           },
                         })}
@@ -518,8 +527,8 @@ export default function AtestadosPage() {
               )}
             </Box>
 
-            {uploadProgress > 0 && uploadProgress < 100 && (
-              <LinearProgress variant="determinate" value={uploadProgress} />
+            {uploadState.isUploading && (
+              <LinearProgress variant="determinate" value={uploadState.progress} />
             )}
           </Stack>
         </DialogContent>

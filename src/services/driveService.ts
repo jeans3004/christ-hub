@@ -187,6 +187,7 @@ class DriveService {
     ids.ANEXOS = await this.findOrCreateFolder(DRIVE_FOLDERS.ANEXOS, ids.ROOT);
     ids.OCORRENCIAS = await this.findOrCreateFolder(DRIVE_FOLDERS.OCORRENCIAS, ids.ANEXOS);
     ids.MENSAGENS = await this.findOrCreateFolder(DRIVE_FOLDERS.MENSAGENS, ids.ANEXOS);
+    ids.ATESTADOS = await this.findOrCreateFolder(DRIVE_FOLDERS.ATESTADOS, ids.ANEXOS);
 
     // Fotos de Alunos
     ids.FOTOS = await this.findOrCreateFolder(DRIVE_FOLDERS.FOTOS, ids.ROOT);

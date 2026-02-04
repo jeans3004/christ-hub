@@ -15,7 +15,7 @@ import {
 } from '@/services/driveService';
 import { DriveFile, DriveUploadState, DriveFolderIds } from '@/types/drive';
 
-export type DriveTargetFolder = 'OCORRENCIAS' | 'MENSAGENS' | 'EXPORTS' | 'COMUNICADOS';
+export type DriveTargetFolder = 'OCORRENCIAS' | 'MENSAGENS' | 'EXPORTS' | 'COMUNICADOS' | 'ATESTADOS';
 
 interface UseDriveUploadOptions {
   // Para pastas com subpastas por ano/mes
@@ -115,6 +115,8 @@ export function useDriveUpload(): UseDriveUploadReturn {
         return ids.EXPORTS;
       case 'COMUNICADOS':
         return ids.COMUNICADOS;
+      case 'ATESTADOS':
+        return ids.ATESTADOS;
       default:
         throw new Error(`Pasta desconhecida: ${targetFolder}`);
     }

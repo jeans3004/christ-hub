@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["http://localhost:3000", "https://sgenw-4d2d8.web.app", "https://sgenw-4d2d8.firebaseapp.com"],
+    "method": ["GET", "POST", "PUT", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": ["Content-Type", "Authorization", "Content-Length", "X-Requested-With"]
+  }
+]
