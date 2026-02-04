@@ -138,20 +138,20 @@ export function ChamadaList({
 
           // Determinar cor de fundo baseado no estado
           const getRowBgColor = () => {
-            if (atestado) return 'info.50'; // Azul claro para atestado
-            if (!isPresente) return 'error.50'; // Vermelho claro para ausente
+            if (atestado) return '#e3f2fd'; // Azul claro mais visivel
+            if (!isPresente) return '#ffebee'; // Vermelho claro para ausente
             return 'transparent';
           };
 
           const getRowHoverColor = () => {
-            if (atestado) return 'info.100';
-            if (!isPresente) return 'error.100';
+            if (atestado) return '#bbdefb';
+            if (!isPresente) return '#ffcdd2';
             return 'action.hover';
           };
 
           const getRowBorderColor = () => {
-            if (atestado) return 'info.main'; // Azul para atestado
-            if (!isPresente) return 'error.main';
+            if (atestado) return '#1976d2'; // Azul mais forte
+            if (!isPresente) return '#d32f2f';
             return 'transparent';
           };
 
@@ -231,39 +231,48 @@ export function ChamadaList({
                     {aluno.nome}
                   </Typography>
                   {atestado && (
-                    <>
-                      {/* Icone de atestado com descricao */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                      {/* Chip de atestado com descricao */}
                       <Tooltip
                         title={
-                          <Box>
-                            <Typography variant="body2" fontWeight={600}>
-                              Atestado {atestado.tipo}
-                            </Typography>
-                            <Typography variant="caption">
+                          <Box sx={{ p: 0.5 }}>
+                            <Typography variant="body2" fontWeight={700} color="white">
                               {atestado.descricao}
                             </Typography>
-                            <Typography variant="caption" display="block" color="warning.light">
-                              {atestado.status === 'pendente' ? '(Pendente aprovacao)' : '(Aprovado)'}
-                            </Typography>
-                            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
-                              Presenca justificada
-                            </Typography>
+                            {atestado.status === 'pendente' && (
+                              <Typography variant="caption" sx={{ color: '#ffeb3b', fontWeight: 600 }}>
+                                Aguardando aprovacao
+                              </Typography>
+                            )}
                           </Box>
                         }
                         arrow
+                        enterTouchDelay={0}
+                        leaveTouchDelay={3000}
                       >
-                        <MedicalServices
+                        <Chip
+                          icon={<MedicalServices sx={{ fontSize: '16px !important' }} />}
+                          label={atestado.status === 'pendente' ? 'Pendente' : 'Atestado'}
+                          size="small"
                           sx={{
-                            fontSize: 18,
-                            color: atestado.status === 'aprovado' ? 'info.main' : 'warning.main',
-                            flexShrink: 0,
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            bgcolor: atestado.status === 'aprovado' ? 'info.main' : 'warning.main',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' },
+                            cursor: 'pointer',
                           }}
                         />
                       </Tooltip>
 
                       {/* Icone para abrir arquivo (se existir) */}
                       {atestado.arquivoUrl && (
-                        <Tooltip title="Ver arquivo do atestado" arrow>
+                        <Tooltip
+                          title="Ver arquivo"
+                          arrow
+                          enterTouchDelay={0}
+                        >
                           <IconButton
                             size="small"
                             onClick={(e) => {
@@ -271,16 +280,17 @@ export function ChamadaList({
                               window.open(atestado.arquivoUrl, '_blank');
                             }}
                             sx={{
-                              p: 0.25,
-                              color: 'info.main',
-                              '&:hover': { color: 'info.dark' },
+                              p: 0.5,
+                              bgcolor: 'info.main',
+                              color: 'white',
+                              '&:hover': { bgcolor: 'info.dark' },
                             }}
                           >
-                            <OpenInNew sx={{ fontSize: 16 }} />
+                            <OpenInNew sx={{ fontSize: 14 }} />
                           </IconButton>
                         </Tooltip>
                       )}
-                    </>
+                    </Box>
                   )}
                 </Box>
                 {aluno.matricula && (
