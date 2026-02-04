@@ -15,7 +15,7 @@ import {
   Tooltip,
   Badge,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices } from '@mui/icons-material';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew } from '@mui/icons-material';
 import { Aluno, Atestado } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
@@ -136,6 +136,25 @@ export function ChamadaList({
           const hasObservacao = Boolean(observacoes[aluno.id]);
           const atestado = atestadosVigentes[aluno.id];
 
+          // Determinar cor de fundo baseado no estado
+          const getRowBgColor = () => {
+            if (atestado) return 'info.50'; // Azul claro para atestado
+            if (!isPresente) return 'error.50'; // Vermelho claro para ausente
+            return 'transparent';
+          };
+
+          const getRowHoverColor = () => {
+            if (atestado) return 'info.100';
+            if (!isPresente) return 'error.100';
+            return 'action.hover';
+          };
+
+          const getRowBorderColor = () => {
+            if (atestado) return 'info.main'; // Azul para atestado
+            if (!isPresente) return 'error.main';
+            return 'transparent';
+          };
+
           return (
             <Box
               key={aluno.id}
@@ -150,11 +169,11 @@ export function ChamadaList({
                 borderBottom: index < alunos.length - 1 ? '1px solid' : 'none',
                 borderColor: 'divider',
                 transition: 'all 0.2s ease',
-                bgcolor: isPresente ? 'transparent' : 'error.50',
-                borderLeft: isPresente ? '4px solid transparent' : '4px solid',
-                borderLeftColor: isPresente ? 'transparent' : 'error.main',
+                bgcolor: getRowBgColor(),
+                borderLeft: '4px solid',
+                borderLeftColor: getRowBorderColor(),
                 '&:hover': {
-                  bgcolor: isPresente ? 'action.hover' : 'error.100',
+                  bgcolor: getRowHoverColor(),
                 },
               }}
             >
@@ -212,43 +231,56 @@ export function ChamadaList({
                     {aluno.nome}
                   </Typography>
                   {atestado && (
-                    <Tooltip
-                      title={
-                        <Box>
-                          <Typography variant="body2" fontWeight={600}>
-                            Atestado {atestado.tipo}
-                          </Typography>
-                          <Typography variant="caption">
-                            {atestado.descricao}
-                          </Typography>
-                          {atestado.arquivoUrl && (
-                            <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
-                              Clique para ver o arquivo
+                    <>
+                      {/* Icone de atestado com descricao */}
+                      <Tooltip
+                        title={
+                          <Box>
+                            <Typography variant="body2" fontWeight={600}>
+                              Atestado {atestado.tipo}
                             </Typography>
-                          )}
-                          <Typography variant="caption" display="block" color="warning.light">
-                            {atestado.status === 'pendente' ? '(Pendente aprovacao)' : ''}
-                          </Typography>
-                        </Box>
-                      }
-                      arrow
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (atestado.arquivoUrl) {
-                            window.open(atestado.arquivoUrl, '_blank');
-                          }
-                        }}
-                        sx={{
-                          p: 0.25,
-                          color: atestado.status === 'aprovado' ? 'info.main' : 'warning.main',
-                        }}
+                            <Typography variant="caption">
+                              {atestado.descricao}
+                            </Typography>
+                            <Typography variant="caption" display="block" color="warning.light">
+                              {atestado.status === 'pendente' ? '(Pendente aprovacao)' : '(Aprovado)'}
+                            </Typography>
+                            <Typography variant="caption" display="block" sx={{ mt: 0.5, fontStyle: 'italic' }}>
+                              Presenca justificada
+                            </Typography>
+                          </Box>
+                        }
+                        arrow
                       >
-                        <MedicalServices sx={{ fontSize: 18 }} />
-                      </IconButton>
-                    </Tooltip>
+                        <MedicalServices
+                          sx={{
+                            fontSize: 18,
+                            color: atestado.status === 'aprovado' ? 'info.main' : 'warning.main',
+                            flexShrink: 0,
+                          }}
+                        />
+                      </Tooltip>
+
+                      {/* Icone para abrir arquivo (se existir) */}
+                      {atestado.arquivoUrl && (
+                        <Tooltip title="Ver arquivo do atestado" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(atestado.arquivoUrl, '_blank');
+                            }}
+                            sx={{
+                              p: 0.25,
+                              color: 'info.main',
+                              '&:hover': { color: 'info.dark' },
+                            }}
+                          >
+                            <OpenInNew sx={{ fontSize: 16 }} />
+                          </IconButton>
+                        </Tooltip>
+                      )}
+                    </>
                   )}
                 </Box>
                 {aluno.matricula && (
@@ -289,14 +321,14 @@ export function ChamadaList({
                   px: { xs: 1.5, sm: 2 },
                   py: 0.75,
                   fontWeight: 600,
-                  bgcolor: isPresente ? 'success.main' : 'error.main',
-                  boxShadow: isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)',
+                  bgcolor: atestado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
+                  boxShadow: atestado ? 'none' : (isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)'),
                   '&:hover': {
-                    bgcolor: isPresente ? 'success.dark' : 'error.dark',
+                    bgcolor: atestado ? 'info.dark' : (isPresente ? 'success.dark' : 'error.dark'),
                   },
                 }}
               >
-                {isPresente ? 'Presente' : 'Ausente'}
+                {atestado ? 'Justificado' : (isPresente ? 'Presente' : 'Ausente')}
               </Button>
             </Box>
           );
