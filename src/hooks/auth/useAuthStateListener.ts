@@ -141,6 +141,17 @@ export function useAuthStateListener() {
           if (userDoc.exists()) {
             const userData = { id: userDoc.id, ...userDoc.data() } as Usuario;
 
+            // Verificar se usuario esta ativo
+            if (!userData.ativo) {
+              console.warn('Usuario inativo:', firebaseUser.email);
+              await signOut(auth);
+              setUser(null);
+              setUsuario(null);
+              setLoading(false);
+              addToast('Seu acesso foi desativado. Entre em contato com a coordenacao.', 'error');
+              return;
+            }
+
             // Promover para administrador se email esta em ADMIN_EMAILS
             if (isAdminEmail(firebaseUser.email) && userData.tipo !== 'administrador') {
               await usuarioService.update(userData.id, { tipo: 'administrador' });
@@ -155,6 +166,17 @@ export function useAuthStateListener() {
               const existingUser = await usuarioService.getByGoogleEmail(email);
 
               if (existingUser) {
+                // Verificar se usuario esta ativo
+                if (!existingUser.ativo) {
+                  console.warn('Usuario inativo:', email);
+                  await signOut(auth);
+                  setUser(null);
+                  setUsuario(null);
+                  setLoading(false);
+                  addToast('Seu acesso foi desativado. Entre em contato com a coordenacao.', 'error');
+                  return;
+                }
+
                 // Usuario encontrado pelo email - verificar se precisa atualizar UID
                 if (existingUser.authStatus === 'pending' || existingUser.googleUid !== firebaseUser.uid) {
                   // Atualizar UID e status
@@ -185,40 +207,24 @@ export function useAuthStateListener() {
               }
             }
 
-            // Nenhum usuario existente - criar novo
-            const userRole: UserRole = getRoleForEmail(firebaseUser.email, 'professor');
-            const newUser: Usuario = {
-              id: firebaseUser.uid,
-              nome: firebaseUser.displayName || 'Usuario',
-              cpf: '',
-              email: firebaseUser.email || '',
-              googleEmail: firebaseUser.email || '',
-              googleUid: firebaseUser.uid,
-              authStatus: 'linked',
-              tipo: userRole,
-              ativo: true,
-              createdAt: new Date(),
-              updatedAt: new Date(),
-            };
-            await setDoc(doc(db, 'usuarios', firebaseUser.uid), newUser);
-            setUsuario(newUser);
+            // Nenhum usuario existente - BLOQUEAR ACESSO (nao criar automaticamente)
+            console.warn('Usuario sem pre-cadastro tentou acessar:', firebaseUser.email);
+            await signOut(auth);
+            setUser(null);
+            setUsuario(null);
+            setLoading(false);
+            addToast('Acesso negado. Voce nao possui cadastro no sistema. Entre em contato com a coordenacao.', 'error');
+            return;
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
-          const userRole: UserRole = getRoleForEmail(firebaseUser.email, 'professor');
-          setUsuario({
-            id: firebaseUser.uid,
-            nome: firebaseUser.displayName || 'Usuario',
-            cpf: '',
-            email: firebaseUser.email || '',
-            googleEmail: firebaseUser.email || '',
-            googleUid: firebaseUser.uid,
-            authStatus: 'linked',
-            tipo: userRole,
-            ativo: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
+          // Em caso de erro, bloquear acesso por seguranca
+          await signOut(auth);
+          setUser(null);
+          setUsuario(null);
+          setLoading(false);
+          addToast('Erro ao verificar acesso. Tente novamente.', 'error');
+          return;
         }
       } else {
         setUser(null);

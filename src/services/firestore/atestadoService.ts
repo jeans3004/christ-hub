@@ -72,17 +72,19 @@ export const atestadoService = {
   },
 
   // Buscar atestados vigentes para uma turma em uma data especifica
+  // Inclui aprovados e pendentes (exclui apenas rejeitados)
   getVigentesTurma: async (turmaId: string, data: Date) => {
     const dataCheck = new Date(data);
     dataCheck.setHours(12, 0, 0, 0);
 
     const atestados = await getDocuments<Atestado>(COLLECTION, [
       where('turmaId', '==', turmaId),
-      where('status', '==', 'aprovado'),
     ]);
 
-    // Filtrar localmente os que estao vigentes na data
+    // Filtrar localmente os que estao vigentes na data e nao foram rejeitados
     return atestados.filter(a => {
+      if (a.status === 'rejeitado') return false;
+
       const inicio = new Date(a.dataInicio);
       inicio.setHours(0, 0, 0, 0);
       const fim = new Date(a.dataFim);
