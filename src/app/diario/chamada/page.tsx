@@ -4,7 +4,7 @@
  * Pagina de chamada - registra presencas dos alunos.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper } from '@mui/material';
 import { Person, Edit as EditIcon, Assessment as ReportIcon, Route as TrilhasIcon } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
@@ -12,8 +12,10 @@ import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
+import { atestadoService } from '@/services/firestore/atestadoService';
 import { useChamadaData } from './hooks';
 import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig } from './components';
+import { Atestado } from '@/types';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -116,6 +118,35 @@ export default function ChamadaPage() {
     }
   }, [serieId, todasDisciplinas, disciplinaId, setDisciplinaId]);
 
+  // Atestados vigentes para a turma na data selecionada
+  const [atestadosVigentes, setAtestadosVigentes] = useState<Record<string, Atestado>>({});
+
+  // Carregar atestados vigentes quando turma/data mudar
+  const loadAtestados = useCallback(async () => {
+    if (!serieId || !dataChamada) {
+      setAtestadosVigentes({});
+      return;
+    }
+
+    try {
+      const data = new Date(dataChamada + 'T12:00:00');
+      const atestados = await atestadoService.getVigentesTurma(serieId, data);
+
+      // Converter array para record por alunoId
+      const record: Record<string, Atestado> = {};
+      atestados.forEach(a => {
+        record[a.alunoId] = a;
+      });
+      setAtestadosVigentes(record);
+    } catch (error) {
+      console.error('Erro ao carregar atestados:', error);
+    }
+  }, [serieId, dataChamada]);
+
+  useEffect(() => {
+    loadAtestados();
+  }, [loadAtestados]);
+
   const handleSaveConteudo = () => {
     addToast('Conteudo sera salvo junto com a chamada', 'info');
     setConteudoModalOpen(false);
@@ -212,6 +243,7 @@ export default function ChamadaPage() {
                 alunos={alunos}
                 presencas={presencas}
                 observacoes={observacoes}
+                atestadosVigentes={atestadosVigentes}
                 totalPresentes={totalPresentes}
                 totalAusentes={totalAusentes}
                 saving={saving}

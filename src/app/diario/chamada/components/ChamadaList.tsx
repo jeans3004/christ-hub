@@ -15,8 +15,8 @@ import {
   Tooltip,
   Badge,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt } from '@mui/icons-material';
-import { Aluno } from '@/types';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices } from '@mui/icons-material';
+import { Aluno, Atestado } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
 
@@ -24,6 +24,7 @@ interface ChamadaListProps {
   alunos: Aluno[];
   presencas: Record<string, boolean>;
   observacoes: Record<string, string>;
+  atestadosVigentes?: Record<string, Atestado>; // alunoId -> atestado vigente
   totalPresentes: number;
   totalAusentes: number;
   saving: boolean;
@@ -38,6 +39,7 @@ export function ChamadaList({
   alunos,
   presencas,
   observacoes,
+  atestadosVigentes = {},
   totalPresentes,
   totalAusentes,
   saving,
@@ -132,6 +134,7 @@ export function ChamadaList({
           const avatarColor = getAvatarColor(index);
           const numero = String(index + 1).padStart(2, '0');
           const hasObservacao = Boolean(observacoes[aluno.id]);
+          const atestado = atestadosVigentes[aluno.id];
 
           return (
             <Box
@@ -195,18 +198,34 @@ export function ChamadaList({
               </Avatar>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    fontWeight: 500,
-                    fontSize: { xs: '0.9rem', sm: '1rem' },
-                    color: 'text.primary',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {aluno.nome}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <Typography
+                    sx={{
+                      fontWeight: 500,
+                      fontSize: { xs: '0.9rem', sm: '1rem' },
+                      color: 'text.primary',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {aluno.nome}
+                  </Typography>
+                  {atestado && (
+                    <Tooltip
+                      title={`Atestado ${atestado.tipo}: ${atestado.descricao}`}
+                      arrow
+                    >
+                      <MedicalServices
+                        sx={{
+                          fontSize: 18,
+                          color: 'info.main',
+                          flexShrink: 0,
+                        }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
                 {aluno.matricula && (
                   <Typography
                     variant="caption"
