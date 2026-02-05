@@ -27,6 +27,7 @@ const FOLDER_STRUCTURE = {
   FOTOS: 'Fotos',
   ALUNOS: 'Alunos',
   BACKUPS: 'Backups',
+  ATESTADOS: 'Atestados',
   EXPORTS: 'Exports',
 };
 
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
     ids.ANEXOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ANEXOS, ids.ROOT, driveId);
     ids.OCORRENCIAS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.OCORRENCIAS, ids.ANEXOS, driveId);
     ids.MENSAGENS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.MENSAGENS, ids.ANEXOS, driveId);
+    ids.ATESTADOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.ATESTADOS, ids.ANEXOS, driveId);
 
     // Fotos de Alunos
     ids.FOTOS = await findOrCreateFolder(accessToken, FOLDER_STRUCTURE.FOTOS, ids.ROOT, driveId);

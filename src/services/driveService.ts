@@ -24,6 +24,9 @@ const SHARED_DRIVE_ID = process.env.NEXT_PUBLIC_SHARED_DRIVE_ID || '';
 // Nome da pasta pai existente no Shared Drive
 const PARENT_FOLDER_NAME = DRIVE_FOLDERS.PARENT;
 
+// ID da pasta pai (SGE_NOVO) - obtido diretamente da URL do Drive
+const PARENT_FOLDER_ID = process.env.NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID || '';
+
 /**
  * Classe de servico para operacoes do Google Drive.
  * Configurada para usar Drive de Equipe quando SHARED_DRIVE_ID esta definido.
@@ -167,10 +170,16 @@ class DriveService {
   async initializeFolderStructure(): Promise<DriveFolderIds> {
     const ids: DriveFolderIds = {};
 
-    // Primeiro, buscar a pasta pai SGE_NOVO (deve existir)
-    const parentId = await this.findParentFolder();
+    // Usar ID da pasta pai diretamente do env (mais confiavel que buscar por nome)
+    let parentId: string | null = PARENT_FOLDER_ID || null;
+
+    // Se nao tem ID no env, tenta buscar por nome
     if (!parentId) {
-      throw new Error(`Pasta "${PARENT_FOLDER_NAME}" não encontrada no Drive. Crie-a manualmente primeiro.`);
+      parentId = await this.findParentFolder();
+    }
+
+    if (!parentId) {
+      throw new Error(`Pasta "${PARENT_FOLDER_NAME}" não encontrada no Drive. Configure NEXT_PUBLIC_DRIVE_PARENT_FOLDER_ID no .env.local.`);
     }
     ids.PARENT = parentId;
 
