@@ -185,7 +185,6 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
  * Emails com acesso de administrador automatico.
  */
 export const ADMIN_EMAILS: string[] = [
-  'jeanmachado@christmaster.com.br',
   'roberta.karoline@christmaster.com.br',
 ];
 
