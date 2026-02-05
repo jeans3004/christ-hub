@@ -186,6 +186,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
  */
 export const ADMIN_EMAILS: string[] = [
   'roberta.karoline@christmaster.com.br',
+  'carlos.cruz@christmaster.com.br',
 ];
 
 /**
