@@ -81,16 +81,44 @@ export function useDriveUpload(): UseDriveUploadReturn {
     setInitializing(true);
 
     try {
-      const service = createDriveService(accessToken);
-      const ids = await service.initializeFolderStructure();
-      setFolderIds(ids);
-      setInitialized(true);
-      return true;
+      // Usar API route (server-side) para inicializar pastas
+      // No servidor, env variables sao acessiveis em runtime
+      const response = await fetch('/api/drive/init-folders', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Erro HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (data.success && data.folderIds) {
+        setFolderIds(data.folderIds);
+        setInitialized(true);
+        return true;
+      }
+
+      throw new Error('Resposta inesperada da API');
     } catch (error) {
-      console.error('Erro ao inicializar Drive:', error);
-      addToast('Erro ao conectar com Google Drive', 'error');
-      setInitialized(false);
-      return false;
+      // Fallback: tentar client-side
+      try {
+        const service = createDriveService(accessToken);
+        const ids = await service.initializeFolderStructure();
+        setFolderIds(ids);
+        setInitialized(true);
+        return true;
+      } catch (fallbackError) {
+        console.error('Erro ao inicializar Drive:', fallbackError);
+        addToast('Erro ao conectar com Google Drive', 'error');
+        setInitialized(false);
+        return false;
+      }
     }
   }, [accessToken, isInitialized, isInitializing, folderIds, setFolderIds, setInitializing, setInitialized, addToast]);
 
