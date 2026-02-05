@@ -2,11 +2,12 @@
 
 /**
  * Componente de abas para visualizar mapeamentos de diferentes professores.
+ * Redesign com melhor visual.
  */
 
 import { useMemo, useEffect } from 'react';
-import { Box, Tabs, Tab, Chip, Typography, Tooltip } from '@mui/material';
-import { Star, Edit } from '@mui/icons-material';
+import { Box, Tabs, Tab, Chip, Typography, Tooltip, Paper } from '@mui/material';
+import { Star, Edit, Visibility, Person } from '@mui/icons-material';
 import { MapeamentoComProfessor } from '../hooks/mapeamentoTypes';
 
 interface ProfessorTabsProps {
@@ -36,7 +37,7 @@ export function ProfessorTabs({
         });
       }
     });
-    // Ordenar: conselheiro primeiro, depois usuário atual, depois alfabeticamente
+    // Ordenar: conselheiro primeiro, depois usuario atual, depois alfabeticamente
     return Array.from(map.values()).sort((a, b) => {
       if (a.isConselheiro && !b.isConselheiro) return -1;
       if (!a.isConselheiro && b.isConselheiro) return 1;
@@ -52,7 +53,7 @@ export function ProfessorTabs({
     [professoresUnicos]
   );
 
-  // Reset para "meu" se o professor selecionado não existe mais
+  // Reset para "meu" se o professor selecionado nao existe mais
   useEffect(() => {
     if (professorIdVisualizando && !professorIdsValidos.has(professorIdVisualizando)) {
       onProfessorChange(null);
@@ -63,7 +64,7 @@ export function ProfessorTabs({
     return null;
   }
 
-  // Valor atual: null ou ID inválido = "Meu mapeamento", string válido = ID do professor
+  // Valor atual: null ou ID invalido = "Meu mapeamento", string valido = ID do professor
   const tabValue = (professorIdVisualizando && professorIdsValidos.has(professorIdVisualizando))
     ? professorIdVisualizando
     : 'meu';
@@ -77,28 +78,52 @@ export function ProfessorTabs({
   };
 
   return (
-    <Box sx={{ mb: 2 }}>
-      <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 0.5 }}>
-        Visualizar mapeamento de:
-      </Typography>
+    <Paper
+      elevation={0}
+      sx={{
+        mb: 2,
+        bgcolor: 'grey.50',
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'grey.200',
+        overflow: 'hidden',
+      }}
+    >
+      <Box sx={{ px: 2, pt: 1.5, pb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Person sx={{ color: 'text.secondary', fontSize: 20 }} />
+          <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
+            Mapeamentos da Turma
+          </Typography>
+        </Box>
+      </Box>
+
       <Tabs
         value={tabValue}
         onChange={handleTabChange}
         variant="scrollable"
         scrollButtons="auto"
         sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
+          px: 1,
+          bgcolor: 'background.paper',
           '& .MuiTab-root': {
             minHeight: 48,
             textTransform: 'none',
+            fontWeight: 500,
+            '&.Mui-selected': {
+              fontWeight: 600,
+            },
+          },
+          '& .MuiTabs-indicator': {
+            height: 3,
+            borderRadius: '3px 3px 0 0',
           },
         }}
       >
         <Tab
           value="meu"
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
               <Edit fontSize="small" />
               <span>Meu mapeamento</span>
             </Box>
@@ -109,28 +134,58 @@ export function ProfessorTabs({
             key={prof.id}
             value={prof.id}
             label={
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {prof.isConselheiro && (
-                  <Tooltip title="Professor Conselheiro">
-                    <Star fontSize="small" color="warning" />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                {prof.isConselheiro ? (
+                  <Tooltip title="Mapeamento do Conselheiro (Padrao)">
+                    <Star fontSize="small" sx={{ color: 'warning.main' }} />
                   </Tooltip>
+                ) : (
+                  <Visibility fontSize="small" sx={{ color: 'text.secondary' }} />
                 )}
-                <span>{prof.nome}</span>
-                {prof.id === usuarioId && (
-                  <Chip label="Você" size="small" color="primary" sx={{ ml: 0.5, height: 20 }} />
+                <span>{prof.nome.split(' ')[0]}</span>
+                {prof.isConselheiro && (
+                  <Chip
+                    label="Conselheiro"
+                    size="small"
+                    sx={{
+                      ml: 0.5,
+                      height: 18,
+                      fontSize: '0.65rem',
+                      bgcolor: 'warning.main',
+                      color: 'white',
+                      fontWeight: 600,
+                    }}
+                  />
+                )}
+                {prof.id === usuarioId && !prof.isConselheiro && (
+                  <Chip
+                    label="Voce"
+                    size="small"
+                    color="primary"
+                    sx={{ ml: 0.5, height: 18, fontSize: '0.7rem' }}
+                  />
                 )}
               </Box>
             }
           />
         ))}
       </Tabs>
+
       {professorIdVisualizando && (
-        <Box sx={{ mt: 1, p: 1, bgcolor: 'info.light', borderRadius: 1 }}>
-          <Typography variant="body2" color="info.contrastText">
-            Modo visualização - você está vendo o mapeamento de outro professor. Clique em "Meu mapeamento" para editar o seu.
+        <Box sx={{
+          px: 2,
+          py: 1.5,
+          bgcolor: 'info.light',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}>
+          <Visibility sx={{ color: 'info.dark', fontSize: 18 }} />
+          <Typography variant="body2" color="info.dark" fontWeight={500}>
+            Modo visualizacao - vendo o mapeamento de outro professor
           </Typography>
         </Box>
       )}
-    </Box>
+    </Paper>
   );
 }

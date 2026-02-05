@@ -28,6 +28,9 @@ interface UseMapeamentoLoaderReturn {
   // Novos campos para visualização de outros professores
   mapeamentosDaTurma: MapeamentoComProfessor[];
   conselheiroId: string | null;
+  // Configuracao de layout da turma
+  turmaSelecionada: Turma | null;
+  layoutConfigurado: boolean;
 }
 
 export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: string): UseMapeamentoLoaderReturn {
@@ -47,6 +50,7 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
   const [isDirty, setIsDirty] = useState(false);
   const [mapeamentosDaTurma, setMapeamentosDaTurma] = useState<MapeamentoComProfessor[]>([]);
   const [conselheiroId, setConselheiroId] = useState<string | null>(null);
+  const [turmaSelecionada, setTurmaSelecionada] = useState<Turma | null>(null);
 
   // Carregar turmas e disciplinas
   useEffect(() => {
@@ -107,6 +111,7 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
         setIsDirty(false);
         setMapeamentosDaTurma([]);
         setConselheiroId(null);
+        setTurmaSelecionada(null);
         return;
       }
 
@@ -131,6 +136,10 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
 
         setAlunos(alunosData);
         setConselheiroId(turmaData?.professorConselheiroId || null);
+        setTurmaSelecionada(turmaData || null);
+
+        // Determinar o layout padrao a usar
+        const layoutPadraoTurma = turmaData?.layoutPadrao || DEFAULT_LAYOUT;
 
         // Buscar todos os professores para mapear nomes
         const todosProfessores = await usuarioService.getProfessores();
@@ -174,8 +183,9 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
           });
           setCelulas(celulasEnriquecidas);
         } else {
-          setLayout(DEFAULT_LAYOUT);
-          setCelulas(gerarLayoutInicial(DEFAULT_LAYOUT));
+          // Usar layout padrao da turma se configurado
+          setLayout(layoutPadraoTurma);
+          setCelulas(gerarLayoutInicial(layoutPadraoTurma));
         }
 
         setIsDirty(false);
@@ -212,5 +222,7 @@ export function useMapeamentoLoader(ano: number, turmaId: string, disciplinaId: 
     setIsDirty,
     mapeamentosDaTurma,
     conselheiroId,
+    turmaSelecionada,
+    layoutConfigurado: turmaSelecionada?.layoutConfigurado ?? false,
   };
 }

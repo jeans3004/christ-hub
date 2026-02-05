@@ -108,6 +108,8 @@ export interface Turma {
   turno: Turno;                         // Ex: "Matutino", "Vespertino"
   ano: number;                          // Ano letivo (2026)
   professorConselheiroId?: string;      // ID do professor conselheiro da turma
+  layoutPadrao?: LayoutSala;            // Layout padrao do mapeamento de sala
+  layoutConfigurado?: boolean;          // Se true, layout ja foi definido (oculta config para profs)
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;

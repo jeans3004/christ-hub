@@ -45,6 +45,12 @@ export interface UseMapeamentoDataReturn {
   setProfessorIdVisualizando: (professorId: string | null) => void;
   conselheiroId: string | null;
 
+  // Configuracao de layout da turma
+  turmaSelecionada: Turma | null;
+  layoutConfigurado: boolean;
+  salvarLayoutPadrao: (layout: LayoutSala) => Promise<void>;
+  toggleLayoutConfigurado: () => Promise<void>;
+
   // Acoes
   atualizarLayout: (layout: LayoutSala) => void;
   atualizarCelula: (row: number, col: number, updates: Partial<CelulaMapa>) => void;
@@ -54,6 +60,7 @@ export interface UseMapeamentoDataReturn {
   limparTodos: () => void;
   salvar: () => Promise<void>;
   resetar: () => void;
+  excluirMapeamento: () => Promise<void>;
 }
 
 export interface MapeamentoState {

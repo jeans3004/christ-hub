@@ -1,5 +1,6 @@
 /**
  * Componente de filtros para a pagina de mapeamento de sala.
+ * Redesign com melhor visual.
  */
 
 import {
@@ -9,7 +10,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Typography,
 } from '@mui/material';
+import { FilterList } from '@mui/icons-material';
 import { Turma, Disciplina } from '@/types';
 
 interface MapeamentoFiltersProps {
@@ -41,7 +44,24 @@ export function MapeamentoFilters({
   const years = [currentYear, currentYear - 1, currentYear - 2];
 
   return (
-    <Paper sx={{ p: 1.5, mb: 2 }}>
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        mb: 2,
+        bgcolor: 'grey.50',
+        borderRadius: 2,
+        border: '1px solid',
+        borderColor: 'grey.200',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+        <FilterList sx={{ color: 'text.secondary', fontSize: 20 }} />
+        <Typography variant="subtitle2" color="text.secondary" fontWeight={500}>
+          Filtros
+        </Typography>
+      </Box>
+
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
         <FormControl size="small" sx={{ minWidth: 100 }}>
           <InputLabel>Ano</InputLabel>
@@ -58,7 +78,7 @@ export function MapeamentoFilters({
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 200 }}>
+        <FormControl size="small" sx={{ minWidth: 200, flex: { xs: 1, sm: 'none' } }}>
           <InputLabel>Turma</InputLabel>
           <Select
             value={turmaId}

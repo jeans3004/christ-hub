@@ -1,11 +1,11 @@
 /**
- * Grid visual do mapa de sala.
+ * Grid visual do mapa de sala - Redesign com melhor UX.
  */
 
-import { Box, Paper, Typography, IconButton, Tooltip } from '@mui/material';
-import { Add, Remove } from '@mui/icons-material';
+import { Box, Paper, Typography, IconButton, Tooltip, Slider, Chip } from '@mui/material';
+import { Add, Remove, GridView, Settings } from '@mui/icons-material';
 import { LayoutSala } from '@/types';
-import { CelulaMapa, ModoEdicao } from '../types';
+import { CelulaMapa, ModoEdicao, LAYOUT_LIMITS } from '../types';
 import { SeatCell } from './SeatCell';
 
 interface ClassroomGridProps {
@@ -16,6 +16,8 @@ interface ClassroomGridProps {
   onCelulaClick: (row: number, col: number) => void;
   onDrop: (row: number, col: number, alunoId: string) => void;
   onLayoutChange: (layout: LayoutSala) => void;
+  showLayoutControls?: boolean;
+  compact?: boolean;
 }
 
 export function ClassroomGrid({
@@ -26,28 +28,20 @@ export function ClassroomGrid({
   onCelulaClick,
   onDrop,
   onLayoutChange,
+  showLayoutControls = true,
+  compact = false,
 }: ClassroomGridProps) {
-  const handleAddRow = () => {
-    if (layout.rows < 10) {
-      onLayoutChange({ ...layout, rows: layout.rows + 1 });
+  const handleRowChange = (_: Event, value: number | number[]) => {
+    const newRows = value as number;
+    if (newRows >= LAYOUT_LIMITS.minRows && newRows <= LAYOUT_LIMITS.maxRows) {
+      onLayoutChange({ ...layout, rows: newRows });
     }
   };
 
-  const handleRemoveRow = () => {
-    if (layout.rows > 2) {
-      onLayoutChange({ ...layout, rows: layout.rows - 1 });
-    }
-  };
-
-  const handleAddColumn = () => {
-    if (layout.columns < 10) {
-      onLayoutChange({ ...layout, columns: layout.columns + 1 });
-    }
-  };
-
-  const handleRemoveColumn = () => {
-    if (layout.columns > 2) {
-      onLayoutChange({ ...layout, columns: layout.columns - 1 });
+  const handleColumnChange = (_: Event, value: number | number[]) => {
+    const newCols = value as number;
+    if (newCols >= LAYOUT_LIMITS.minColumns && newCols <= LAYOUT_LIMITS.maxColumns) {
+      onLayoutChange({ ...layout, columns: newCols });
     }
   };
 
@@ -62,115 +56,157 @@ export function ClassroomGrid({
     );
   };
 
+  // Calcular tamanho das celulas baseado no layout
+  const cellSize = compact ? 52 : Math.max(52, Math.min(72, 400 / layout.columns));
+  const gap = compact ? 4 : 6;
+
+  // Estatisticas
+  const totalMesas = celulas.filter(c => c.tipo === 'mesa').length;
+  const mesasOcupadas = celulas.filter(c => c.tipo === 'mesa' && c.alunoId).length;
+
   return (
-    <Paper sx={{ p: 1.5, overflow: 'auto', width: '100%' }}>
-      {/* Controles de colunas */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1, gap: 1 }}>
-        <Tooltip title="Remover coluna">
-          <span>
-            <IconButton
-              size="small"
-              onClick={handleRemoveColumn}
-              disabled={layout.columns <= 2}
-            >
-              <Remove fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
-        <Typography variant="body2" sx={{ mx: 1, alignSelf: 'center' }}>
-          {layout.columns} colunas
-        </Typography>
-        <Tooltip title="Adicionar coluna">
-          <span>
-            <IconButton
-              size="small"
-              onClick={handleAddColumn}
-              disabled={layout.columns >= 10}
-            >
-              <Add fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 1.5, sm: 2 },
+        overflow: 'auto',
+        width: '100%',
+        bgcolor: 'grey.50',
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'grey.200',
+      }}
+    >
+      {/* Header com estatisticas */}
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        mb: 2,
+        flexWrap: 'wrap',
+        gap: 1,
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <GridView sx={{ color: 'primary.main', fontSize: 20 }} />
+          <Typography variant="subtitle2" fontWeight={600} color="text.secondary">
+            Sala de Aula
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Chip
+            size="small"
+            label={`${mesasOcupadas}/${totalMesas} mesas`}
+            color={mesasOcupadas === totalMesas ? 'success' : 'default'}
+            variant="outlined"
+            sx={{ fontWeight: 500 }}
+          />
+          <Chip
+            size="small"
+            label={`${layout.rows}x${layout.columns}`}
+            variant="outlined"
+            icon={<Settings sx={{ fontSize: '14px !important' }} />}
+            sx={{ fontWeight: 500 }}
+          />
+        </Box>
       </Box>
 
-      {/* Grid principal */}
-      <Box sx={{ display: 'flex', gap: 2 }}>
-        {/* Controles de linhas */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            gap: 1,
-          }}
-        >
-          <Tooltip title="Remover linha">
-            <span>
-              <IconButton
-                size="small"
-                onClick={handleRemoveRow}
-                disabled={layout.rows <= 2}
-              >
-                <Remove fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-          <Typography
-            variant="body2"
-            sx={{
-              writingMode: 'vertical-rl',
-              textOrientation: 'mixed',
-              transform: 'rotate(180deg)',
-            }}
-          >
-            {layout.rows} linhas
-          </Typography>
-          <Tooltip title="Adicionar linha">
-            <span>
-              <IconButton
-                size="small"
-                onClick={handleAddRow}
-                disabled={layout.rows >= 10}
-              >
-                <Add fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </Box>
-
-        {/* Grid de celulas */}
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 0.5,
-          }}
-        >
-          {/* Quadro/Lousa */}
-          <Box
-            sx={{
-              height: 30,
-              bgcolor: 'grey.800',
-              borderRadius: 1,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 1,
-              width: layout.columns * 68 - 4,
-            }}
-          >
-            <Typography variant="caption" color="white">
-              QUADRO
+      {/* Controles de layout */}
+      {showLayoutControls && modoEdicao !== 'visualizar' && (
+        <Box sx={{
+          display: 'flex',
+          gap: 3,
+          mb: 2,
+          p: 1.5,
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.200',
+          flexWrap: 'wrap',
+        }}>
+          {/* Controle de colunas */}
+          <Box sx={{ flex: 1, minWidth: 120 }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+              Colunas: {layout.columns}
             </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Slider
+                value={layout.columns}
+                onChange={handleColumnChange}
+                min={LAYOUT_LIMITS.minColumns}
+                max={LAYOUT_LIMITS.maxColumns}
+                step={1}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+            </Box>
           </Box>
 
-          {/* Linhas de celulas */}
+          {/* Controle de linhas */}
+          <Box sx={{ flex: 1, minWidth: 120 }}>
+            <Typography variant="caption" color="text.secondary" fontWeight={500}>
+              Linhas: {layout.rows}
+            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Slider
+                value={layout.rows}
+                onChange={handleRowChange}
+                min={LAYOUT_LIMITS.minRows}
+                max={LAYOUT_LIMITS.maxRows}
+                step={1}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+            </Box>
+          </Box>
+        </Box>
+      )}
+
+      {/* Grid de celulas */}
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: `${gap}px`,
+        }}
+      >
+        {/* Quadro/Lousa */}
+        <Box
+          sx={{
+            width: layout.columns * (cellSize + gap) - gap,
+            maxWidth: '100%',
+            height: 36,
+            bgcolor: 'grey.800',
+            borderRadius: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            mb: 1,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+          }}
+        >
+          <Typography variant="caption" color="white" fontWeight={600} letterSpacing={1}>
+            QUADRO
+          </Typography>
+        </Box>
+
+        {/* Linhas de celulas */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: `${gap}px`,
+            overflowX: 'auto',
+            maxWidth: '100%',
+            pb: 1,
+          }}
+        >
           {Array.from({ length: layout.rows }).map((_, rowIndex) => (
             <Box
               key={rowIndex}
               sx={{
                 display: 'flex',
-                gap: 0.5,
+                gap: `${gap}px`,
               }}
             >
               {Array.from({ length: layout.columns }).map((_, colIndex) => {
@@ -189,11 +225,65 @@ export function ClassroomGrid({
                     onTouchDrop={(targetRow, targetCol, alunoId) => onDrop(targetRow, targetCol, alunoId)}
                     row={rowIndex}
                     col={colIndex}
+                    size={cellSize}
                   />
                 );
               })}
             </Box>
           ))}
+        </Box>
+      </Box>
+
+      {/* Legenda */}
+      <Box sx={{
+        display: 'flex',
+        gap: 2,
+        mt: 2,
+        pt: 2,
+        borderTop: '1px solid',
+        borderColor: 'grey.200',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+      }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{
+            width: 16,
+            height: 16,
+            bgcolor: '#e3f2fd',
+            border: '1px solid #1976d2',
+            borderRadius: 0.5,
+          }} />
+          <Typography variant="caption" color="text.secondary">Mesa vazia</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{
+            width: 16,
+            height: 16,
+            bgcolor: '#bbdefb',
+            border: '2px solid #1976d2',
+            borderRadius: 0.5,
+          }} />
+          <Typography variant="caption" color="text.secondary">Mesa ocupada</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{
+            width: 16,
+            height: 16,
+            bgcolor: '#f5f5f5',
+            border: '1px solid #e0e0e0',
+            borderRadius: 0.5,
+          }} />
+          <Typography variant="caption" color="text.secondary">Vazio</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{
+            width: 16,
+            height: 16,
+            bgcolor: '#fff3e0',
+            border: '1px solid #ff9800',
+            borderRadius: 0.5,
+          }} />
+          <Typography variant="caption" color="text.secondary">Professor</Typography>
         </Box>
       </Box>
     </Paper>

@@ -1,6 +1,7 @@
 /**
  * Lista de alunos disponiveis para arrastar para o mapa.
  * Suporta drag-and-drop via mouse e touch (dispositivos moveis).
+ * Redesign com melhor UX.
  */
 
 import { useRef, useCallback } from 'react';
@@ -14,8 +15,11 @@ import {
   ListItemAvatar,
   ListItemText,
   Chip,
+  InputBase,
+  IconButton,
 } from '@mui/material';
-import { Person } from '@mui/icons-material';
+import { Person, Search, Clear, DragIndicator } from '@mui/icons-material';
+import { useState } from 'react';
 import { AlunoMapa, getIniciais } from '../types';
 import { useTouchDrag } from './TouchDragContext';
 
@@ -32,6 +36,7 @@ export function StudentList({
   loading,
   onTouchDrop,
 }: StudentListProps) {
+  const [searchTerm, setSearchTerm] = useState('');
   const alunosAtribuidos = totalAlunos - alunosDisponiveis.length;
   const { startDrag, updatePosition, endDrag } = useTouchDrag();
   const touchStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
@@ -45,7 +50,6 @@ export function StudentList({
   const handleTouchStart = useCallback((e: React.TouchEvent, aluno: AlunoMapa) => {
     const touch = e.touches[0];
     touchStartRef.current = { x: touch.clientX, y: touch.clientY, time: Date.now() };
-    // Don't start drag immediately - wait for some movement to distinguish from tap
   }, []);
 
   const handleTouchMove = useCallback((e: React.TouchEvent, aluno: AlunoMapa) => {
@@ -54,16 +58,12 @@ export function StudentList({
 
     if (!startData) return;
 
-    // Check if moved enough to start dragging (10px threshold)
     const dx = touch.clientX - startData.x;
     const dy = touch.clientY - startData.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
 
     if (distance > 10) {
-      // Prevent scrolling while dragging
       e.preventDefault();
-
-      // Start drag if not already dragging
       startDrag(aluno.id, aluno.nome, aluno.iniciais, touch.clientX, touch.clientY);
       updatePosition(touch.clientX, touch.clientY);
     }
@@ -83,62 +83,137 @@ export function StudentList({
     }
   }, [endDrag, onTouchDrop]);
 
-  return (
-    <Paper sx={{ p: 2, height: 'fit-content', minWidth: 250 }}>
-      <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 1 }}>
-        Alunos
-      </Typography>
+  // Filtrar alunos pela busca
+  const filteredAlunos = alunosDisponiveis.filter(aluno =>
+    aluno.nome.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        p: 2,
+        height: 'fit-content',
+        minWidth: { xs: '100%', sm: 280 },
+        maxWidth: { xs: '100%', sm: 320 },
+        bgcolor: 'grey.50',
+        borderRadius: 3,
+        border: '1px solid',
+        borderColor: 'grey.200',
+      }}
+    >
+      {/* Header */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+        <Person sx={{ color: 'primary.main' }} />
+        <Typography variant="subtitle1" fontWeight={600}>
+          Alunos
+        </Typography>
+      </Box>
+
+      {/* Estatisticas */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
         <Chip
-          label={`${alunosAtribuidos} atribuidos`}
+          label={`${alunosAtribuidos} na sala`}
           size="small"
           color="primary"
-          variant="outlined"
+          variant="filled"
+          sx={{ fontWeight: 500 }}
         />
         <Chip
           label={`${alunosDisponiveis.length} disponiveis`}
           size="small"
           color="default"
           variant="outlined"
+          sx={{ fontWeight: 500 }}
         />
       </Box>
 
+      {/* Campo de busca */}
+      {alunosDisponiveis.length > 5 && (
+        <Box sx={{
+          display: 'flex',
+          alignItems: 'center',
+          bgcolor: 'background.paper',
+          borderRadius: 2,
+          border: '1px solid',
+          borderColor: 'grey.300',
+          px: 1.5,
+          py: 0.5,
+          mb: 2,
+        }}>
+          <Search sx={{ color: 'text.secondary', fontSize: 20, mr: 1 }} />
+          <InputBase
+            placeholder="Buscar aluno..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            sx={{ flex: 1, fontSize: '0.875rem' }}
+          />
+          {searchTerm && (
+            <IconButton size="small" onClick={() => setSearchTerm('')}>
+              <Clear sx={{ fontSize: 18 }} />
+            </IconButton>
+          )}
+        </Box>
+      )}
+
       {loading ? (
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
           Carregando alunos...
         </Typography>
       ) : alunosDisponiveis.length === 0 ? (
-        <Box sx={{ textAlign: 'center', py: 2 }}>
-          <Person sx={{ fontSize: 48, color: 'text.disabled' }} />
-          <Typography variant="body2" color="text.secondary">
-            Todos os alunos foram atribuidos
+        <Box sx={{
+          textAlign: 'center',
+          py: 4,
+          bgcolor: 'success.light',
+          borderRadius: 2,
+          opacity: 0.9,
+        }}>
+          <Person sx={{ fontSize: 48, color: 'success.main', mb: 1 }} />
+          <Typography variant="body2" color="success.dark" fontWeight={500}>
+            Todos os alunos foram atribuidos!
           </Typography>
         </Box>
+      ) : filteredAlunos.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 2 }}>
+          Nenhum aluno encontrado
+        </Typography>
       ) : (
         <>
-          <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mb: 1.5, display: 'block' }}>
             Arraste um aluno para uma mesa
           </Typography>
 
           <List
             sx={{
-              maxHeight: 400,
+              maxHeight: { xs: 250, sm: 350 },
               overflow: 'auto',
               '& .MuiListItem-root': {
                 cursor: 'grab',
-                borderRadius: 1,
-                mb: 0.5,
+                borderRadius: 2,
+                mb: 0.75,
+                transition: 'all 0.15s ease',
                 '&:hover': {
-                  bgcolor: 'action.hover',
+                  bgcolor: 'primary.light',
+                  transform: 'translateX(4px)',
+                  '& .drag-indicator': {
+                    opacity: 1,
+                  },
                 },
                 '&:active': {
                   cursor: 'grabbing',
+                  bgcolor: 'primary.main',
+                  color: 'white',
+                  '& .MuiAvatar-root': {
+                    borderColor: 'white',
+                  },
+                  '& .MuiListItemText-primary': {
+                    color: 'white',
+                  },
                 },
               },
             }}
           >
-            {alunosDisponiveis.map((aluno) => (
+            {filteredAlunos.map((aluno) => (
               <ListItem
                 key={aluno.id}
                 draggable
@@ -147,17 +222,38 @@ export function StudentList({
                 onTouchMove={(e) => handleTouchMove(e, aluno)}
                 onTouchEnd={handleTouchEnd}
                 sx={{
-                  border: 1,
-                  borderColor: 'divider',
+                  border: '1px solid',
+                  borderColor: 'grey.200',
                   bgcolor: 'background.paper',
-                  touchAction: 'none', // Prevent browser handling of touch
+                  touchAction: 'none',
                   userSelect: 'none',
+                  pr: 1,
                 }}
               >
-                <ListItemAvatar>
+                <Box
+                  className="drag-indicator"
+                  sx={{
+                    opacity: 0.3,
+                    mr: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                >
+                  <DragIndicator sx={{ fontSize: 18, color: 'text.secondary' }} />
+                </Box>
+                <ListItemAvatar sx={{ minWidth: 44 }}>
                   <Avatar
                     src={aluno.fotoUrl}
-                    sx={{ width: 36, height: 36, bgcolor: 'primary.light' }}
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      bgcolor: 'primary.main',
+                      fontSize: '0.85rem',
+                      fontWeight: 600,
+                      border: '2px solid',
+                      borderColor: 'primary.light',
+                    }}
                   >
                     {aluno.iniciais}
                   </Avatar>
@@ -167,6 +263,7 @@ export function StudentList({
                   primaryTypographyProps={{
                     variant: 'body2',
                     noWrap: true,
+                    fontWeight: 500,
                   }}
                 />
               </ListItem>

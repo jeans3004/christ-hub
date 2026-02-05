@@ -31,6 +31,7 @@ interface UseMapeamentoActionsReturn {
   limparTodos: () => void;
   salvar: () => Promise<void>;
   resetar: () => void;
+  excluirMapeamento: () => Promise<void>;
 }
 
 export function useMapeamentoActions({
@@ -228,6 +229,24 @@ export function useMapeamentoActions({
     setIsDirty(true);
   }, [setLayout, setCelulas, setIsDirty]);
 
+  const excluirMapeamento = useCallback(async () => {
+    if (!turmaId || !usuario) return;
+
+    setSaving(true);
+    try {
+      await mapeamentoSalaService.deleteByProfessorTurmaAno(usuario.id, turmaId, ano);
+      setLayout(DEFAULT_LAYOUT);
+      setCelulas(gerarLayoutInicial(DEFAULT_LAYOUT));
+      setIsDirty(false);
+      addToast('Mapeamento excluido com sucesso!', 'success');
+    } catch (error) {
+      addToast('Erro ao excluir mapeamento', 'error');
+      console.error(error);
+    } finally {
+      setSaving(false);
+    }
+  }, [turmaId, usuario, ano, addToast, setLayout, setCelulas, setIsDirty]);
+
   return {
     saving,
     atualizarLayout,
@@ -238,5 +257,6 @@ export function useMapeamentoActions({
     limparTodos,
     salvar,
     resetar,
+    excluirMapeamento,
   };
 }

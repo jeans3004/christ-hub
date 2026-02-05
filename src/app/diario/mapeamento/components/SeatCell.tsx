@@ -1,10 +1,10 @@
 /**
- * Celula individual do mapa de sala.
+ * Celula individual do mapa de sala - Redesign com melhor visual e feedback.
  */
 
 import { useRef } from 'react';
 import { Box, Avatar, Typography, Tooltip } from '@mui/material';
-import { Person, Block, School } from '@mui/icons-material';
+import { Person, Block, School, SwapHoriz } from '@mui/icons-material';
 import { CelulaMapa, TIPO_COLORS, ModoEdicao } from '../types';
 import { useTouchDrag } from './TouchDragContext';
 
@@ -17,6 +17,7 @@ interface SeatCellProps {
   onTouchDrop?: (targetRow: number, targetCol: number, alunoId: string) => void;
   row: number;
   col: number;
+  size?: number;
 }
 
 export function SeatCell({
@@ -28,9 +29,10 @@ export function SeatCell({
   onTouchDrop,
   row,
   col,
+  size = 64,
 }: SeatCellProps) {
   const colors = TIPO_COLORS[celula.tipo];
-  const { startDrag, updatePosition, endDrag } = useTouchDrag();
+  const { startDrag, updatePosition, endDrag, dragState } = useTouchDrag();
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
 
@@ -94,7 +96,6 @@ export function SeatCell({
         if (targetRow !== null && targetCol !== null) {
           const targetRowNum = parseInt(targetRow, 10);
           const targetColNum = parseInt(targetCol, 10);
-          // Usar onTouchDrop se disponível (permite passar coordenadas do destino)
           if (onTouchDrop) {
             onTouchDrop(targetRowNum, targetColNum, result.alunoId);
           }
@@ -105,19 +106,28 @@ export function SeatCell({
     isDraggingRef.current = false;
   };
 
+  // Verificar se esta celula e o destino potencial do drag atual
+  const isDropTarget = dragState.isDragging && celula.tipo === 'mesa';
+  const hasOccupant = celula.tipo === 'mesa' && celula.alunoId;
+
   const renderContent = () => {
     if (celula.tipo === 'vazio') {
       return (
-        <Block sx={{ fontSize: 20, color: 'text.disabled' }} />
+        <Block sx={{ fontSize: size * 0.3, color: 'text.disabled', opacity: 0.5 }} />
       );
     }
 
     if (celula.tipo === 'professor') {
       return (
         <Box sx={{ textAlign: 'center' }}>
-          <School sx={{ fontSize: 22, color: 'warning.main' }} />
-          <Typography variant="caption" sx={{ display: 'block', mt: 0.25, fontSize: '0.65rem' }}>
-            Professor
+          <School sx={{ fontSize: size * 0.35, color: 'warning.main' }} />
+          <Typography variant="caption" sx={{
+            display: 'block',
+            mt: 0.25,
+            fontSize: Math.max(9, size * 0.12),
+            fontWeight: 500,
+          }}>
+            Prof.
           </Typography>
         </Box>
       );
@@ -125,17 +135,20 @@ export function SeatCell({
 
     // Tipo mesa
     if (celula.aluno) {
+      const avatarSize = Math.max(28, size * 0.45);
       return (
-        <Tooltip title={celula.aluno.nome} arrow>
+        <Tooltip title={celula.aluno.nome} arrow enterDelay={300}>
           <Box sx={{ textAlign: 'center' }}>
             <Avatar
               src={celula.aluno.fotoUrl}
               sx={{
-                width: 32,
-                height: 32,
+                width: avatarSize,
+                height: avatarSize,
                 mx: 'auto',
                 bgcolor: 'primary.main',
-                fontSize: '0.75rem',
+                fontSize: Math.max(10, avatarSize * 0.4),
+                fontWeight: 600,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}
             >
               {celula.aluno.iniciais}
@@ -145,11 +158,13 @@ export function SeatCell({
               sx={{
                 display: 'block',
                 mt: 0.25,
-                maxWidth: 56,
+                maxWidth: size - 8,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                fontSize: '0.65rem',
+                fontSize: Math.max(8, size * 0.13),
+                fontWeight: 500,
+                lineHeight: 1.2,
               }}
             >
               {celula.aluno.nome.split(' ')[0]}
@@ -160,14 +175,22 @@ export function SeatCell({
     }
 
     return (
-      <Box sx={{ textAlign: 'center' }}>
-        <Person sx={{ fontSize: 22, color: 'text.disabled' }} />
-        <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontSize: '0.65rem' }}>
-          Vazio
-        </Typography>
+      <Box sx={{ textAlign: 'center', opacity: 0.4 }}>
+        <Person sx={{ fontSize: size * 0.35, color: 'text.disabled' }} />
       </Box>
     );
   };
+
+  // Determinar borda e cor baseado no estado
+  const getBorderStyle = () => {
+    if (selected) return { borderColor: 'primary.main', borderWidth: 2 };
+    if (isDropTarget && !hasOccupant) return { borderColor: 'success.main', borderWidth: 2 };
+    if (isDropTarget && hasOccupant) return { borderColor: 'warning.main', borderWidth: 2 };
+    if (hasOccupant) return { borderColor: '#1565c0', borderWidth: 2 };
+    return { borderColor: colors.border, borderWidth: 1 };
+  };
+
+  const borderStyle = getBorderStyle();
 
   return (
     <Box
@@ -184,30 +207,53 @@ export function SeatCell({
       data-col={col}
       data-aluno-id={celula.aluno?.id || ''}
       sx={{
-        width: 64,
-        height: 64,
+        width: size,
+        height: size,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: colors.bg,
-        border: 1,
-        borderColor: selected ? 'primary.main' : colors.border,
-        borderRadius: 1,
+        bgcolor: hasOccupant ? '#bbdefb' : colors.bg,
+        border: `${borderStyle.borderWidth}px solid`,
+        borderColor: borderStyle.borderColor,
+        borderRadius: 2,
         cursor: isDraggable ? 'grab' : 'pointer',
-        transition: 'all 0.2s',
-        boxShadow: selected ? 2 : 0,
+        transition: 'all 0.15s ease',
+        boxShadow: selected ? '0 0 0 3px rgba(25, 118, 210, 0.3)' : (hasOccupant ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'),
         userSelect: 'none',
         touchAction: isDraggable ? 'none' : 'auto',
+        position: 'relative',
         '&:hover': {
-          borderColor: 'primary.light',
-          transform: 'scale(1.02)',
+          borderColor: 'primary.main',
+          transform: 'scale(1.03)',
+          boxShadow: '0 4px 8px rgba(0,0,0,0.12)',
         },
         '&:active': {
           cursor: isDraggable ? 'grabbing' : 'pointer',
+          transform: 'scale(0.98)',
         },
       }}
     >
       {renderContent()}
+      {/* Indicador de swap quando tem ocupante e esta recebendo drag */}
+      {isDropTarget && hasOccupant && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: -8,
+            right: -8,
+            bgcolor: 'warning.main',
+            borderRadius: '50%',
+            width: 20,
+            height: 20,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          }}
+        >
+          <SwapHoriz sx={{ fontSize: 14, color: 'white' }} />
+        </Box>
+      )}
     </Box>
   );
 }

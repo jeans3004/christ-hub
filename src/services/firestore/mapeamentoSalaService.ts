@@ -47,6 +47,17 @@ export const mapeamentoSalaService = {
   update: (id: string, data: Partial<MapeamentoSala>) => updateDocument(COLLECTION, id, data),
   delete: (id: string) => deleteDocument(COLLECTION, id),
 
+  // Deletar mapeamento de um professor específico em uma turma/ano
+  deleteByProfessorTurmaAno: async (professorId: string, turmaId: string, ano: number) => {
+    const docs = await getDocuments<MapeamentoSala>(COLLECTION, [
+      where('turmaId', '==', turmaId),
+      where('professorId', '==', professorId),
+      where('ano', '==', ano),
+    ]);
+    await Promise.all(docs.map(d => deleteDocument(COLLECTION, d.id)));
+    return docs.length;
+  },
+
   save: async (
     turmaId: string,
     professorId: string,

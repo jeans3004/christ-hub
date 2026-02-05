@@ -47,6 +47,16 @@ export const DEFAULT_LAYOUT: LayoutSala = {
 };
 
 /**
+ * Limites de layout
+ */
+export const LAYOUT_LIMITS = {
+  minRows: 2,
+  maxRows: 10,
+  minColumns: 2,
+  maxColumns: 10,
+};
+
+/**
  * Cores dos tipos de assento
  */
 export const TIPO_COLORS: Record<TipoAssento, { bg: string; border: string }> = {

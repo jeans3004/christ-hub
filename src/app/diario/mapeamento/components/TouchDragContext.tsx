@@ -122,7 +122,20 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
 export function useTouchDrag() {
   const context = useContext(TouchDragContext);
   if (!context) {
-    throw new Error('useTouchDrag must be used within TouchDragProvider');
+    // Return a dummy context for SSR or when not inside provider
+    return {
+      dragState: {
+        isDragging: false,
+        alunoId: null,
+        alunoNome: null,
+        alunoIniciais: null,
+        position: { x: 0, y: 0 },
+      },
+      startDrag: () => {},
+      updatePosition: () => {},
+      endDrag: () => ({ alunoId: null, targetElement: null }),
+      cancelDrag: () => {},
+    };
   }
   return context;
 }

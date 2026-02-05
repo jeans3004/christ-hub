@@ -2,8 +2,11 @@
  * Hook principal para dados da pagina de Mapeamento de Sala.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useFilterStore } from '@/store/filterStore';
+import { useUIStore } from '@/store/uiStore';
+import { turmaService } from '@/services/firestore';
+import { LayoutSala } from '@/types';
 import { AlunoMapa, ModoEdicao, getIniciais, CelulaMapa, DEFAULT_LAYOUT, gerarLayoutInicial } from '../types';
 import { UseMapeamentoDataReturn } from './mapeamentoTypes';
 import { useMapeamentoLoader } from './useMapeamentoLoader';
@@ -11,6 +14,7 @@ import { useMapeamentoActions } from './useMapeamentoActions';
 
 export function useMapeamentoData(): UseMapeamentoDataReturn {
   const { ano, setAno } = useFilterStore();
+  const { addToast } = useUIStore();
   const [turmaId, setTurmaId] = useState('');
   const [disciplinaId, setDisciplinaId] = useState('');
   const [modoEdicao, setModoEdicao] = useState<ModoEdicao>('selecionar');
@@ -32,6 +36,8 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     setIsDirty,
     mapeamentosDaTurma,
     conselheiroId,
+    turmaSelecionada,
+    layoutConfigurado,
   } = useMapeamentoLoader(ano, turmaId, disciplinaId);
 
   // Quando a turma muda, limpar visualização
@@ -75,6 +81,7 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     limparTodos,
     salvar,
     resetar,
+    excluirMapeamento,
   } = useMapeamentoActions({
     turmaId,
     ano,
@@ -96,6 +103,40 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
       fotoUrl: aluno.fotoUrl,
       iniciais: getIniciais(aluno.nome),
     }));
+
+  // Salvar layout padrao da turma
+  const salvarLayoutPadrao = useCallback(async (novoLayout: LayoutSala) => {
+    if (!turmaId) return;
+    try {
+      await turmaService.update(turmaId, {
+        layoutPadrao: novoLayout,
+        layoutConfigurado: true,
+      });
+      addToast('Layout padrao da turma salvo com sucesso!', 'success');
+    } catch (error) {
+      console.error('Erro ao salvar layout padrao:', error);
+      addToast('Erro ao salvar layout padrao', 'error');
+    }
+  }, [turmaId, addToast]);
+
+  // Alternar visibilidade da configuracao de layout
+  const toggleLayoutConfigurado = useCallback(async () => {
+    if (!turmaId || !turmaSelecionada) return;
+    try {
+      await turmaService.update(turmaId, {
+        layoutConfigurado: !turmaSelecionada.layoutConfigurado,
+      });
+      addToast(
+        turmaSelecionada.layoutConfigurado
+          ? 'Configuracao de layout reaberta'
+          : 'Configuracao de layout bloqueada',
+        'success'
+      );
+    } catch (error) {
+      console.error('Erro ao alterar configuracao:', error);
+      addToast('Erro ao alterar configuracao', 'error');
+    }
+  }, [turmaId, turmaSelecionada, addToast]);
 
   return {
     turmas,
@@ -123,6 +164,11 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     professorIdVisualizando,
     setProfessorIdVisualizando,
     conselheiroId,
+    // Configuracao de layout da turma
+    turmaSelecionada,
+    layoutConfigurado,
+    salvarLayoutPadrao,
+    toggleLayoutConfigurado,
     // Acoes
     atualizarLayout,
     atualizarCelula,
@@ -132,5 +178,6 @@ export function useMapeamentoData(): UseMapeamentoDataReturn {
     limparTodos,
     salvar,
     resetar,
+    excluirMapeamento,
   };
 }
