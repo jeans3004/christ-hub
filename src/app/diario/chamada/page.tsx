@@ -13,9 +13,10 @@ import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
 import { atestadoService } from '@/services/firestore/atestadoService';
+import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
 import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig } from './components';
-import { Atestado } from '@/types';
+import { Atestado, Atraso } from '@/types';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -84,6 +85,47 @@ export default function ChamadaPage() {
   // Obter turno da turma selecionada
   const turmaSelecionada = turmas.find(t => t.id === serieId);
 
+  // Calcular se estamos no 1o tempo (para logica de atrasos)
+  const isPrimeiroTempo = (() => {
+    const now = new Date();
+    const totalMinutes = now.getHours() * 60 + now.getMinutes();
+    const turno = turmaSelecionada?.turno;
+    if (turno === 'Matutino') return totalMinutes >= 7 * 60 && totalMinutes < 7 * 60 + 45;
+    if (turno === 'Vespertino') return totalMinutes >= 13 * 60 && totalMinutes < 13 * 60 + 45;
+    return false;
+  })();
+
+  // Atrasos do dia para a turma
+  const [atrasosHoje, setAtrasosHoje] = useState<Record<string, Atraso>>({});
+
+  // Carregar atrasos quando turma/data mudar
+  const loadAtrasos = useCallback(async () => {
+    if (!serieId || !dataChamada) {
+      setAtrasosHoje({});
+      return;
+    }
+
+    try {
+      const data = new Date(dataChamada + 'T12:00:00');
+      const atrasos = await atrasoService.getByTurmaData(serieId, data);
+
+      const record: Record<string, Atraso> = {};
+      atrasos.forEach(a => {
+        record[a.alunoId] = a;
+      });
+      setAtrasosHoje(record);
+    } catch (error) {
+      console.error('Erro ao carregar atrasos:', error);
+    }
+  }, [serieId, dataChamada]);
+
+  useEffect(() => {
+    loadAtrasos();
+  }, [loadAtrasos]);
+
+  // IDs dos alunos atrasados que devem ser bloqueados como ausente (so no 1o tempo)
+  const atrasadosIds = isPrimeiroTempo ? Object.keys(atrasosHoje) : [];
+
   // Chamada data hook
   const {
     presencas,
@@ -104,6 +146,7 @@ export default function ChamadaPage() {
     dataChamada,
     alunos,
     turno: turmaSelecionada?.turno,
+    atrasadosIds,
   });
 
   // Clear disciplinaId when turma changes and current disciplina is not linked
@@ -244,6 +287,8 @@ export default function ChamadaPage() {
                 presencas={presencas}
                 observacoes={observacoes}
                 atestadosVigentes={atestadosVigentes}
+                atrasosHoje={atrasosHoje}
+                isPrimeiroTempo={isPrimeiroTempo}
                 totalPresentes={totalPresentes}
                 totalAusentes={totalAusentes}
                 saving={saving}

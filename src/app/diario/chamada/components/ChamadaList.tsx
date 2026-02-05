@@ -15,8 +15,8 @@ import {
   Tooltip,
   Badge,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew } from '@mui/icons-material';
-import { Aluno, Atestado } from '@/types';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule } from '@mui/icons-material';
+import { Aluno, Atestado, Atraso } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
 
@@ -25,6 +25,8 @@ interface ChamadaListProps {
   presencas: Record<string, boolean>;
   observacoes: Record<string, string>;
   atestadosVigentes?: Record<string, Atestado>; // alunoId -> atestado vigente
+  atrasosHoje?: Record<string, Atraso>; // alunoId -> atraso do dia
+  isPrimeiroTempo?: boolean; // se estamos no 1o tempo
   totalPresentes: number;
   totalAusentes: number;
   saving: boolean;
@@ -40,6 +42,8 @@ export function ChamadaList({
   presencas,
   observacoes,
   atestadosVigentes = {},
+  atrasosHoje = {},
+  isPrimeiroTempo = false,
   totalPresentes,
   totalAusentes,
   saving,
@@ -135,28 +139,36 @@ export function ChamadaList({
           const numero = String(index + 1).padStart(2, '0');
           const hasObservacao = Boolean(observacoes[aluno.id]);
           const atestado = atestadosVigentes[aluno.id];
+          const atraso = atrasosHoje[aluno.id];
+
+          // Atraso so aplica no 1o tempo
+          const atrasoAtivo = atraso && isPrimeiroTempo;
 
           // Determinar cor de fundo baseado no estado
           const getRowBgColor = () => {
-            if (atestado) return '#e3f2fd'; // Azul claro mais visivel
+            if (atestado) return '#e3f2fd'; // Azul claro - atestado
+            if (atrasoAtivo) return '#fff8e1'; // Amarelo claro - atraso
             if (!isPresente) return '#ffebee'; // Vermelho claro para ausente
             return 'transparent';
           };
 
           const getRowHoverColor = () => {
             if (atestado) return '#bbdefb';
+            if (atrasoAtivo) return '#ffecb3';
             if (!isPresente) return '#ffcdd2';
             return 'action.hover';
           };
 
           const getRowBorderColor = () => {
-            if (atestado) return '#1976d2'; // Azul mais forte
+            if (atestado) return '#1976d2'; // Azul - atestado
+            if (atrasoAtivo) return '#f57c00'; // Laranja - atraso
             if (!isPresente) return '#d32f2f';
             return 'transparent';
           };
 
-          // Estudante com atestado tem presenca bloqueada (justificada)
-          const isBloqueado = Boolean(atestado);
+          // Estudante com atestado tem presenca bloqueada (justificada como presente)
+          // Estudante com atraso no 1o tempo tem presenca bloqueada (como ausente)
+          const isBloqueado = Boolean(atestado) || Boolean(atrasoAtivo);
 
           return (
             <Box
@@ -194,16 +206,16 @@ export function ChamadaList({
               </Typography>
 
               <Checkbox
-                checked={isBloqueado ? true : isPresente}
+                checked={atrasoAtivo ? false : (atestado ? true : isPresente)}
                 disabled={isBloqueado}
                 sx={{
                   p: { xs: 0.5, sm: 1 },
-                  color: isBloqueado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
+                  color: atrasoAtivo ? 'warning.main' : (atestado ? 'info.main' : (isPresente ? 'success.main' : 'error.main')),
                   '&.Mui-checked': {
-                    color: isBloqueado ? 'info.main' : 'success.main',
+                    color: atestado ? 'info.main' : 'success.main',
                   },
                   '&.Mui-disabled': {
-                    color: 'info.main !important',
+                    color: atrasoAtivo ? 'warning.main !important' : 'info.main !important',
                   },
                 }}
               />
@@ -216,8 +228,8 @@ export function ChamadaList({
                   fontSize: { xs: '0.9rem', sm: '1rem' },
                   fontWeight: 600,
                   bgcolor: avatarColor,
-                  border: isPresente ? '2px solid transparent' : '2px solid',
-                  borderColor: isPresente ? 'transparent' : 'error.main',
+                  border: '2px solid',
+                  borderColor: atrasoAtivo ? '#f57c00' : (atestado ? '#1976d2' : (isPresente ? 'transparent' : 'error.main')),
                 }}
               >
                 {aluno.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
@@ -299,6 +311,60 @@ export function ChamadaList({
                       )}
                     </Box>
                   )}
+                  {atrasoAtivo && !atestado && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
+                      <Tooltip
+                        title={
+                          <Box sx={{ p: 0.5 }}>
+                            <Typography variant="body2" fontWeight={700} color="white">
+                              Chegada atrasada: {atraso.horarioChegada}
+                            </Typography>
+                            <Typography variant="caption" color="white">
+                              Atraso de {atraso.tempoAtraso} min
+                            </Typography>
+                            {atraso.justificativa && (
+                              <Typography variant="caption" display="block" color="white" sx={{ mt: 0.5 }}>
+                                {atraso.justificativa}
+                              </Typography>
+                            )}
+                          </Box>
+                        }
+                        arrow
+                        enterTouchDelay={0}
+                        leaveTouchDelay={3000}
+                      >
+                        <Chip
+                          icon={<Schedule sx={{ fontSize: '16px !important' }} />}
+                          label={`Atraso ${atraso.horarioChegada}`}
+                          size="small"
+                          sx={{
+                            height: 24,
+                            fontSize: '0.7rem',
+                            fontWeight: 600,
+                            bgcolor: '#f57c00',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' },
+                            cursor: 'pointer',
+                          }}
+                        />
+                      </Tooltip>
+                      <Tooltip title={`${atraso.tempoAtraso} min de atraso`} arrow>
+                        <Chip
+                          icon={<AccessTime sx={{ fontSize: '14px !important' }} />}
+                          label={`${atraso.tempoAtraso}min`}
+                          size="small"
+                          sx={{
+                            height: 22,
+                            fontSize: '0.65rem',
+                            fontWeight: 600,
+                            bgcolor: atraso.tempoAtraso > 15 ? '#d32f2f' : '#ff9800',
+                            color: 'white',
+                            '& .MuiChip-icon': { color: 'white' },
+                          }}
+                        />
+                      </Tooltip>
+                    </Box>
+                  )}
                 </Box>
                 {aluno.matricula && (
                   <Typography
@@ -344,18 +410,18 @@ export function ChamadaList({
                   px: { xs: 1.5, sm: 2 },
                   py: 0.75,
                   fontWeight: 600,
-                  bgcolor: isBloqueado ? 'info.main' : (isPresente ? 'success.main' : 'error.main'),
+                  bgcolor: atrasoAtivo ? '#f57c00' : (atestado ? 'info.main' : (isPresente ? 'success.main' : 'error.main')),
                   boxShadow: isBloqueado ? 'none' : (isPresente ? 'none' : '0 2px 4px rgba(211,47,47,0.3)'),
                   '&:hover': {
-                    bgcolor: isBloqueado ? 'info.main' : (isPresente ? 'success.dark' : 'error.dark'),
+                    bgcolor: atrasoAtivo ? '#e65100' : (atestado ? 'info.main' : (isPresente ? 'success.dark' : 'error.dark')),
                   },
                   '&.Mui-disabled': {
-                    bgcolor: 'info.main',
+                    bgcolor: atrasoAtivo ? '#f57c00' : 'info.main',
                     color: 'white',
                   },
                 }}
               >
-                {isBloqueado ? 'Justificado' : (isPresente ? 'Presente' : 'Ausente')}
+                {atrasoAtivo ? 'Atrasado' : (atestado ? 'Justificado' : (isPresente ? 'Presente' : 'Ausente'))}
               </Button>
             </Box>
           );

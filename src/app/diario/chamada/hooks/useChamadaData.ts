@@ -96,6 +96,7 @@ interface UseChamadaDataParams {
   dataChamada: string;
   alunos: Aluno[];
   turno?: Turno;
+  atrasadosIds?: string[]; // IDs dos alunos atrasados (bloqueados como ausente no 1o tempo)
 }
 
 interface UseChamadaDataReturn {
@@ -120,6 +121,7 @@ export function useChamadaData({
   dataChamada,
   alunos,
   turno,
+  atrasadosIds = [],
 }: UseChamadaDataParams): UseChamadaDataReturn {
   const { addToast } = useUIStore();
   const { usuario } = useAuth();
@@ -203,12 +205,19 @@ export function useChamadaData({
 
     setSaving(true);
     try {
+      const atrasadosSet = new Set(atrasadosIds);
       const presencasList: PresencaAluno[] = alunos.map(aluno => {
+        // Atrasados sao salvos como ausentes
+        const estaAtrasado = atrasadosSet.has(aluno.id);
         const presenca: PresencaAluno = {
           alunoId: aluno.id,
           alunoNome: aluno.nome,
-          presente: presencas[aluno.id] ?? true,
+          presente: estaAtrasado ? false : (presencas[aluno.id] ?? true),
         };
+        // Justificativa automatica para atrasados
+        if (estaAtrasado && !observacoes[aluno.id]) {
+          presenca.justificativa = 'Chegada atrasada';
+        }
         // Só adiciona justificativa se existir (Firestore não aceita undefined)
         if (observacoes[aluno.id]) {
           presenca.justificativa = observacoes[aluno.id];
@@ -262,7 +271,7 @@ export function useChamadaData({
     } finally {
       setSaving(false);
     }
-  }, [serieId, disciplinaId, usuario, alunos, presencas, observacoes, dataChamada, conteudo, turno, addToast]);
+  }, [serieId, disciplinaId, usuario, alunos, presencas, observacoes, dataChamada, conteudo, turno, atrasadosIds, addToast]);
 
   const totalPresentes = Object.values(presencas).filter(Boolean).length;
   const totalAusentes = alunos.length - totalPresentes;
