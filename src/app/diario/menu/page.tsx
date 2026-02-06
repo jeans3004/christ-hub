@@ -14,13 +14,24 @@ import {
   TrendingUp,
   AssignmentTurnedIn,
   Schedule,
+  AccessTime,
+  MedicalServices,
 } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { HeroCard, StatCard, PageBackground } from '@/components/ui';
 import { QuickAccessCard, EmptyAnnouncements } from './components';
 
-const quickAccessItems = [
+// Quick access para administradores
+const adminQuickAccessItems = [
+  { title: 'Atrasos', icon: <AccessTime sx={{ fontSize: 28 }} />, href: '/diario/atrasos' },
+  { title: 'Atestados', icon: <MedicalServices sx={{ fontSize: 28 }} />, href: '/diario/atestados' },
+  { title: 'Chamada', icon: <CheckCircleOutline sx={{ fontSize: 28 }} />, href: '/diario/chamada' },
+  { title: 'Notas', icon: <GradeOutlined sx={{ fontSize: 28 }} />, href: '/diario/notas' },
+];
+
+// Quick access para professores e coordenadores
+const defaultQuickAccessItems = [
   { title: 'Chamada', icon: <CheckCircleOutline sx={{ fontSize: 28 }} />, href: '/diario/chamada' },
   { title: 'Notas', icon: <GradeOutlined sx={{ fontSize: 28 }} />, href: '/diario/notas' },
   { title: 'Agenda', icon: <EventNote sx={{ fontSize: 28 }} />, href: '/diario/agenda' },
@@ -36,6 +47,11 @@ const statsItems = [
 
 export default function MenuPage() {
   const { usuario } = useAuth();
+
+  // Administradores e coordenadores veem Atrasos, Atestados, Chamada, Notas
+  const quickAccessItems = (usuario?.tipo === 'administrador' || usuario?.tipo === 'coordenador')
+    ? adminQuickAccessItems
+    : defaultQuickAccessItems;
 
   return (
     <MainLayout title="Luminar">
