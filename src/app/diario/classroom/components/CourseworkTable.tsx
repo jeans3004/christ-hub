@@ -411,6 +411,7 @@ function CourseworkRow({
                     <TableRow>
                       <TableCell>Aluno</TableCell>
                       <TableCell>Status</TableCell>
+                      <TableCell>Resposta</TableCell>
                       <TableCell>Nota</TableCell>
                       <TableCell>Atrasado</TableCell>
                     </TableRow>
@@ -418,6 +419,47 @@ function CourseworkRow({
                   <TableBody>
                     {cwSubmissions.map((sub) => {
                       const student = courseStudents.find((s) => s.userId === sub.userId);
+
+                      // Resolve answer content
+                      let answerContent: React.ReactNode = null;
+                      if (sub.shortAnswerSubmission?.answer) {
+                        answerContent = (
+                          <Typography variant="body2" sx={{ maxWidth: 400, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                            {sub.shortAnswerSubmission.answer}
+                          </Typography>
+                        );
+                      } else if (sub.multipleChoiceSubmission?.answer) {
+                        answerContent = (
+                          <Chip label={sub.multipleChoiceSubmission.answer} size="small" variant="outlined" />
+                        );
+                      } else if (sub.assignmentSubmission?.attachments && sub.assignmentSubmission.attachments.length > 0) {
+                        answerContent = (
+                          <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                            {sub.assignmentSubmission.attachments.map((att, i) => {
+                              const title = att.driveFile?.driveFile?.title
+                                || att.link?.title
+                                || att.youtubeVideo?.title
+                                || 'Anexo';
+                              const url = att.driveFile?.driveFile?.alternateLink
+                                || att.link?.url
+                                || att.youtubeVideo?.alternateLink;
+
+                              return (
+                                <Chip
+                                  key={i}
+                                  label={title}
+                                  size="small"
+                                  variant="outlined"
+                                  clickable={!!url}
+                                  onClick={url ? () => window.open(url, '_blank') : undefined}
+                                  icon={<OpenInNewIcon sx={{ fontSize: '0.85rem !important' }} />}
+                                />
+                              );
+                            })}
+                          </Box>
+                        );
+                      }
+
                       return (
                         <TableRow key={sub.id}>
                           <TableCell>
@@ -441,6 +483,13 @@ function CourseworkRow({
                                   : 'default'
                               }
                             />
+                          </TableCell>
+                          <TableCell>
+                            {answerContent || (
+                              <Typography variant="caption" color="text.disabled">
+                                —
+                              </Typography>
+                            )}
                           </TableCell>
                           <TableCell>
                             {sub.assignedGrade !== undefined

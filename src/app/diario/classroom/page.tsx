@@ -469,6 +469,7 @@ export default function ClassroomPage() {
           open={composerOpen}
           onClose={() => setComposerOpen(false)}
           courses={courses}
+          topics={topics}
           defaultCourseId={selectedCourseIds[0] || undefined}
           onSuccess={handleAnnouncementCreated}
           userId={usuario?.id || ''}

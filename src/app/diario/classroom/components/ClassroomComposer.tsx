@@ -63,6 +63,8 @@ import {
   ExpandLess as CollapseIcon,
   Schedule as ScheduleIcon,
   Grade as GradeIcon,
+  Topic as TopicIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
 import { useDriveStore } from '@/store/driveStore';
 import { useUIStore } from '@/store/uiStore';
@@ -76,12 +78,14 @@ import type {
   MultiPostResult,
   ClassroomMaterialPayload,
   CourseSection,
+  ClassroomTopic,
 } from '@/types/classroom';
 
 interface ClassroomComposerProps {
   open: boolean;
   onClose: () => void;
   courses: ClassroomCourse[];
+  topics?: ClassroomTopic[];
   defaultCourseId?: string;
   onSuccess: () => void;
   userId: string;
@@ -94,6 +98,7 @@ export function ClassroomComposer({
   open,
   onClose,
   courses,
+  topics: allTopics = [],
   defaultCourseId,
   onSuccess,
   userId,
@@ -136,6 +141,10 @@ export function ClassroomComposer({
   // Section state
   const [sectionsPerCourse, setSectionsPerCourse] = useState<Record<string, CourseSection[]>>({});
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+
+  // Topic state
+  const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
+  const [topicWarning, setTopicWarning] = useState(false);
 
   // Attachment dialog state
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
@@ -322,6 +331,9 @@ export function ClassroomComposer({
     );
   })();
 
+  // Compute available topics for selected courses
+  const availableTopics = allTopics.filter(t => selectedCourseIds.includes(t.courseId));
+
   // Resolve studentIds for a section across courses
   const resolveStudentIds = (sectionId: string | null, courseId: string): string[] | null => {
     if (!sectionId) return null; // "Geral" = ALL_STUDENTS
@@ -355,6 +367,12 @@ export function ClassroomComposer({
 
     if (!title.trim() && postType !== 'announcement') {
       addToast('Digite o titulo da atividade', 'warning');
+      return;
+    }
+
+    if (postType !== 'announcement' && !selectedTopicId && availableTopics.length > 0) {
+      setTopicWarning(true);
+      addToast('Selecione um tema para a atividade', 'warning');
       return;
     }
 
@@ -405,6 +423,19 @@ export function ClassroomComposer({
             }
           }
 
+          // Resolve topicId for this course
+          let resolvedTopicId: string | undefined;
+          if (selectedTopicId) {
+            const selectedTopic = allTopics.find(t => t.topicId === selectedTopicId);
+            if (selectedTopic) {
+              // If same course, use directly; otherwise find by name
+              const courseTopicMatch = allTopics.find(
+                t => t.courseId === courseId && (t.topicId === selectedTopicId || t.name === selectedTopic.name)
+              );
+              resolvedTopicId = courseTopicMatch?.topicId;
+            }
+          }
+
           await service.createCourseWork(courseId, {
             title: title.trim(),
             description: text.trim() || undefined,
@@ -413,6 +444,7 @@ export function ClassroomComposer({
             maxPoints: postType === 'assignment' ? maxPoints : undefined,
             dueDate: parsedDueDate,
             dueTime: parsedDueTime,
+            topicId: resolvedTopicId,
             multipleChoiceQuestion: questionType === 'MULTIPLE_CHOICE_QUESTION' && postType === 'question'
               ? { choices: choices.filter((c) => c.trim()) }
               : undefined,
@@ -517,6 +549,8 @@ export function ClassroomComposer({
     setIsPreview(false);
     setError(null);
     setSelectedSectionId(null);
+    setSelectedTopicId(null);
+    setTopicWarning(false);
   };
 
   // Close handler
@@ -650,6 +684,48 @@ export function ClassroomComposer({
                   <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
                     Publicacao sera direcionada apenas aos alunos desta secao
                   </Typography>
+                )}
+              </Box>
+            )}
+
+            {/* Topic selector (for assignments/questions only) */}
+            {postType !== 'announcement' && availableTopics.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.5 }}>
+                  <TopicIcon fontSize="small" color="action" />
+                  <Typography variant="caption" color="text.secondary">
+                    Tema *
+                  </Typography>
+                </Box>
+                <FormControl fullWidth size="small" error={topicWarning && !selectedTopicId}>
+                  <InputLabel>Selecionar Tema</InputLabel>
+                  <Select
+                    value={selectedTopicId || ''}
+                    label="Selecionar Tema"
+                    onChange={(e) => {
+                      setSelectedTopicId(e.target.value || null);
+                      setTopicWarning(false);
+                    }}
+                  >
+                    {(() => {
+                      // Deduplicate topics by name for multi-course
+                      const seen = new Set<string>();
+                      return availableTopics.filter(t => {
+                        if (seen.has(t.name)) return false;
+                        seen.add(t.name);
+                        return true;
+                      }).map(topic => (
+                        <MenuItem key={topic.topicId} value={topic.topicId}>
+                          {topic.name}
+                        </MenuItem>
+                      ));
+                    })()}
+                  </Select>
+                </FormControl>
+                {topicWarning && !selectedTopicId && (
+                  <Alert severity="warning" icon={<WarningIcon fontSize="small" />} sx={{ mt: 1 }}>
+                    Selecione um tema antes de publicar a atividade.
+                  </Alert>
                 )}
               </Box>
             )}
