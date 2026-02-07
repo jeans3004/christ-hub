@@ -146,6 +146,9 @@ export function ClassroomComposer({
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(null);
   const [topicWarning, setTopicWarning] = useState(false);
 
+  // Topic-section mapping state
+  const [topicSectionMapPerCourse, setTopicSectionMapPerCourse] = useState<Record<string, Record<string, string>>>({});
+
   // Attachment dialog state
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
   const [attachType, setAttachType] = useState<'link' | 'youtubeVideo'>('link');
@@ -159,27 +162,35 @@ export function ClassroomComposer({
     }
   }, [open, activeTab]);
 
-  // Load sections for selected courses
+  // Load sections and topicSectionMap for selected courses
   useEffect(() => {
     if (!open || selectedCourseIds.length === 0) {
       setSectionsPerCourse({});
       setSelectedSectionId(null);
+      setTopicSectionMapPerCourse({});
       return;
     }
 
     const loadSections = async () => {
       const map: Record<string, CourseSection[]> = {};
+      const tsmMap: Record<string, Record<string, string>> = {};
       for (const courseId of selectedCourseIds) {
         try {
           const config = await classroomSectionService.getCourseSections(courseId);
-          if (config && config.sections.length > 0) {
-            map[courseId] = config.sections;
+          if (config) {
+            if (config.sections.length > 0) {
+              map[courseId] = config.sections;
+            }
+            if (config.topicSectionMap) {
+              tsmMap[courseId] = config.topicSectionMap;
+            }
           }
         } catch {
           // Ignore errors loading sections
         }
       }
       setSectionsPerCourse(map);
+      setTopicSectionMapPerCourse(tsmMap);
       setSelectedSectionId(null);
     };
 
@@ -396,7 +407,26 @@ export function ClassroomComposer({
 
       try {
         // Resolve section targeting
-        const studentIds = resolveStudentIds(selectedSectionId, courseId);
+        let effectiveSectionId = selectedSectionId;
+
+        // For assignments/questions, auto-resolve section from topic
+        if (postType !== 'announcement' && selectedTopicId) {
+          const selectedTopic = allTopics.find(t => t.topicId === selectedTopicId);
+          if (selectedTopic) {
+            // Find the matching topic in this course (may differ by ID across courses)
+            const courseTopicMatch = allTopics.find(
+              t => t.courseId === courseId && (t.topicId === selectedTopicId || t.name === selectedTopic.name)
+            );
+            if (courseTopicMatch) {
+              const mappedSectionId = topicSectionMapPerCourse[courseId]?.[courseTopicMatch.topicId];
+              if (mappedSectionId) {
+                effectiveSectionId = mappedSectionId;
+              }
+            }
+          }
+        }
+
+        const studentIds = resolveStudentIds(effectiveSectionId, courseId);
         const assigneeFields = studentIds
           ? {
               assigneeMode: 'INDIVIDUAL_STUDENTS' as const,
@@ -535,6 +565,22 @@ export function ClassroomComposer({
     }
   };
 
+  // Resolve auto-linked section name for display
+  const resolvedSectionName = (() => {
+    if (postType === 'announcement' || !selectedTopicId || selectedCourseIds.length === 0) return null;
+    const firstCourseId = selectedCourseIds[0];
+    const selectedTopic = allTopics.find(t => t.topicId === selectedTopicId);
+    if (!selectedTopic) return null;
+    const courseTopicMatch = allTopics.find(
+      t => t.courseId === firstCourseId && (t.topicId === selectedTopicId || t.name === selectedTopic.name)
+    );
+    if (!courseTopicMatch) return null;
+    const mappedSectionId = topicSectionMapPerCourse[firstCourseId]?.[courseTopicMatch.topicId];
+    if (!mappedSectionId) return null;
+    const section = (sectionsPerCourse[firstCourseId] || []).find(s => s.id === mappedSectionId);
+    return section || null;
+  })();
+
   // Reset form
   const handleReset = () => {
     setTitle('');
@@ -650,8 +696,8 @@ export function ClassroomComposer({
               </Select>
             </FormControl>
 
-            {/* Section selector */}
-            {availableSections.length > 0 && (
+            {/* Section selector (announcements only) */}
+            {postType === 'announcement' && availableSections.length > 0 && (
               <Box sx={{ mb: 2 }}>
                 <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
                   Direcionar para:
@@ -726,6 +772,16 @@ export function ClassroomComposer({
                   <Alert severity="warning" icon={<WarningIcon fontSize="small" />} sx={{ mt: 1 }}>
                     Selecione um tema antes de publicar a atividade.
                   </Alert>
+                )}
+                {resolvedSectionName && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    Direcionado para:
+                    <Chip
+                      size="small"
+                      label={resolvedSectionName.name}
+                      sx={{ bgcolor: resolvedSectionName.color, color: '#fff', height: 20, fontSize: '0.7rem' }}
+                    />
+                  </Typography>
                 )}
               </Box>
             )}

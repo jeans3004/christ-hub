@@ -30,6 +30,7 @@ export const classroomSectionService = {
       courseId: data.courseId,
       sections: data.sections || [],
       updatedAt: data.updatedAt?.toDate() || new Date(),
+      topicSectionMap: data.topicSectionMap || {},
     };
   },
 
@@ -42,7 +43,15 @@ export const classroomSectionService = {
       courseId,
       sections,
       updatedAt: Timestamp.fromDate(new Date()),
-    });
+    }, { merge: true });
+  },
+
+  /**
+   * Salva o mapeamento de temas para secoes de um curso.
+   */
+  async saveTopicSectionMap(courseId: string, map: Record<string, string>): Promise<void> {
+    const docRef = doc(db, COLLECTION, courseId);
+    await setDoc(docRef, { topicSectionMap: map }, { merge: true });
   },
 
   /**

@@ -339,4 +339,5 @@ export interface CourseSectionsConfig {
   courseId: string;
   sections: CourseSection[];
   updatedAt: Date;
+  topicSectionMap?: Record<string, string>; // topicId → sectionId
 }

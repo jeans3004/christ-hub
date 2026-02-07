@@ -50,7 +50,8 @@ import {
 import { useDriveStore } from '@/store/driveStore';
 import { useUIStore } from '@/store/uiStore';
 import { createClassroomService } from '@/services/classroomService';
-import type { ClassroomCourse, ClassroomTopic } from '@/types/classroom';
+import { classroomSectionService } from '@/services/firestore';
+import type { ClassroomCourse, ClassroomTopic, CourseSection } from '@/types/classroom';
 
 interface TopicsManagerProps {
   open: boolean;
@@ -103,6 +104,58 @@ export function TopicsManager({
   const [filterCourse, setFilterCourse] = useState<string>('all');
 
   const [error, setError] = useState<string | null>(null);
+
+  // Section linking state
+  const [sectionsPerCourse, setSectionsPerCourse] = useState<Record<string, CourseSection[]>>({});
+  const [topicSectionMap, setTopicSectionMap] = useState<Record<string, Record<string, string>>>({});
+
+  // Load sections and topicSectionMap for each course
+  useEffect(() => {
+    if (!open || courses.length === 0) return;
+
+    const loadSections = async () => {
+      const secMap: Record<string, CourseSection[]> = {};
+      const tsmMap: Record<string, Record<string, string>> = {};
+      for (const course of courses) {
+        try {
+          const config = await classroomSectionService.getCourseSections(course.id);
+          if (config) {
+            if (config.sections.length > 0) {
+              secMap[course.id] = config.sections;
+            }
+            if (config.topicSectionMap) {
+              tsmMap[course.id] = config.topicSectionMap;
+            }
+          }
+        } catch {
+          // Ignore errors loading sections
+        }
+      }
+      setSectionsPerCourse(secMap);
+      setTopicSectionMap(tsmMap);
+    };
+
+    loadSections();
+  }, [open, courses]);
+
+  const handleLinkSection = async (topic: ClassroomTopic, sectionId: string) => {
+    const courseId = topic.courseId;
+    const currentMap = { ...(topicSectionMap[courseId] || {}) };
+
+    if (sectionId === '__none__') {
+      delete currentMap[topic.topicId];
+    } else {
+      currentMap[topic.topicId] = sectionId;
+    }
+
+    setTopicSectionMap(prev => ({ ...prev, [courseId]: currentMap }));
+
+    try {
+      await classroomSectionService.saveTopicSectionMap(courseId, currentMap);
+    } catch {
+      addToast('Erro ao salvar vinculo de secao', 'error');
+    }
+  };
 
   const handleCreateTopic = async () => {
     if (!newTopicName.trim()) {
@@ -266,7 +319,7 @@ export function TopicsManager({
   }, {} as Record<string, ClassroomTopic[]>);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -398,7 +451,7 @@ export function TopicsManager({
                 <ListItem
                   key={`${topic.courseId}-${topic.topicId}`}
                   divider={index < filteredTopics.length - 1}
-                  sx={{ pr: isEditing ? 1 : 12 }}
+                  sx={{ pr: isEditing ? 1 : (sectionsPerCourse[topic.courseId]?.length ? 24 : 12) }}
                 >
                   <ListItemIcon>
                     <FolderIcon color="action" />
@@ -440,7 +493,24 @@ export function TopicsManager({
                     // Modo de visualizacao
                     <>
                       <ListItemText
-                        primary={topic.name}
+                        primary={
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            {topic.name}
+                            {(() => {
+                              const linkedSectionId = topicSectionMap[topic.courseId]?.[topic.topicId];
+                              const linkedSection = linkedSectionId
+                                ? (sectionsPerCourse[topic.courseId] || []).find(s => s.id === linkedSectionId)
+                                : null;
+                              return linkedSection ? (
+                                <Chip
+                                  size="small"
+                                  label={linkedSection.name}
+                                  sx={{ bgcolor: linkedSection.color, color: '#fff', height: 20, fontSize: '0.7rem' }}
+                                />
+                              ) : null;
+                            })()}
+                          </Box>
+                        }
                         secondary={isMultiCourse ? courseName : undefined}
                         secondaryTypographyProps={
                           isMultiCourse
@@ -458,6 +528,26 @@ export function TopicsManager({
                         }
                       />
                       <ListItemSecondaryAction>
+                        {(sectionsPerCourse[topic.courseId]?.length || 0) > 0 && (
+                          <FormControl size="small" sx={{ minWidth: 120, mr: 1 }}>
+                            <Select
+                              value={topicSectionMap[topic.courseId]?.[topic.topicId] || '__none__'}
+                              onChange={(e) => handleLinkSection(topic, e.target.value)}
+                              variant="outlined"
+                              sx={{ fontSize: '0.8rem', height: 32 }}
+                            >
+                              <MenuItem value="__none__">Nenhuma</MenuItem>
+                              {(sectionsPerCourse[topic.courseId] || []).map(section => (
+                                <MenuItem key={section.id} value={section.id}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: section.color, flexShrink: 0 }} />
+                                    {section.name}
+                                  </Box>
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        )}
                         <Tooltip title="Editar">
                           <IconButton
                             size="small"
