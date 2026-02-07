@@ -62,6 +62,7 @@ export const DRIVE_FOLDERS = {
   BACKUPS: 'Backups',
   EXPORTS: 'Exports',
   ATESTADOS: 'Atestados',
+  CLASSROOM: 'Classroom',
 } as const;
 
 export type DriveFolderKey = keyof typeof DRIVE_FOLDERS;

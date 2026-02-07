@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -40,6 +40,7 @@ import {
   Collapse,
   Grid,
   InputAdornment,
+  LinearProgress,
 } from '@mui/material';
 import {
   FormatBold as BoldIcon,
@@ -65,9 +66,12 @@ import {
   Grade as GradeIcon,
   Topic as TopicIcon,
   Warning as WarningIcon,
+  UploadFile as UploadFileIcon,
 } from '@mui/icons-material';
 import { useDriveStore } from '@/store/driveStore';
 import { useUIStore } from '@/store/uiStore';
+import { createDriveService } from '@/services/driveService';
+import { DRIVE_FOLDERS, DRIVE_SIZE_LIMITS } from '@/types/drive';
 import { classroomTemplateService, classroomSectionService } from '@/services/firestore';
 import { createClassroomService } from '@/services/classroomService';
 import type {
@@ -104,7 +108,7 @@ export function ClassroomComposer({
   userId,
   userName,
 }: ClassroomComposerProps) {
-  const { accessToken } = useDriveStore();
+  const { accessToken, folderIds } = useDriveStore();
   const { addToast } = useUIStore();
 
   // Tab state
@@ -154,6 +158,12 @@ export function ClassroomComposer({
   const [attachType, setAttachType] = useState<'link' | 'youtubeVideo'>('link');
   const [attachUrl, setAttachUrl] = useState('');
   const [attachTitle, setAttachTitle] = useState('');
+
+  // File upload state
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number; percent: number }>({ current: 0, total: 0, percent: 0 });
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Load templates
   useEffect(() => {
@@ -306,6 +316,36 @@ export function ClassroomComposer({
     setAttachments(attachments.filter((_, i) => i !== index));
   };
 
+  // Handle file selection for upload
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.size > DRIVE_SIZE_LIMITS.DEFAULT) {
+        addToast(`Arquivo "${file.name}" excede o limite de 25MB`, 'warning');
+        continue;
+      }
+      validFiles.push(file);
+    }
+
+    if (validFiles.length > 0) {
+      setUploadFiles(prev => [...prev, ...validFiles]);
+    }
+
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  // Remove upload file
+  const handleRemoveUploadFile = (index: number) => {
+    setUploadFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Convert attachments to API format
   const convertAttachmentsToMaterials = (): ClassroomMaterialPayload[] => {
     return attachments.map((attach) => {
@@ -397,8 +437,73 @@ export function ClassroomComposer({
     setResults([]);
     setShowResults(false);
 
+    // Upload files to Google Drive if any
+    const uploadedDriveFileIds: { id: string; title: string }[] = [];
+
+    if (uploadFiles.length > 0) {
+      if (!folderIds?.ANEXOS) {
+        setError('Pastas do Drive nao inicializadas. Tente novamente.');
+        setIsSending(false);
+        return;
+      }
+
+      setIsUploading(true);
+      setUploadProgress({ current: 0, total: uploadFiles.length, percent: 0 });
+
+      try {
+        const driveService = createDriveService(accessToken);
+        const classroomFolderId = await driveService.findOrCreateFolder(DRIVE_FOLDERS.CLASSROOM, folderIds.ANEXOS);
+
+        // Use first selected course name for the folder
+        const firstCourse = courses.find(c => c.id === selectedCourseIds[0]);
+        const courseFolderName = firstCourse?.name || selectedCourseIds[0];
+        const courseFolderId = await driveService.findOrCreateFolder(courseFolderName, classroomFolderId);
+
+        const fileTitle = title.trim() || 'Anexo';
+
+        for (let i = 0; i < uploadFiles.length; i++) {
+          const file = uploadFiles[i];
+          setUploadProgress({ current: i + 1, total: uploadFiles.length, percent: Math.round(((i) / uploadFiles.length) * 100) });
+
+          const fileName = `[${fileTitle}] - ${file.name}`;
+          const result = await driveService.uploadFile({
+            file,
+            folderId: courseFolderId,
+            fileName,
+            onProgress: (percent) => {
+              const basePercent = Math.round((i / uploadFiles.length) * 100);
+              const filePercent = Math.round(percent / uploadFiles.length);
+              setUploadProgress(prev => ({ ...prev, percent: basePercent + filePercent }));
+            },
+          });
+
+          if (result.success && result.file) {
+            uploadedDriveFileIds.push({ id: result.file.id, title: fileName });
+          } else {
+            throw new Error(result.error || `Erro ao enviar ${file.name}`);
+          }
+        }
+
+        setUploadProgress(prev => ({ ...prev, current: uploadFiles.length, percent: 100 }));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : 'Erro ao enviar arquivos';
+        setError(message);
+        setIsUploading(false);
+        setIsSending(false);
+        return;
+      } finally {
+        setIsUploading(false);
+      }
+    }
+
     const service = createClassroomService(accessToken);
     const materials = convertAttachmentsToMaterials();
+
+    // Add uploaded Drive files to materials
+    for (const driveFile of uploadedDriveFileIds) {
+      materials.push({ driveFile: { driveFile: { id: driveFile.id } } });
+    }
+
     const postResults: MultiPostResult[] = [];
 
     for (const courseId of selectedCourseIds) {
@@ -597,11 +702,13 @@ export function ClassroomComposer({
     setSelectedSectionId(null);
     setSelectedTopicId(null);
     setTopicWarning(false);
+    setUploadFiles([]);
+    setUploadProgress({ current: 0, total: 0, percent: 0 });
   };
 
   // Close handler
   const handleClose = () => {
-    if (isSending) return;
+    if (isSending || isUploading) return;
     handleReset();
     onClose();
   };
@@ -923,11 +1030,24 @@ export function ClassroomComposer({
                 </IconButton>
               </Tooltip>
               <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-              <Tooltip title="Adicionar anexo">
+              <Tooltip title="Adicionar link/YouTube">
                 <IconButton size="small" onClick={() => setAttachDialogOpen(true)}>
                   <AttachIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
+              <Tooltip title="Upload de arquivo">
+                <IconButton size="small" onClick={() => fileInputRef.current?.click()}>
+                  <UploadFileIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
+                style={{ display: 'none' }}
+                onChange={handleFileSelect}
+              />
               <Box sx={{ flex: 1 }} />
               <ToggleButtonGroup
                 size="small"
@@ -943,6 +1063,16 @@ export function ClassroomComposer({
                 </ToggleButton>
               </ToggleButtonGroup>
             </Paper>
+
+            {/* Upload progress */}
+            {isUploading && (
+              <Box sx={{ mb: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Enviando arquivo {uploadProgress.current} de {uploadProgress.total}...
+                </Typography>
+                <LinearProgress variant="determinate" value={uploadProgress.percent} sx={{ mt: 0.5 }} />
+              </Box>
+            )}
 
             {/* Text editor / preview */}
             {isPreview ? (
@@ -969,18 +1099,33 @@ export function ClassroomComposer({
             )}
 
             {/* Attachments */}
-            {attachments.length > 0 && (
+            {(attachments.length > 0 || uploadFiles.length > 0) && (
               <Box sx={{ mt: 2 }}>
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Anexos:</Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {attachments.map((attach, index) => (
                     <Chip
-                      key={index}
+                      key={`attach-${index}`}
                       label={attach.title || attach.url}
-                      icon={attach.type === 'youtubeVideo' ? <YouTubeIcon /> : <LinkIcon />}
+                      icon={attach.type === 'youtubeVideo' ? <YouTubeIcon /> : attach.type === 'driveFile' ? <DriveIcon /> : <LinkIcon />}
                       onDelete={() => handleRemoveAttachment(index)}
                       size="small"
                     />
+                  ))}
+                  {uploadFiles.map((file, index) => (
+                    <Tooltip
+                      key={`upload-${index}`}
+                      title={title.trim() ? `[${title.trim()}] - ${file.name}` : file.name}
+                    >
+                      <Chip
+                        label={file.name}
+                        icon={<DriveIcon />}
+                        onDelete={() => handleRemoveUploadFile(index)}
+                        size="small"
+                        color="secondary"
+                        variant="outlined"
+                      />
+                    </Tooltip>
                   ))}
                 </Box>
               </Box>
@@ -1074,7 +1219,7 @@ export function ClassroomComposer({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={handleClose} disabled={isSending}>
+        <Button onClick={handleClose} disabled={isSending || isUploading}>
           Cancelar
         </Button>
         {activeTab === 'compose' && (
@@ -1083,9 +1228,9 @@ export function ClassroomComposer({
             color="primary"
             startIcon={isSending ? <CircularProgress size={20} color="inherit" /> : <SendIcon />}
             onClick={handleSend}
-            disabled={isSending || selectedCourseIds.length === 0}
+            disabled={isSending || isUploading || selectedCourseIds.length === 0}
           >
-            {isSending ? 'Publicando...' : `Publicar em ${selectedCourseIds.length} turma(s)`}
+            {isUploading ? 'Enviando arquivos...' : isSending ? 'Publicando...' : `Publicar em ${selectedCourseIds.length} turma(s)`}
           </Button>
         )}
       </DialogActions>
