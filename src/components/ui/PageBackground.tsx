@@ -9,18 +9,12 @@ interface PageBackgroundProps {
   sx?: SxProps<Theme>;
 }
 
-const variantColors = {
-  green: '#166534',
-  blue: '#1E3A8A',
-  neutral: 'background.default',
-};
-
-export default function PageBackground({ children, variant = 'green', sx }: PageBackgroundProps) {
+export default function PageBackground({ children, variant = 'neutral', sx }: PageBackgroundProps) {
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        backgroundColor: variantColors[variant],
+        bgcolor: 'background.default',
         py: 3,
         ...sx,
       }}

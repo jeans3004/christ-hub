@@ -90,7 +90,7 @@ const lightPalette = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#166534',   // Green-800 (page background)
+    default: '#F4F5F7',   // Neutral light background
     paper: '#FFFFFF',
   },
   text: {

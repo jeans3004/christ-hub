@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, Card, CardContent, Avatar, Typography, SxProps, Theme } from '@mui/material';
+import { Box, Card, Typography, SxProps, Theme } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { ReactElement } from 'react';
 
 interface StatCardProps {
@@ -16,35 +17,69 @@ interface StatCardProps {
 export default function StatCard({
   icon,
   iconColor = '#3B82F6',
-  iconBgColor = 'rgba(59, 130, 246, 0.1)',
   label,
   value,
   valueColor,
   sx,
 }: StatCardProps) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   return (
-    <Card elevation={0} sx={{ height: '100%', ...sx }}>
-      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Avatar
+    <Card
+      elevation={0}
+      sx={{
+        height: '100%',
+        border: '1px solid',
+        borderColor: 'divider',
+        bgcolor: isDark ? alpha('#FFFFFF', 0.02) : '#FFFFFF',
+        transition: 'border-color 200ms ease',
+        '&:hover': {
+          borderColor: isDark ? alpha(iconColor, 0.3) : alpha(iconColor, 0.25),
+        },
+        ...sx,
+      }}
+    >
+      <Box sx={{ p: { xs: 2, sm: 2.5 } }}>
+        <Box
           sx={{
-            width: 56,
-            height: 56,
-            backgroundColor: iconBgColor,
+            width: 36,
+            height: 36,
+            borderRadius: '10px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            bgcolor: alpha(iconColor, isDark ? 0.15 : 0.08),
             color: iconColor,
-            '& .MuiSvgIcon-root': { fontSize: 28 },
+            mb: 2,
+            '& .MuiSvgIcon-root': { fontSize: 20 },
           }}
         >
           {icon}
-        </Avatar>
-        <Box>
-          <Typography variant="body2" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3, fontSize: '0.875rem' }}>
-            {label}
-          </Typography>
-          <Typography sx={{ fontSize: '1.5rem', fontWeight: 600, color: valueColor || 'text.primary' }}>
-            {value}
-          </Typography>
         </Box>
-      </CardContent>
+        <Typography
+          sx={{
+            fontSize: '1.75rem',
+            fontWeight: 700,
+            color: valueColor || 'text.primary',
+            letterSpacing: '-0.025em',
+            lineHeight: 1,
+            mb: 0.5,
+          }}
+        >
+          {value}
+        </Typography>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            fontWeight: 500,
+            fontSize: '0.8125rem',
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
     </Card>
   );
 }

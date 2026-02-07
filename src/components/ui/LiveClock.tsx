@@ -38,11 +38,28 @@ export default function LiveClock({ format = '24h', showDate = false, sx }: Live
 
   return (
     <>
-      <Typography variant="h3" sx={{ fontFamily: "'Roboto Mono', 'Consolas', monospace", fontVariantNumeric: 'tabular-nums', ...sx }}>
+      <Typography
+        sx={{
+          fontSize: '1.5rem',
+          fontWeight: 600,
+          fontVariantNumeric: 'tabular-nums',
+          letterSpacing: '-0.02em',
+          color: 'text.primary',
+          ...sx,
+        }}
+      >
         {timeStr}
       </Typography>
       {dateStr && (
-        <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5, textTransform: 'capitalize' }}>
+        <Typography
+          variant="body2"
+          sx={{
+            color: 'text.secondary',
+            mt: 0.25,
+            textTransform: 'capitalize',
+            fontSize: '0.75rem',
+          }}
+        >
           {dateStr}
         </Typography>
       )}
