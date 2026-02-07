@@ -42,6 +42,7 @@ import {
   KeyboardArrowDown as ExpandIcon,
   KeyboardArrowUp as CollapseIcon,
   OpenInNew as OpenInNewIcon,
+  Comment as CommentIcon,
   Assignment as AssignmentIcon,
   Quiz as QuizIcon,
   ShortText as ShortTextIcon,
@@ -378,12 +379,12 @@ function CourseworkRow({
                 </IconButton>
               </Tooltip>
             )}
-            <Tooltip title="Abrir no Classroom">
+            <Tooltip title="Ver comentários no Classroom">
               <IconButton
                 size="small"
                 onClick={() => window.open(cw.alternateLink, '_blank')}
               >
-                <OpenInNewIcon fontSize="small" />
+                <CommentIcon fontSize="small" />
               </IconButton>
             </Tooltip>
             {canDelete && onDeleteCourseWork && (

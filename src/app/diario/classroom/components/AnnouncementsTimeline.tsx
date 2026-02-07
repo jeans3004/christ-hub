@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -31,7 +31,7 @@ import {
 } from '@mui/material';
 import {
   Campaign as CampaignIcon,
-  OpenInNew as OpenInNewIcon,
+  Comment as CommentIcon,
   InsertDriveFile as FileIcon,
   VideoLibrary as VideoIcon,
   Link as LinkIcon,
@@ -42,11 +42,15 @@ import {
   Edit as EditIcon,
   SelectAll as SelectAllIcon,
   Close as CloseIcon,
+  Person as PersonIcon,
+  Groups as GroupsIcon,
 } from '@mui/icons-material';
-import type { ClassroomAnnouncement, ClassroomMaterial } from '@/types/classroom';
+import { classroomSectionService } from '@/services/firestore';
+import type { ClassroomAnnouncement, ClassroomMaterial, ClassroomTeacher, CourseSection } from '@/types/classroom';
 
 interface AnnouncementsTimelineProps {
   announcements: ClassroomAnnouncement[];
+  teachers?: ClassroomTeacher[];
   isLoading: boolean;
   onNewAnnouncement?: () => void;
   onDeleteAnnouncement?: (courseId: string, announcementId: string) => Promise<void>;
@@ -131,6 +135,7 @@ function MaterialChip({ material }: { material: ClassroomMaterial }) {
 
 export function AnnouncementsTimeline({
   announcements,
+  teachers = [],
   isLoading,
   onNewAnnouncement,
   onDeleteAnnouncement,
@@ -151,6 +156,57 @@ export function AnnouncementsTimeline({
   const [editingAnnouncement, setEditingAnnouncement] = useState<ClassroomAnnouncement | null>(null);
   const [editText, setEditText] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Sections state for resolving targeted sections
+  const [sectionsPerCourse, setSectionsPerCourse] = useState<Record<string, CourseSection[]>>({});
+
+  // Load sections for courses present in announcements
+  useEffect(() => {
+    const courseIds = [...new Set(announcements.map(a => a.courseId))];
+    if (courseIds.length === 0) return;
+
+    const loadSections = async () => {
+      const map: Record<string, CourseSection[]> = {};
+      for (const courseId of courseIds) {
+        try {
+          const config = await classroomSectionService.getCourseSections(courseId);
+          if (config && config.sections.length > 0) {
+            map[courseId] = config.sections;
+          }
+        } catch {
+          // Ignore
+        }
+      }
+      setSectionsPerCourse(map);
+    };
+
+    loadSections();
+  }, [announcements]);
+
+  // Resolve teacher name from creatorUserId
+  const getTeacherName = (creatorUserId: string): string | null => {
+    const teacher = teachers.find(t => t.userId === creatorUserId);
+    return teacher?.profile?.name?.fullName || teacher?.profile?.name?.givenName || null;
+  };
+
+  // Resolve section from announcement's individualStudentsOptions
+  const getAnnouncementSection = (announcement: ClassroomAnnouncement): CourseSection | null => {
+    if (announcement.assigneeMode !== 'INDIVIDUAL_STUDENTS') return null;
+    const studentIds = announcement.individualStudentsOptions?.studentIds;
+    if (!studentIds || studentIds.length === 0) return null;
+
+    const courseSections = sectionsPerCourse[announcement.courseId];
+    if (!courseSections) return null;
+
+    // Find section whose studentIds match the announcement's studentIds
+    const announcementStudentSet = new Set(studentIds);
+    return courseSections.find(section => {
+      if (section.studentIds.length === 0) return false;
+      const sectionStudentSet = new Set(section.studentIds);
+      if (announcementStudentSet.size !== sectionStudentSet.size) return false;
+      return studentIds.every(id => sectionStudentSet.has(id));
+    }) || null;
+  };
 
   if (isLoading) {
     return (
@@ -380,6 +436,8 @@ export function AnnouncementsTimeline({
           const courseName = getCourseNameById ? getCourseNameById(announcement.courseId) : '';
           const selected = isSelected(announcement);
           const isItemDeleting = deletingId === announcement.id;
+          const teacherName = getTeacherName(announcement.creatorUserId);
+          const section = getAnnouncementSection(announcement);
 
           return (
             <Box
@@ -442,6 +500,31 @@ export function AnnouncementsTimeline({
                         color="primary"
                       />
                     )}
+                    {teacherName && (
+                      <Chip
+                        icon={<PersonIcon />}
+                        label={teacherName}
+                        size="small"
+                        variant="outlined"
+                        sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                      />
+                    )}
+                    {section ? (
+                      <Chip
+                        icon={<GroupsIcon />}
+                        label={section.name}
+                        size="small"
+                        sx={{ bgcolor: section.color, color: '#fff', '& .MuiChip-icon': { color: '#fff' } }}
+                      />
+                    ) : announcement.assigneeMode !== 'INDIVIDUAL_STUDENTS' ? (
+                      <Chip
+                        icon={<GroupsIcon />}
+                        label="Geral"
+                        size="small"
+                        variant="outlined"
+                        sx={{ color: 'text.secondary', borderColor: 'divider' }}
+                      />
+                    ) : null}
                     <Typography variant="caption" color="text.secondary">
                       {new Date(announcement.creationTime).toLocaleDateString('pt-BR', {
                         day: '2-digit',
@@ -465,12 +548,12 @@ export function AnnouncementsTimeline({
                         </IconButton>
                       </Tooltip>
                     )}
-                    <Tooltip title="Abrir no Classroom">
+                    <Tooltip title="Ver comentários no Classroom">
                       <IconButton
                         size="small"
                         onClick={() => window.open(announcement.alternateLink, '_blank')}
                       >
-                        <OpenInNewIcon fontSize="small" />
+                        <CommentIcon fontSize="small" />
                       </IconButton>
                     </Tooltip>
                     {canDelete && onDeleteAnnouncement && (
