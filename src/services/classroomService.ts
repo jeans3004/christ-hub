@@ -152,6 +152,33 @@ export function createClassroomService(accessToken: string) {
     },
 
     /**
+     * Convida um aluno para uma turma usando a Invitations API.
+     */
+    async inviteStudent(courseId: string, emailAddress: string): Promise<ClassroomInvitation> {
+      const response = await fetch(`${CLASSROOM_API_BASE}/invitations`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          userId: emailAddress,
+          courseId: courseId,
+          role: 'STUDENT',
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        let errorMessage = `Erro ${response.status}: ${response.statusText}`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error?.message || errorMessage;
+        } catch {
+          // keep default message
+        }
+        throw new Error(errorMessage);
+      }
+      return response.json();
+    },
+
+    /**
      * Remove um professor de uma turma
      */
     async removeTeacher(courseId: string, userId: string): Promise<void> {

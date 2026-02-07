@@ -286,6 +286,10 @@ export interface CreateAnnouncementPayload {
   text: string;
   materials?: ClassroomMaterialPayload[];
   state?: 'PUBLISHED' | 'DRAFT';
+  assigneeMode?: 'ALL_STUDENTS' | 'INDIVIDUAL_STUDENTS';
+  individualStudentsOptions?: {
+    studentIds: string[];
+  };
 }
 
 export interface CreateCourseWorkPayload {
@@ -301,6 +305,10 @@ export interface CreateCourseWorkPayload {
   multipleChoiceQuestion?: {
     choices: string[];
   };
+  assigneeMode?: 'ALL_STUDENTS' | 'INDIVIDUAL_STUDENTS';
+  individualStudentsOptions?: {
+    studentIds: string[];
+  };
 }
 
 export interface ClassroomMaterialPayload {
@@ -314,4 +322,21 @@ export interface MultiPostResult {
   courseName: string;
   success: boolean;
   error?: string;
+}
+
+// ============================================
+// SECOES POR AREA DE CONHECIMENTO
+// ============================================
+
+export interface CourseSection {
+  id: string;
+  name: string;
+  color: string;
+  studentIds: string[];
+}
+
+export interface CourseSectionsConfig {
+  courseId: string;
+  sections: CourseSection[];
+  updatedAt: Date;
 }

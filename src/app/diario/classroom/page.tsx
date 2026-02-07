@@ -27,6 +27,8 @@ import {
   Add as AddIcon,
   Topic as TopicIcon,
   PersonAdd as PersonAddIcon,
+  GroupAdd as GroupAddIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -41,7 +43,9 @@ import {
   ExportModal,
   ClassroomComposer,
   TopicsManager,
+  SectionManager,
   InviteTeacherModal,
+  InviteStudentModal,
 } from './components';
 
 type TabValue = 'turmas' | 'atividades' | 'anuncios' | 'alunos' | 'professores';
@@ -53,7 +57,9 @@ export default function ClassroomPage() {
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [composerOpen, setComposerOpen] = useState(false);
   const [topicsOpen, setTopicsOpen] = useState(false);
+  const [sectionsOpen, setSectionsOpen] = useState(false);
   const [inviteTeacherOpen, setInviteTeacherOpen] = useState(false);
+  const [inviteStudentOpen, setInviteStudentOpen] = useState(false);
 
   const {
     courses,
@@ -243,24 +249,44 @@ export default function ClassroomPage() {
               </Button>
             )}
             {hasSelectedCourses && can('classroom:post') && (
-              <Button
-                variant="outlined"
-                color="secondary"
-                startIcon={<TopicIcon />}
-                onClick={() => setTopicsOpen(true)}
-              >
-                Temas
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<TopicIcon />}
+                  onClick={() => setTopicsOpen(true)}
+                >
+                  Temas
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<CategoryIcon />}
+                  onClick={() => setSectionsOpen(true)}
+                >
+                  Secoes
+                </Button>
+              </>
             )}
             {can('classroom:post') && (
-              <Button
-                variant="outlined"
-                color="info"
-                startIcon={<PersonAddIcon />}
-                onClick={() => setInviteTeacherOpen(true)}
-              >
-                Convidar Professor
-              </Button>
+              <>
+                <Button
+                  variant="outlined"
+                  color="info"
+                  startIcon={<GroupAddIcon />}
+                  onClick={() => setInviteStudentOpen(true)}
+                >
+                  Convidar Aluno
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="info"
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => setInviteTeacherOpen(true)}
+                >
+                  Convidar Professor
+                </Button>
+              </>
             )}
             {hasSelectedCourses && can('classroom:export') && (
               <Button
@@ -457,6 +483,23 @@ export default function ClassroomPage() {
           topics={topics}
           onTopicCreated={refreshSelectedCourses}
           getCourseNameById={getCourseNameById}
+        />
+
+        {/* Gerenciador de secoes */}
+        <SectionManager
+          open={sectionsOpen}
+          onClose={() => setSectionsOpen(false)}
+          courses={selectedCourses}
+          students={students}
+          onSectionsUpdated={refreshSelectedCourses}
+        />
+
+        {/* Modal de convite de aluno */}
+        <InviteStudentModal
+          open={inviteStudentOpen}
+          onClose={() => setInviteStudentOpen(false)}
+          courses={courses}
+          onStudentInvited={refreshSelectedCourses}
         />
 
         {/* Modal de convite de professor */}

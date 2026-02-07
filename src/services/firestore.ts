@@ -24,6 +24,7 @@ export {
   relatorioService,
   horarioService,
   classroomTemplateService,
+  classroomSectionService,
   grupoWhatsappService,
   sorteioService,
   extractVariables,

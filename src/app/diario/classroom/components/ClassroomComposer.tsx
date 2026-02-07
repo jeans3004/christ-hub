@@ -66,7 +66,7 @@ import {
 } from '@mui/icons-material';
 import { useDriveStore } from '@/store/driveStore';
 import { useUIStore } from '@/store/uiStore';
-import { classroomTemplateService } from '@/services/firestore';
+import { classroomTemplateService, classroomSectionService } from '@/services/firestore';
 import { createClassroomService } from '@/services/classroomService';
 import type {
   ClassroomCourse,
@@ -75,6 +75,7 @@ import type {
   ClassroomAttachment,
   MultiPostResult,
   ClassroomMaterialPayload,
+  CourseSection,
 } from '@/types/classroom';
 
 interface ClassroomComposerProps {
@@ -132,6 +133,10 @@ export function ClassroomComposer({
   const [templateName, setTemplateName] = useState('');
   const [showSaveTemplate, setShowSaveTemplate] = useState(false);
 
+  // Section state
+  const [sectionsPerCourse, setSectionsPerCourse] = useState<Record<string, CourseSection[]>>({});
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+
   // Attachment dialog state
   const [attachDialogOpen, setAttachDialogOpen] = useState(false);
   const [attachType, setAttachType] = useState<'link' | 'youtubeVideo'>('link');
@@ -144,6 +149,33 @@ export function ClassroomComposer({
       loadTemplates();
     }
   }, [open, activeTab]);
+
+  // Load sections for selected courses
+  useEffect(() => {
+    if (!open || selectedCourseIds.length === 0) {
+      setSectionsPerCourse({});
+      setSelectedSectionId(null);
+      return;
+    }
+
+    const loadSections = async () => {
+      const map: Record<string, CourseSection[]> = {};
+      for (const courseId of selectedCourseIds) {
+        try {
+          const config = await classroomSectionService.getCourseSections(courseId);
+          if (config && config.sections.length > 0) {
+            map[courseId] = config.sections;
+          }
+        } catch {
+          // Ignore errors loading sections
+        }
+      }
+      setSectionsPerCourse(map);
+      setSelectedSectionId(null);
+    };
+
+    loadSections();
+  }, [open, selectedCourseIds]);
 
   // Reset defaultCourseId when it changes
   useEffect(() => {
@@ -270,6 +302,45 @@ export function ClassroomComposer({
     });
   };
 
+  // Compute available sections across selected courses
+  const allCoursesHaveSections = selectedCourseIds.length > 0 &&
+    selectedCourseIds.every(id => sectionsPerCourse[id]?.length > 0);
+
+  const availableSections: CourseSection[] = (() => {
+    if (!allCoursesHaveSections) return [];
+
+    if (selectedCourseIds.length === 1) {
+      return sectionsPerCourse[selectedCourseIds[0]] || [];
+    }
+
+    // Multi-course: find sections with matching names across all courses
+    const firstCourseSections = sectionsPerCourse[selectedCourseIds[0]] || [];
+    return firstCourseSections.filter(section =>
+      selectedCourseIds.slice(1).every(courseId =>
+        (sectionsPerCourse[courseId] || []).some(s => s.name === section.name)
+      )
+    );
+  })();
+
+  // Resolve studentIds for a section across courses
+  const resolveStudentIds = (sectionId: string | null, courseId: string): string[] | null => {
+    if (!sectionId) return null; // "Geral" = ALL_STUDENTS
+
+    const courseSections = sectionsPerCourse[courseId];
+    if (!courseSections) return null;
+
+    // Match by ID first, then by name (for cross-course matching)
+    let section = courseSections.find(s => s.id === sectionId);
+    if (!section) {
+      const selectedSection = availableSections.find(s => s.id === sectionId);
+      if (selectedSection) {
+        section = courseSections.find(s => s.name === selectedSection.name);
+      }
+    }
+
+    return section?.studentIds || null;
+  };
+
   // Send to selected courses
   const handleSend = async () => {
     if (selectedCourseIds.length === 0) {
@@ -306,10 +377,20 @@ export function ClassroomComposer({
       const courseName = course?.name || courseId;
 
       try {
+        // Resolve section targeting
+        const studentIds = resolveStudentIds(selectedSectionId, courseId);
+        const assigneeFields = studentIds
+          ? {
+              assigneeMode: 'INDIVIDUAL_STUDENTS' as const,
+              individualStudentsOptions: { studentIds },
+            }
+          : {};
+
         if (postType === 'announcement') {
           await service.createAnnouncement(courseId, {
             text: text.trim(),
             materials: materials.length > 0 ? materials : undefined,
+            ...assigneeFields,
           });
         } else {
           // Parse due date
@@ -335,6 +416,7 @@ export function ClassroomComposer({
             multipleChoiceQuestion: questionType === 'MULTIPLE_CHOICE_QUESTION' && postType === 'question'
               ? { choices: choices.filter((c) => c.trim()) }
               : undefined,
+            ...assigneeFields,
           });
         }
 
@@ -434,6 +516,7 @@ export function ClassroomComposer({
     setShowResults(false);
     setIsPreview(false);
     setError(null);
+    setSelectedSectionId(null);
   };
 
   // Close handler
@@ -532,6 +615,44 @@ export function ClassroomComposer({
                 ))}
               </Select>
             </FormControl>
+
+            {/* Section selector */}
+            {availableSections.length > 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption" color="text.secondary" sx={{ mb: 0.5, display: 'block' }}>
+                  Direcionar para:
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                  <Chip
+                    label="Geral"
+                    size="small"
+                    variant={selectedSectionId === null ? 'filled' : 'outlined'}
+                    color={selectedSectionId === null ? 'primary' : 'default'}
+                    onClick={() => setSelectedSectionId(null)}
+                  />
+                  {availableSections.map(section => (
+                    <Chip
+                      key={section.id}
+                      label={section.name}
+                      size="small"
+                      variant={selectedSectionId === section.id ? 'filled' : 'outlined'}
+                      onClick={() => setSelectedSectionId(section.id)}
+                      sx={{
+                        borderColor: section.color,
+                        ...(selectedSectionId === section.id
+                          ? { bgcolor: section.color, color: '#fff' }
+                          : { color: section.color }),
+                      }}
+                    />
+                  ))}
+                </Box>
+                {selectedSectionId && (
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                    Publicacao sera direcionada apenas aos alunos desta secao
+                  </Typography>
+                )}
+              </Box>
+            )}
 
             {/* Title (for assignments/questions) */}
             {postType !== 'announcement' && (

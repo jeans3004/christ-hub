@@ -23,6 +23,7 @@ export { horarioService } from './horarioService';
 export { chamadaTrilhaService } from './chamadaTrilhaService';
 export type { ChamadaTrilhaInput } from './chamadaTrilhaService';
 export { classroomTemplateService } from './classroomTemplateService';
+export { classroomSectionService } from './classroomSectionService';
 export { grupoWhatsappService } from './grupoWhatsappService';
 export { sorteioService } from './sorteioService';
 export type { Sorteio } from './sorteioService';

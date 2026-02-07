@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -28,7 +28,8 @@ import {
   MenuItem,
 } from '@mui/material';
 import { Search as SearchIcon, School as SchoolIcon } from '@mui/icons-material';
-import type { ClassroomStudent } from '@/types/classroom';
+import { classroomSectionService } from '@/services/firestore';
+import type { ClassroomStudent, CourseSection } from '@/types/classroom';
 
 interface StudentsTableProps {
   students: ClassroomStudent[];
@@ -45,6 +46,44 @@ export function StudentsTable({
 }: StudentsTableProps) {
   const [search, setSearch] = useState('');
   const [filterCourse, setFilterCourse] = useState<string>('all');
+  const [sectionsMap, setSectionsMap] = useState<Record<string, CourseSection[]>>({});
+  const [filterSection, setFilterSection] = useState<string>('all');
+
+  // Load sections for all courses present in students
+  useEffect(() => {
+    const courseIds = [...new Set(students.map(s => s.courseId))];
+    if (courseIds.length === 0) return;
+
+    const load = async () => {
+      const map: Record<string, CourseSection[]> = {};
+      for (const courseId of courseIds) {
+        try {
+          const config = await classroomSectionService.getCourseSections(courseId);
+          if (config && config.sections.length > 0) {
+            map[courseId] = config.sections;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      setSectionsMap(map);
+    };
+
+    load();
+  }, [students]);
+
+  const hasSections = Object.keys(sectionsMap).length > 0;
+
+  const getStudentSection = (student: ClassroomStudent): CourseSection | null => {
+    const sections = sectionsMap[student.courseId];
+    if (!sections) return null;
+    return sections.find(s => s.studentIds.includes(student.userId)) || null;
+  };
+
+  // Collect all unique section names for filter
+  const allSectionNames = hasSections
+    ? [...new Set(Object.values(sectionsMap).flatMap(sections => sections.map(s => s.name)))]
+    : [];
 
   if (isLoading) {
     return (
@@ -69,6 +108,14 @@ export function StudentsTable({
 
   if (filterCourse !== 'all') {
     filteredStudents = filteredStudents.filter((s) => s.courseId === filterCourse);
+  }
+
+  if (filterSection !== 'all') {
+    filteredStudents = filteredStudents.filter((s) => {
+      const section = getStudentSection(s);
+      if (filterSection === '__none__') return !section;
+      return section?.name === filterSection;
+    });
   }
 
   if (search) {
@@ -102,6 +149,26 @@ export function StudentsTable({
           </FormControl>
         )}
 
+        {/* Filtro por secao */}
+        {hasSections && allSectionNames.length > 0 && (
+          <FormControl size="small" sx={{ minWidth: 180 }}>
+            <InputLabel>Filtrar por Secao</InputLabel>
+            <Select
+              value={filterSection}
+              label="Filtrar por Secao"
+              onChange={(e) => setFilterSection(e.target.value)}
+            >
+              <MenuItem value="all">Todas as Secoes</MenuItem>
+              <MenuItem value="__none__">Sem secao</MenuItem>
+              {allSectionNames.map((name) => (
+                <MenuItem key={name} value={name}>
+                  {name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        )}
+
         {/* Campo de busca */}
         <TextField
           size="small"
@@ -127,6 +194,7 @@ export function StudentsTable({
               {isMultiCourse && <TableCell>Turma</TableCell>}
               <TableCell>Aluno</TableCell>
               <TableCell>Email</TableCell>
+              {hasSections && <TableCell>Secao</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -134,6 +202,7 @@ export function StudentsTable({
               const courseName = getCourseNameById
                 ? getCourseNameById(student.courseId)
                 : '';
+              const section = hasSections ? getStudentSection(student) : null;
 
               return (
                 <TableRow key={`${student.courseId}-${student.userId}`} hover>
@@ -166,13 +235,32 @@ export function StudentsTable({
                       {student.profile.emailAddress}
                     </Typography>
                   </TableCell>
+                  {hasSections && (
+                    <TableCell>
+                      {section ? (
+                        <Chip
+                          label={section.name}
+                          size="small"
+                          sx={{
+                            bgcolor: section.color,
+                            color: '#fff',
+                            fontWeight: 500,
+                          }}
+                        />
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">
+                          —
+                        </Typography>
+                      )}
+                    </TableCell>
+                  )}
                 </TableRow>
               );
             })}
 
             {filteredStudents.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isMultiCourse ? 4 : 3} align="center">
+                <TableCell colSpan={(isMultiCourse ? 4 : 3) + (hasSections ? 1 : 0)} align="center">
                   <Typography variant="body2" color="text.secondary">
                     Nenhum aluno encontrado para &quot;{search}&quot;
                   </Typography>
