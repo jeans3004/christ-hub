@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -76,9 +76,18 @@ export function TopicsManager({
 
   // Estados para criar novo tema
   const [newTopicName, setNewTopicName] = useState('');
-  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>(
-    courses.length === 1 ? [courses[0].id] : []
-  );
+  const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
+
+  // Sincronizar selectedCourseIds quando o modal abre ou cursos mudam
+  useEffect(() => {
+    if (open) {
+      if (courses.length === 1) {
+        setSelectedCourseIds([courses[0].id]);
+      } else {
+        setSelectedCourseIds([]);
+      }
+    }
+  }, [open, courses]);
   const [isCreating, setIsCreating] = useState(false);
 
   // Estados para editar tema
