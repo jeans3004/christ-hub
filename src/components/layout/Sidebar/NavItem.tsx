@@ -11,6 +11,7 @@ import {
   ListItemText,
   Collapse,
 } from '@mui/material';
+import { alpha, useTheme } from '@mui/material/styles';
 import { ExpandLess, ExpandMore } from '@mui/icons-material';
 import { NavItem as NavItemType } from '@/constants/navigation';
 
@@ -35,6 +36,8 @@ export function NavItem({
   openItems,
   isItemActive,
 }: NavItemProps) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const hasChildren = item.children && item.children.length > 0;
 
   const handleClick = () => {
@@ -52,32 +55,36 @@ export function NavItem({
           onClick={handleClick}
           selected={isActive}
           sx={{
-            pl: 2 + depth * 2,
-            py: 0.5,
-            borderRadius: 0,
-            ml: 0,
-            mr: 0,
-            my: 0,
-            color: isActive ? '#F0F6FC' : 'sidebar.text',
-            bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
-            borderLeft: isActive ? '3px solid #3B82F6' : '3px solid transparent',
+            pl: 1.5 + depth * 2,
+            py: 0.625,
+            borderRadius: '8px',
+            my: 0.25,
+            color: isActive
+              ? 'text.primary'
+              : 'text.secondary',
+            bgcolor: isActive
+              ? (isDark ? alpha('#3B82F6', 0.12) : alpha('#3B82F6', 0.08))
+              : 'transparent',
             '&:hover': {
-              bgcolor: isActive ? 'rgba(59, 130, 246, 0.15)' : 'rgba(255, 255, 255, 0.05)',
+              bgcolor: isActive
+                ? (isDark ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.12))
+                : (isDark ? alpha('#FFFFFF', 0.05) : alpha('#0D1117', 0.07)),
+              color: 'text.primary',
             },
             '&.Mui-selected': {
-              bgcolor: 'rgba(59, 130, 246, 0.15)',
-              borderLeft: '3px solid #3B82F6',
-              color: '#F0F6FC',
+              bgcolor: isDark ? alpha('#3B82F6', 0.12) : alpha('#3B82F6', 0.08),
+              color: 'text.primary',
               '&:hover': {
-                bgcolor: 'rgba(59, 130, 246, 0.15)',
+                bgcolor: isDark ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.12),
               },
             },
           }}
         >
           <ListItemIcon
             sx={{
-              minWidth: 36,
-              color: isActive ? '#F0F6FC' : 'sidebar.text',
+              minWidth: 32,
+              color: isActive ? '#3B82F6' : 'text.disabled',
+              '& .MuiSvgIcon-root': { fontSize: '1.2rem' },
             }}
           >
             {item.icon}
@@ -85,11 +92,16 @@ export function NavItem({
           <ListItemText
             primary={item.label}
             primaryTypographyProps={{
-              fontSize: '0.875rem',
-              fontWeight: isActive ? 500 : 400,
+              fontSize: '0.8125rem',
+              fontWeight: isActive ? 600 : 450,
+              letterSpacing: '-0.01em',
             }}
           />
-          {hasChildren && (isOpen ? <ExpandLess /> : <ExpandMore />)}
+          {hasChildren && (
+            isOpen
+              ? <ExpandLess sx={{ fontSize: 18, color: 'text.disabled' }} />
+              : <ExpandMore sx={{ fontSize: 18, color: 'text.disabled' }} />
+          )}
         </ListItemButton>
       </ListItem>
 

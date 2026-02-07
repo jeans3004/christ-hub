@@ -2,7 +2,7 @@
  * Secao de navegacao do sidebar.
  */
 
-import { Box, List, Typography, Divider } from '@mui/material';
+import { Box, List, Typography } from '@mui/material';
 import { NavSection as NavSectionType, NavItem as NavItemType } from '@/constants/navigation';
 import { NavItem } from './NavItem';
 
@@ -30,26 +30,25 @@ export function NavSection({
   if (items.length === 0) return null;
 
   return (
-    <Box>
+    <Box sx={{ mb: 0.5 }}>
       {section.title && (
         <Typography
           variant="overline"
           sx={{
             px: 2,
-            pt: 2,
-            pb: 1,
-            mt: 1,
+            pt: index === 0 ? 1.5 : 2,
+            pb: 0.75,
             display: 'block',
-            color: 'sidebar.section',
-            fontSize: '0.6875rem',
+            color: 'text.disabled',
+            fontSize: '0.625rem',
             fontWeight: 600,
-            letterSpacing: '0.05em',
+            letterSpacing: '0.08em',
           }}
         >
           {section.title}
         </Typography>
       )}
-      <List disablePadding>
+      <List disablePadding sx={{ px: 1 }}>
         {items.map((item) => (
           <NavItem
             key={item.label}
@@ -63,7 +62,6 @@ export function NavSection({
           />
         ))}
       </List>
-      {!isLast && section.title && <Divider sx={{ my: 0.25, mx: 0 }} />}
     </Box>
   );
 }

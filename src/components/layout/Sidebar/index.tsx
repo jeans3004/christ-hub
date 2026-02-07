@@ -8,7 +8,8 @@
  */
 
 import { useState, useMemo } from 'react';
-import { Box, Drawer, Toolbar, Tooltip, useTheme, useMediaQuery } from '@mui/material';
+import { Box, Drawer, Toolbar, useTheme, useMediaQuery } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useRouter, usePathname } from 'next/navigation';
 import { useUIStore } from '@/store/uiStore';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -25,6 +26,7 @@ import { NavItemCollapsed } from './NavItemCollapsed';
 
 export default function Sidebar() {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const router = useRouter();
   const pathname = usePathname();
@@ -92,13 +94,15 @@ export default function Sidebar() {
     return items;
   }, [pathname]);
 
+  const sidebarBg = isDark ? '#0D1117' : '#FFFFFF';
+  const sidebarBorder = isDark ? alpha('#FFFFFF', 0.08) : '#F0F0F0';
+
   const drawerContent = (
-    <Box sx={{ overflow: 'auto', bgcolor: 'sidebar.background', height: '100%' }}>
+    <Box sx={{ overflow: 'auto', bgcolor: sidebarBg, height: '100%' }}>
       <Toolbar />
       {!isCollapsed && <RoleBadge />}
       {isCollapsed ? (
-        // Modo collapsed: apenas icones com tooltips
-        <Box sx={{ pt: 0 }}>
+        <Box sx={{ pt: 0.5 }}>
           {flattenedItems.map((item, index) => (
             <NavItemCollapsed
               key={`${item.label}-${index}`}
@@ -109,7 +113,6 @@ export default function Sidebar() {
           ))}
         </Box>
       ) : (
-        // Modo expanded: layout completo
         NAVIGATION.map((section, index) => {
           if (!canSeeSection(section)) return null;
           const filteredItems = filterItems(section.items);
@@ -143,7 +146,9 @@ export default function Sidebar() {
           '& .MuiDrawer-paper': {
             boxSizing: 'border-box',
             width: DRAWER_WIDTH,
-            bgcolor: 'sidebar.background',
+            bgcolor: sidebarBg,
+            borderRight: '1px solid',
+            borderColor: sidebarBorder,
           },
         }}
       >
@@ -171,9 +176,9 @@ export default function Sidebar() {
         '& .MuiDrawer-paper': {
           width: currentWidth,
           boxSizing: 'border-box',
-          bgcolor: 'sidebar.background',
-          borderRight: 1,
-          borderColor: 'divider',
+          bgcolor: sidebarBg,
+          borderRight: '1px solid',
+          borderColor: sidebarBorder,
           overflowX: 'hidden',
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
