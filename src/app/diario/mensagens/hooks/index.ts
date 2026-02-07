@@ -7,3 +7,4 @@ export { useGrupos } from './useGrupos';
 export { usePollSender } from './usePollSender';
 export { useButtonSender } from './useButtonSender';
 export { useQuickActions } from './useQuickActions';
+export { useChat } from './useChat';

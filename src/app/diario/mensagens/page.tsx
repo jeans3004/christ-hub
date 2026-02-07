@@ -18,7 +18,7 @@ import {
   Card,
   CardContent,
 } from '@mui/material';
-import { Send, History, WhatsApp, Group, Description, Poll, SmartButton } from '@mui/icons-material';
+import { Send, History, WhatsApp, Group, Description, Poll, SmartButton, Chat } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useMensagensLoader, useMensagensActions, useGrupos, useQuickActions } from './hooks';
@@ -33,6 +33,7 @@ import { GruposTab } from './components/grupos';
 import { TemplatesTab } from './components/templates';
 import { PollComposer } from './components/enquetes';
 import { ButtonComposer } from './components/buttons';
+import { ConversasTab } from './components/conversas';
 import { TabValue, QuickActionType, TemplatePreset } from './types';
 import { getVariaveisSistema, TEMPLATE_PRESETS } from './constants';
 
@@ -42,7 +43,7 @@ export default function MensagensPage() {
   const canSend = can('mensagens:send');
 
   // Tab ativa
-  const [activeTab, setActiveTab] = useState<TabValue>('enviar');
+  const [activeTab, setActiveTab] = useState<TabValue>('conversas');
 
   // Carregar dados
   const {
@@ -231,6 +232,12 @@ export default function MensagensPage() {
             scrollButtons="auto"
           >
             <Tab
+              icon={<Chat />}
+              iconPosition="start"
+              label="Conversas"
+              value="conversas"
+            />
+            <Tab
               icon={<Send />}
               iconPosition="start"
               label="Enviar"
@@ -272,7 +279,12 @@ export default function MensagensPage() {
             />
           </Tabs>
 
-          <Box sx={{ p: 3 }}>
+          <Box sx={{ p: activeTab === 'conversas' ? 0 : 3 }}>
+            {/* Tab: Conversas */}
+            {activeTab === 'conversas' && (
+              <ConversasTab active={activeTab === 'conversas'} />
+            )}
+
             {/* Tab: Enviar */}
             {activeTab === 'enviar' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>

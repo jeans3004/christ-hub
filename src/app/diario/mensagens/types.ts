@@ -207,7 +207,30 @@ export interface SendResult {
 }
 
 // Tab ativa na pagina
-export type TabValue = 'enviar' | 'grupos' | 'templates' | 'enquetes' | 'botoes' | 'historico';
+export type TabValue = 'conversas' | 'enviar' | 'grupos' | 'templates' | 'enquetes' | 'botoes' | 'historico';
+
+// ===== TIPOS DO CHAT (CONVERSAS) =====
+
+export interface ChatConversation {
+  remoteJid: string;
+  name: string;
+  isGroup: boolean;
+  lastMessage: string;
+  lastMessageTimestamp: number;
+  unreadCount: number;
+  profilePicUrl: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  fromMe: boolean;
+  remoteJid: string;
+  text: string;
+  mediaType: string | null;
+  timestamp: number;
+  pushName: string;
+  status: string;
+}
 
 // ===== TIPOS DE ENQUETES/POLLS =====
 

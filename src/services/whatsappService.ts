@@ -924,6 +924,111 @@ export const whatsappService = {
   },
 
   /**
+   * Buscar lista de conversas (chats).
+   */
+  async findChats(): Promise<Record<string, unknown>[]> {
+    checkConfig();
+
+    const response = await fetch(
+      `${EVOLUTION_API_URL}/chat/findChats/${INSTANCE_NAME}`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({}),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return Array.isArray(data) ? data : [];
+  },
+
+  /**
+   * Buscar mensagens de uma conversa.
+   * Tenta formato Evolution API 2.x com fallback.
+   */
+  async findMessages(
+    remoteJid: string,
+    limit = 50
+  ): Promise<Record<string, unknown>[]> {
+    checkConfig();
+
+    // Tentar formato com where.key.remoteJid (Evolution API 2.x)
+    let response = await fetch(
+      `${EVOLUTION_API_URL}/chat/findMessages/${INSTANCE_NAME}`,
+      {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify({
+          where: { key: { remoteJid } },
+          limit,
+        }),
+      }
+    );
+
+    // Se falhou, tentar formato alternativo
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      console.warn('[WhatsApp] findMessages formato 1 falhou:', response.status, errText);
+
+      response = await fetch(
+        `${EVOLUTION_API_URL}/chat/findMessages/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ remoteJid, limit }),
+        }
+      );
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('[WhatsApp] findMessages error:', response.status, JSON.stringify(errorData));
+      throw new Error(errorData.message || `HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    // Resposta pode ser array direto, ou {messages: [...]} , ou {records: [...]}
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.messages)) return data.messages;
+    if (Array.isArray(data?.records)) return data.records;
+    return [];
+  },
+
+  /**
+   * Buscar foto de perfil de um contato.
+   */
+  async fetchProfilePicture(
+    number: string
+  ): Promise<{ profilePictureUrl?: string }> {
+    checkConfig();
+
+    try {
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/chat/fetchProfilePictureUrl/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({ number }),
+        }
+      );
+
+      if (!response.ok) {
+        return {};
+      }
+
+      const data = await response.json();
+      return { profilePictureUrl: data?.profilePictureUrl || data?.profilePicUrl };
+    } catch {
+      return {};
+    }
+  },
+
+  /**
    * Enviar sticker (figurinha).
    */
   async sendSticker(
