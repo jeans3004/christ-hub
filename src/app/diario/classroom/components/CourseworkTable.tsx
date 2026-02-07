@@ -6,7 +6,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -52,11 +52,13 @@ import {
   Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import { classroomSectionService } from '@/services/firestore';
 import type {
   ClassroomCourseWork,
   ClassroomStudent,
   ClassroomStudentSubmission,
   ClassroomTopic,
+  CourseSection,
 } from '@/types/classroom';
 
 interface CourseworkTableProps {
@@ -121,6 +123,7 @@ function CourseworkRow({
   isSelected,
   onToggleSelect,
   isDeleting,
+  sectionsMap,
 }: {
   cw: ClassroomCourseWork;
   students: ClassroomStudent[];
@@ -137,6 +140,7 @@ function CourseworkRow({
   isSelected: boolean;
   onToggleSelect: () => void;
   isDeleting: boolean;
+  sectionsMap: Record<string, CourseSection[]>;
 }) {
   const [open, setOpen] = useState(false);
   const [isItemDeleting, setIsItemDeleting] = useState(false);
@@ -157,6 +161,11 @@ function CourseworkRow({
   const topic = topics.find((t) => t.topicId === cw.topicId);
   const courseName = getCourseNameById ? getCourseNameById(cw.courseId) : '';
   const courseTopics = topics.filter((t) => t.courseId === cw.courseId);
+  const courseSections = sectionsMap[cw.courseId] || [];
+
+  const getStudentSection = (userId: string): CourseSection | null => {
+    return courseSections.find(s => s.studentIds.includes(userId)) || null;
+  };
 
   const handleExpand = () => {
     if (!open && cwSubmissions.length === 0) {
@@ -460,10 +469,27 @@ function CourseworkRow({
                         );
                       }
 
+                      const section = student ? getStudentSection(student.userId) : null;
+
                       return (
                         <TableRow key={sub.id}>
                           <TableCell>
-                            {student?.profile.name.fullName || 'Aluno desconhecido'}
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {student?.profile.name.fullName || 'Aluno desconhecido'}
+                              {section && (
+                                <Chip
+                                  label={section.name}
+                                  size="small"
+                                  sx={{
+                                    bgcolor: section.color,
+                                    color: '#fff',
+                                    fontWeight: 500,
+                                    fontSize: '0.65rem',
+                                    height: 20,
+                                  }}
+                                />
+                              )}
+                            </Box>
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -625,6 +651,30 @@ export function CourseworkTable({
   const [filterCourse, setFilterCourse] = useState<string>('all');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sectionsMap, setSectionsMap] = useState<Record<string, CourseSection[]>>({});
+
+  // Load sections for all courses present in coursework
+  useEffect(() => {
+    const courseIds = [...new Set(students.map(s => s.courseId))];
+    if (courseIds.length === 0) return;
+
+    const load = async () => {
+      const map: Record<string, CourseSection[]> = {};
+      for (const courseId of courseIds) {
+        try {
+          const config = await classroomSectionService.getCourseSections(courseId);
+          if (config && config.sections.length > 0) {
+            map[courseId] = config.sections;
+          }
+        } catch {
+          // ignore
+        }
+      }
+      setSectionsMap(map);
+    };
+
+    load();
+  }, [students]);
 
   if (isLoading) {
     return (
@@ -871,6 +921,7 @@ export function CourseworkTable({
                 isSelected={isSelected(cw)}
                 onToggleSelect={() => toggleSelection(cw)}
                 isDeleting={isDeleting}
+                sectionsMap={sectionsMap}
               />
             ))}
           </TableBody>
