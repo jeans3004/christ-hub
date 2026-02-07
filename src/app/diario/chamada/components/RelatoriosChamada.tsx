@@ -293,7 +293,7 @@ export function RelatoriosChamada({
             onChange={(e) => setDataInicio(e.target.value)}
             size="small"
             InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: 150 }}
+            sx={{ minWidth: { xs: '100%', sm: 150 } }}
           />
 
           {/* Data Fim (apenas para periodo) */}
@@ -305,13 +305,13 @@ export function RelatoriosChamada({
               onChange={(e) => setDataFim(e.target.value)}
               size="small"
               InputLabelProps={{ shrink: true }}
-              sx={{ minWidth: 150 }}
+              sx={{ minWidth: { xs: '100%', sm: 150 } }}
             />
           )}
 
           {/* Turma (apenas para relatorio por turma) */}
           {tipoRelatorio === 'turma' && (
-            <FormControl size="small" sx={{ minWidth: 200 }}>
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
               <InputLabel>Turma</InputLabel>
               <Select
                 value={turmaId}
@@ -335,6 +335,7 @@ export function RelatoriosChamada({
             onClick={loadRelatorio}
             disabled={loading || (tipoRelatorio === 'turma' && !turmaId)}
             size="small"
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             {loading ? <CircularProgress size={20} /> : 'Gerar Relatorio'}
           </Button>

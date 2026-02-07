@@ -30,9 +30,6 @@ import {
   Tabs,
   Tab,
   Collapse,
-  FormControl,
-  Select,
-  MenuItem,
 } from '@mui/material';
 import {
   Close as CloseIcon,
@@ -287,15 +284,6 @@ export function SectionManager({
       const studentIndex = section.studentIds.indexOf(studentUserId);
 
       if (studentIndex === -1) {
-        // Remove from other sections first
-        sections.forEach((s, i) => {
-          if (i !== sectionIndex && s.studentIds.includes(studentUserId)) {
-            sections[i] = {
-              ...s,
-              studentIds: s.studentIds.filter(id => id !== studentUserId),
-            };
-          }
-        });
         section.studentIds = [...section.studentIds, studentUserId];
       } else {
         section.studentIds = section.studentIds.filter(id => id !== studentUserId);
@@ -307,36 +295,27 @@ export function SectionManager({
     setHasChanges(true);
   };
 
-  const getStudentSection = (userId: string): CourseSection | null => {
-    return currentSections.find(s => s.studentIds.includes(userId)) || null;
+  const getStudentSections = (userId: string): CourseSection[] => {
+    return currentSections.filter(s => s.studentIds.includes(userId));
   };
 
-  const handleSetStudentSection = (studentUserId: string, sectionId: string) => {
+  const handleToggleStudentSection = (studentUserId: string, sectionId: string) => {
     if (!selectedCourse) return;
 
     setSectionsMap(prev => {
       const sections = [...(prev[selectedCourse.id] || [])];
+      const targetIndex = sections.findIndex(s => s.id === sectionId);
+      if (targetIndex === -1) return prev;
 
-      // Remove from all sections first
-      sections.forEach((s, i) => {
-        if (s.studentIds.includes(studentUserId)) {
-          sections[i] = {
-            ...s,
-            studentIds: s.studentIds.filter(id => id !== studentUserId),
-          };
-        }
-      });
+      const target = sections[targetIndex];
+      const isInSection = target.studentIds.includes(studentUserId);
 
-      // Add to target section (if not "none")
-      if (sectionId !== '__none__') {
-        const targetIndex = sections.findIndex(s => s.id === sectionId);
-        if (targetIndex !== -1) {
-          sections[targetIndex] = {
-            ...sections[targetIndex],
-            studentIds: [...sections[targetIndex].studentIds, studentUserId],
-          };
-        }
-      }
+      sections[targetIndex] = {
+        ...target,
+        studentIds: isInSection
+          ? target.studentIds.filter(id => id !== studentUserId)
+          : [...target.studentIds, studentUserId],
+      };
 
       return { ...prev, [selectedCourse.id]: sections };
     });
@@ -611,7 +590,7 @@ export function SectionManager({
                     <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
                       <List dense disablePadding>
                         {filteredStudents.map(student => {
-                          const currentSection = getStudentSection(student.userId);
+                          const studentSections = getStudentSections(student.userId);
                           return (
                             <ListItem
                               key={student.userId}
@@ -632,39 +611,30 @@ export function SectionManager({
                                   {student.profile.emailAddress}
                                 </Typography>
                               </Box>
-                              <FormControl size="small" sx={{ minWidth: 180 }}>
-                                <Select
-                                  value={currentSection?.id || '__none__'}
-                                  onChange={(e) => handleSetStudentSection(student.userId, e.target.value)}
-                                  displayEmpty
-                                  sx={{
-                                    fontSize: '0.8rem',
-                                    '& .MuiSelect-select': { py: 0.75 },
-                                  }}
-                                >
-                                  <MenuItem value="__none__">
-                                    <Typography variant="body2" color="text.secondary">
-                                      Sem secao
-                                    </Typography>
-                                  </MenuItem>
-                                  {currentSections.map(section => (
-                                    <MenuItem key={section.id} value={section.id}>
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Box
-                                          sx={{
-                                            width: 10,
-                                            height: 10,
-                                            borderRadius: '50%',
-                                            bgcolor: section.color,
-                                            flexShrink: 0,
-                                          }}
-                                        />
-                                        <Typography variant="body2">{section.name}</Typography>
-                                      </Box>
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
+                              <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                                {currentSections.map(section => {
+                                  const isActive = studentSections.some(s => s.id === section.id);
+                                  return (
+                                    <Chip
+                                      key={section.id}
+                                      label={section.name}
+                                      size="small"
+                                      variant={isActive ? 'filled' : 'outlined'}
+                                      onClick={() => handleToggleStudentSection(student.userId, section.id)}
+                                      sx={{
+                                        cursor: 'pointer',
+                                        bgcolor: isActive ? section.color : 'transparent',
+                                        color: isActive ? '#fff' : 'text.primary',
+                                        borderColor: section.color,
+                                        fontWeight: isActive ? 500 : 400,
+                                        '&:hover': {
+                                          bgcolor: isActive ? section.color : `${section.color}22`,
+                                        },
+                                      }}
+                                    />
+                                  );
+                                })}
+                              </Box>
                             </ListItem>
                           );
                         })}

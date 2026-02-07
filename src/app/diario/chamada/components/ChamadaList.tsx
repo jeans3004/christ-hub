@@ -429,7 +429,7 @@ export function ChamadaList({
       </Box>
 
       {/* Action Buttons */}
-      <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end', flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
         <Button
           variant="outlined"
           onClick={onOpenConteudo}

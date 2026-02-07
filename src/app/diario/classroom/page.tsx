@@ -412,6 +412,7 @@ export default function ClassroomPage() {
         {activeTab === 'anuncios' && hasSelectedCourses && (
           <AnnouncementsTimeline
             announcements={announcements}
+            teachers={teachers}
             isLoading={isLoadingDetails}
             onNewAnnouncement={can('classroom:post') ? () => setComposerOpen(true) : undefined}
             onDeleteAnnouncement={can('classroom:post') ? handleDeleteAnnouncement : undefined}

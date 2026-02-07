@@ -160,6 +160,9 @@ export interface ClassroomAnnouncement {
   updateTime: string;
   scheduledTime?: string;
   assigneeMode?: 'ALL_STUDENTS' | 'INDIVIDUAL_STUDENTS';
+  individualStudentsOptions?: {
+    studentIds: string[];
+  };
   creatorUserId: string;
 }
 

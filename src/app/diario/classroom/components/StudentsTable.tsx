@@ -74,10 +74,10 @@ export function StudentsTable({
 
   const hasSections = Object.keys(sectionsMap).length > 0;
 
-  const getStudentSection = (student: ClassroomStudent): CourseSection | null => {
+  const getStudentSections = (student: ClassroomStudent): CourseSection[] => {
     const sections = sectionsMap[student.courseId];
-    if (!sections) return null;
-    return sections.find(s => s.studentIds.includes(student.userId)) || null;
+    if (!sections) return [];
+    return sections.filter(s => s.studentIds.includes(student.userId));
   };
 
   // Collect all unique section names for filter
@@ -112,9 +112,9 @@ export function StudentsTable({
 
   if (filterSection !== 'all') {
     filteredStudents = filteredStudents.filter((s) => {
-      const section = getStudentSection(s);
-      if (filterSection === '__none__') return !section;
-      return section?.name === filterSection;
+      const studentSections = getStudentSections(s);
+      if (filterSection === '__none__') return studentSections.length === 0;
+      return studentSections.some(sec => sec.name === filterSection);
     });
   }
 
@@ -202,7 +202,7 @@ export function StudentsTable({
               const courseName = getCourseNameById
                 ? getCourseNameById(student.courseId)
                 : '';
-              const section = hasSections ? getStudentSection(student) : null;
+              const studentSections = hasSections ? getStudentSections(student) : [];
 
               return (
                 <TableRow key={`${student.courseId}-${student.userId}`} hover>
@@ -237,16 +237,21 @@ export function StudentsTable({
                   </TableCell>
                   {hasSections && (
                     <TableCell>
-                      {section ? (
-                        <Chip
-                          label={section.name}
-                          size="small"
-                          sx={{
-                            bgcolor: section.color,
-                            color: '#fff',
-                            fontWeight: 500,
-                          }}
-                        />
+                      {studentSections.length > 0 ? (
+                        <Box sx={{ display: 'flex', gap: 0.5, flexWrap: 'wrap' }}>
+                          {studentSections.map(section => (
+                            <Chip
+                              key={section.id}
+                              label={section.name}
+                              size="small"
+                              sx={{
+                                bgcolor: section.color,
+                                color: '#fff',
+                                fontWeight: 500,
+                              }}
+                            />
+                          ))}
+                        </Box>
                       ) : (
                         <Typography variant="caption" color="text.disabled">
                           —

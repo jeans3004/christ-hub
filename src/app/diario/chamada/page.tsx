@@ -221,19 +221,19 @@ export default function ChamadaPage() {
             icon={<EditIcon />}
             iconPosition="start"
             label="Registrar Chamada"
-            sx={{ minHeight: 56 }}
+            sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
           />
           <Tab
             icon={<ReportIcon />}
             iconPosition="start"
             label="Relatorios"
-            sx={{ minHeight: 56 }}
+            sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
           />
           <Tab
             icon={<TrilhasIcon />}
             iconPosition="start"
             label="Trilhas"
-            sx={{ minHeight: 56 }}
+            sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
           />
         </Tabs>
       </Paper>

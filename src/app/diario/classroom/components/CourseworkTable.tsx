@@ -164,8 +164,8 @@ function CourseworkRow({
   const courseTopics = topics.filter((t) => t.courseId === cw.courseId);
   const courseSections = sectionsMap[cw.courseId] || [];
 
-  const getStudentSection = (userId: string): CourseSection | null => {
-    return courseSections.find(s => s.studentIds.includes(userId)) || null;
+  const getStudentSections = (userId: string): CourseSection[] => {
+    return courseSections.filter(s => s.studentIds.includes(userId));
   };
 
   const handleExpand = () => {
@@ -470,15 +470,16 @@ function CourseworkRow({
                         );
                       }
 
-                      const section = student ? getStudentSection(student.userId) : null;
+                      const sections = student ? getStudentSections(student.userId) : [];
 
                       return (
                         <TableRow key={sub.id}>
                           <TableCell>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexWrap: 'wrap' }}>
                               {student?.profile.name.fullName || 'Aluno desconhecido'}
-                              {section && (
+                              {sections.map(section => (
                                 <Chip
+                                  key={section.id}
                                   label={section.name}
                                   size="small"
                                   sx={{
@@ -489,7 +490,7 @@ function CourseworkRow({
                                     height: 20,
                                   }}
                                 />
-                              )}
+                              ))}
                             </Box>
                           </TableCell>
                           <TableCell>
