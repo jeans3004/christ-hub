@@ -14,8 +14,8 @@ export async function GET() {
     const normalized = chats
       .filter((c) => {
         const id = (c.id as string) || (c.remoteJid as string) || '';
-        // Filtrar status@broadcast e grupos (apenas conversas individuais e grupos)
-        return id && id !== 'status@broadcast';
+        // Apenas JIDs validos: contatos (@s.whatsapp.net) e grupos (@g.us)
+        return id && (id.endsWith('@s.whatsapp.net') || id.endsWith('@g.us'));
       })
       .map((c) => {
         const id = (c.id as string) || (c.remoteJid as string) || '';

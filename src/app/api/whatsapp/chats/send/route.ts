@@ -21,9 +21,9 @@ export async function POST(request: NextRequest) {
     const body: ChatSendRequest = await request.json();
     const { remoteJid, message } = body;
 
-    if (!remoteJid) {
+    if (!remoteJid || !(remoteJid.endsWith('@s.whatsapp.net') || remoteJid.endsWith('@g.us'))) {
       return NextResponse.json(
-        { error: 'remoteJid e obrigatorio' },
+        { error: 'remoteJid invalido — deve ser um JID WhatsApp valido' },
         { status: 400 }
       );
     }

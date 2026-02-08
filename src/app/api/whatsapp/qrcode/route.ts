@@ -20,6 +20,9 @@ export async function GET() {
       });
     }
 
+    // Garantir syncFullHistory na instancia
+    await whatsappService.updateInstanceSettings().catch(() => {});
+
     // Se nao esta conectado, obter QR Code
     const result = await whatsappService.getQRCode();
 

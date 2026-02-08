@@ -6,9 +6,18 @@
 import { NextResponse } from 'next/server';
 import { whatsappService } from '@/services/whatsappService';
 
+// Flag para atualizar settings apenas uma vez por ciclo de deploy
+let settingsUpdated = false;
+
 export async function GET() {
   try {
     const status = await whatsappService.getStatus();
+
+    // Atualizar syncFullHistory na instancia uma vez (quando conectado)
+    if (status.connected && !settingsUpdated) {
+      settingsUpdated = true;
+      whatsappService.updateInstanceSettings().catch(() => {});
+    }
 
     return NextResponse.json({
       connected: status.connected,

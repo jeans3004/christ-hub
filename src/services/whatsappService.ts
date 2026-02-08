@@ -524,6 +524,7 @@ export const whatsappService = {
             instanceName: INSTANCE_NAME,
             qrcode: true,
             integration: 'WHATSAPP-BAILEYS',
+            syncFullHistory: true,
           }),
         }
       );
@@ -540,6 +541,55 @@ export const whatsappService = {
       return { success: true };
     } catch (error) {
       console.error('WhatsApp createInstance error:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  },
+
+  /**
+   * Atualizar configuracoes da instancia (syncFullHistory) e reiniciar.
+   */
+  async updateInstanceSettings(): Promise<{ success: boolean; error?: string }> {
+    checkConfig();
+
+    try {
+      // 1. Aplicar settings via POST /settings/set
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/settings/set/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({
+            rejectCall: false,
+            msgCall: '',
+            groupsIgnore: false,
+            alwaysOnline: false,
+            readMessages: false,
+            readStatus: false,
+            syncFullHistory: true,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        return { success: false, error: errorData.message || `HTTP ${response.status}` };
+      }
+
+      // 2. Reiniciar instancia para aplicar
+      await fetch(
+        `${EVOLUTION_API_URL}/instance/restart/${INSTANCE_NAME}`,
+        {
+          method: 'PUT',
+          headers: getHeaders(),
+        }
+      ).catch(() => {});
+
+      return { success: true };
+    } catch (error) {
+      console.error('WhatsApp updateInstanceSettings error:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
