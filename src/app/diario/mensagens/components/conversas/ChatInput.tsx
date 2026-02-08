@@ -35,12 +35,12 @@ export function ChatInput({ onSend, disabled, sending }: ChatInputProps) {
     <Box
       sx={{
         display: 'flex',
+        alignItems: 'flex-end',
         gap: 1,
-        p: 1,
-        borderTop: 1,
-        borderColor: 'divider',
+        px: 1.5,
+        py: 0.75,
         bgcolor: (theme) =>
-          theme.palette.mode === 'dark' ? '#1F2C33' : '#F0F2F5',
+          theme.palette.mode === 'dark' ? '#202C33' : '#F0F2F5',
       }}
     >
       <TextField
@@ -48,28 +48,42 @@ export function ChatInput({ onSend, disabled, sending }: ChatInputProps) {
         size="small"
         multiline
         maxRows={4}
-        placeholder="Digite uma mensagem..."
+        placeholder="Digite uma mensagem"
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={handleKeyDown}
         disabled={disabled || sending}
         sx={{
           '& .MuiOutlinedInput-root': {
-            borderRadius: 2,
-            bgcolor: 'background.paper',
+            borderRadius: '8px',
+            bgcolor: (theme) =>
+              theme.palette.mode === 'dark' ? '#2A3942' : '#FFFFFF',
+            '& fieldset': { border: 'none' },
+            fontSize: '0.9375rem',
           },
         }}
       />
       <IconButton
-        color="primary"
         onClick={handleSend}
         disabled={!text.trim() || disabled || sending}
         sx={{
-          bgcolor: '#25D366',
+          width: 40,
+          height: 40,
+          borderRadius: '50%',
+          bgcolor: '#00A884',
           color: '#fff',
-          '&:hover': { bgcolor: '#1DA851' },
-          '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
-          alignSelf: 'flex-end',
+          flexShrink: 0,
+          '&:hover': { bgcolor: '#008f6f' },
+          '&.Mui-disabled': {
+            bgcolor: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255,255,255,0.08)'
+                : 'rgba(0,0,0,0.08)',
+            color: (theme) =>
+              theme.palette.mode === 'dark'
+                ? 'rgba(255,255,255,0.3)'
+                : 'rgba(0,0,0,0.3)',
+          },
         }}
       >
         <Send fontSize="small" />

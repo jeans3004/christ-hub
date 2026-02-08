@@ -974,6 +974,37 @@ export const whatsappService = {
   },
 
   /**
+   * Buscar contatos da instancia.
+   * POST /chat/findContacts/{instance} body: {}
+   * Retorna array com {remoteJid, pushName, profilePicUrl, ...}
+   */
+  async findContacts(): Promise<Record<string, unknown>[]> {
+    checkConfig();
+
+    try {
+      const response = await fetch(
+        `${EVOLUTION_API_URL}/chat/findContacts/${INSTANCE_NAME}`,
+        {
+          method: 'POST',
+          headers: getHeaders(),
+          body: JSON.stringify({}),
+        }
+      );
+
+      if (!response.ok) {
+        console.warn('[WhatsApp] findContacts failed:', response.status);
+        return [];
+      }
+
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.warn('[WhatsApp] findContacts error:', (error as Error).message);
+      return [];
+    }
+  },
+
+  /**
    * Buscar lista de conversas (chats).
    */
   async findChats(): Promise<Record<string, unknown>[]> {
@@ -1042,9 +1073,14 @@ export const whatsappService = {
     }
 
     const data = await response.json();
-    // Resposta pode ser array direto, ou {messages: [...]} , ou {records: [...]}
+    // Resposta pode ser:
+    // - array direto: [msg, msg, ...]
+    // - {messages: [msg, ...]}
+    // - {messages: {total, pages, records: [msg, ...]}}  (Evolution API 2.3.x paginado)
+    // - {records: [msg, ...]}
     if (Array.isArray(data)) return data;
     if (Array.isArray(data?.messages)) return data.messages;
+    if (Array.isArray(data?.messages?.records)) return data.messages.records;
     if (Array.isArray(data?.records)) return data.records;
     return [];
   },

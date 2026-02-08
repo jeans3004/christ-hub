@@ -18,7 +18,7 @@ interface ChatBubbleProps {
 }
 
 export function ChatBubble({ message }: ChatBubbleProps) {
-  const { fromMe, text, mediaType, timestamp } = message;
+  const { fromMe, text, mediaType, timestamp, status } = message;
 
   const time = timestamp
     ? new Date(timestamp * 1000).toLocaleTimeString('pt-BR', {
@@ -32,64 +32,113 @@ export function ChatBubble({ message }: ChatBubbleProps) {
 
   if (!displayText) return null;
 
+  // Checkmarks for sent messages
+  const checkmark = fromMe
+    ? status === 'READ' || status === 'PLAYED'
+      ? ' ✓✓'
+      : status === 'DELIVERY_ACK' || status === 'DELIVERED'
+        ? ' ✓✓'
+        : ' ✓'
+    : '';
+
   return (
     <Box
       sx={{
         display: 'flex',
         justifyContent: fromMe ? 'flex-end' : 'flex-start',
-        mb: 0.5,
-        px: 1,
+        mb: 0.25,
+        px: 1.5,
       }}
     >
       <Box
         sx={{
-          maxWidth: '75%',
+          maxWidth: '65%',
+          position: 'relative',
           px: 1.5,
-          py: 0.75,
-          borderRadius: 2,
-          borderTopLeftRadius: fromMe ? 8 : 0,
-          borderTopRightRadius: fromMe ? 0 : 8,
+          py: 0.5,
+          pb: 0.75,
+          borderRadius: '7.5px',
+          borderTopLeftRadius: fromMe ? '7.5px' : 0,
+          borderTopRightRadius: fromMe ? 0 : '7.5px',
           bgcolor: fromMe
-            ? (theme) => (theme.palette.mode === 'dark' ? '#005C4B' : '#DCF8C6')
-            : (theme) => (theme.palette.mode === 'dark' ? '#1F2C33' : '#FFFFFF'),
-          boxShadow: '0 1px 0.5px rgba(0,0,0,0.13)',
+            ? (theme) => (theme.palette.mode === 'dark' ? '#005C4B' : '#D9FDD3')
+            : (theme) => (theme.palette.mode === 'dark' ? '#202C33' : '#FFFFFF'),
+          boxShadow: '0 1px 0.5px rgba(11,20,26,0.13)',
+          // Tail triangle
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            width: 0,
+            height: 0,
+            ...(fromMe
+              ? {
+                  right: -8,
+                  borderLeft: '8px solid',
+                  borderLeftColor: (theme: { palette: { mode: string } }) =>
+                    theme.palette.mode === 'dark' ? '#005C4B' : '#D9FDD3',
+                  borderBottom: '8px solid transparent',
+                }
+              : {
+                  left: -8,
+                  borderRight: '8px solid',
+                  borderRightColor: (theme: { palette: { mode: string } }) =>
+                    theme.palette.mode === 'dark' ? '#202C33' : '#FFFFFF',
+                  borderBottom: '8px solid transparent',
+                }),
+          },
         }}
       >
         {mediaLabel && text && (
           <Typography
-            variant="caption"
+            component="span"
             sx={{
               display: 'block',
               mb: 0.25,
               fontStyle: 'italic',
               opacity: 0.7,
+              fontSize: '0.8rem',
             }}
           >
             {mediaLabel}
           </Typography>
         )}
         <Typography
-          variant="body2"
+          component="span"
           sx={{
             whiteSpace: 'pre-wrap',
             wordBreak: 'break-word',
-            lineHeight: 1.4,
+            lineHeight: 1.35,
+            fontSize: '0.875rem',
+            color: (theme) =>
+              theme.palette.mode === 'dark' ? '#E9EDEF' : '#111B21',
           }}
         >
           {mediaLabel && !text ? mediaLabel : text}
-        </Typography>
-        <Typography
-          variant="caption"
-          sx={{
-            display: 'block',
-            textAlign: 'right',
-            mt: 0.25,
-            opacity: 0.6,
-            fontSize: '0.65rem',
-            lineHeight: 1,
-          }}
-        >
-          {time}
+          {/* Inline timestamp + checkmarks */}
+          <Typography
+            component="span"
+            sx={{
+              float: 'right',
+              ml: 1,
+              mt: '3px',
+              fontSize: '0.6875rem',
+              lineHeight: 1,
+              color: fromMe
+                ? (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.6)'
+                      : 'rgba(0,0,0,0.45)'
+                : (theme) =>
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255,255,255,0.5)'
+                      : '#667781',
+              whiteSpace: 'nowrap',
+              userSelect: 'none',
+            }}
+          >
+            {time}{checkmark}
+          </Typography>
         </Typography>
       </Box>
     </Box>

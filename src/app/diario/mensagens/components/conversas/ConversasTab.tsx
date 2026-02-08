@@ -85,7 +85,7 @@ export function ConversasTab({ active }: ConversasTabProps) {
       {/* Left: Chat List */}
       <Box
         sx={{
-          width: 320,
+          width: 350,
           flexShrink: 0,
           borderRight: 1,
           borderColor: 'divider',

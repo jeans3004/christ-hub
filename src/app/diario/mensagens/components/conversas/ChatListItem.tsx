@@ -1,14 +1,8 @@
 'use client';
 
 import { Box, Typography, Avatar, Badge } from '@mui/material';
+import { Person } from '@mui/icons-material';
 import { ChatConversation } from '../../types';
-
-const MEDIA_PREVIEW: Record<string, string> = {
-  image: '📷 Imagem',
-  video: '🎬 Video',
-  audio: '🎵 Audio',
-  document: '📄 Documento',
-};
 
 interface ChatListItemProps {
   chat: ChatConversation;
@@ -34,22 +28,21 @@ export function ChatListItem({ chat, selected, onClick }: ChatListItemProps) {
         alignItems: 'center',
         gap: 1.5,
         px: 2,
-        py: 1.5,
+        py: 1,
         cursor: 'pointer',
         bgcolor: selected
           ? (theme) =>
-              theme.palette.mode === 'dark'
-                ? 'rgba(37,211,102,0.15)'
-                : 'rgba(37,211,102,0.08)'
+              theme.palette.mode === 'dark' ? '#2A3942' : '#F0F2F5'
           : 'transparent',
         '&:hover': {
           bgcolor: (theme) =>
-            theme.palette.mode === 'dark'
-              ? 'rgba(255,255,255,0.05)'
-              : 'rgba(0,0,0,0.04)',
+            theme.palette.mode === 'dark' ? '#202C33' : '#F5F6F6',
         },
-        borderBottom: 1,
-        borderColor: 'divider',
+        borderBottom: '1px solid',
+        borderColor: (theme) =>
+          theme.palette.mode === 'dark'
+            ? 'rgba(134,150,160,0.15)'
+            : 'rgba(134,150,160,0.2)',
       }}
     >
       <Badge
@@ -59,35 +52,51 @@ export function ChatListItem({ chat, selected, onClick }: ChatListItemProps) {
       >
         <Avatar
           src={chat.profilePicUrl || undefined}
-          sx={{ width: 44, height: 44, bgcolor: '#25D366' }}
+          sx={{
+            width: 49,
+            height: 49,
+            bgcolor: '#DFE5E7',
+            color: '#fff',
+          }}
         >
-          {chat.isGroup ? '👥' : displayName.charAt(0).toUpperCase()}
+          {chat.isGroup ? '👥' : <Person sx={{ fontSize: 28 }} />}
         </Avatar>
       </Badge>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
           <Typography
-            variant="subtitle2"
             noWrap
-            fontWeight={chat.unreadCount ? 700 : 500}
-            sx={{ flex: 1, mr: 1 }}
+            sx={{
+              flex: 1,
+              mr: 1,
+              fontSize: '1rem',
+              fontWeight: chat.unreadCount ? 600 : 400,
+              color: (theme) =>
+                theme.palette.mode === 'dark' ? '#E9EDEF' : '#111B21',
+            }}
           >
             {displayName}
           </Typography>
           <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ flexShrink: 0, fontSize: '0.65rem' }}
+            noWrap
+            sx={{
+              flexShrink: 0,
+              fontSize: '0.7rem',
+              color: chat.unreadCount ? '#25D366' : '#667781',
+            }}
           >
             {time}
           </Typography>
         </Box>
         <Typography
-          variant="body2"
-          color="text.secondary"
           noWrap
-          sx={{ fontSize: '0.8rem' }}
+          sx={{
+            fontSize: '0.85rem',
+            color: (theme) =>
+              theme.palette.mode === 'dark' ? '#8696A0' : '#667781',
+            lineHeight: 1.4,
+          }}
         >
           {lastMsgPreview || '\u00A0'}
         </Typography>

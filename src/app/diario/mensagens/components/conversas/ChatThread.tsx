@@ -9,7 +9,7 @@ import {
   Avatar,
   Alert,
 } from '@mui/material';
-import { ArrowBack } from '@mui/icons-material';
+import { ArrowBack, Person } from '@mui/icons-material';
 import { ChatMessage, ChatConversation } from '../../types';
 import { ChatBubble } from './ChatBubble';
 import { ChatInput } from './ChatInput';
@@ -69,6 +69,8 @@ export function ChatThread({
           alignItems: 'center',
           justifyContent: 'center',
           height: '100%',
+          bgcolor: (theme) =>
+            theme.palette.mode === 'dark' ? '#0B141A' : '#ECE5DD',
           color: 'text.secondary',
         }}
       >
@@ -90,31 +92,37 @@ export function ChatThread({
         sx={{
           display: 'flex',
           alignItems: 'center',
-          gap: 1,
-          p: 1.5,
+          gap: 1.5,
+          px: 2,
+          py: 1,
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: (theme) =>
-            theme.palette.mode === 'dark' ? '#1F2C33' : '#F0F2F5',
+            theme.palette.mode === 'dark' ? '#202C33' : '#F0F2F5',
         }}
       >
         {showBackButton && (
-          <IconButton size="small" onClick={onBack}>
+          <IconButton size="small" onClick={onBack} sx={{ mr: -0.5 }}>
             <ArrowBack fontSize="small" />
           </IconButton>
         )}
         <Avatar
           src={chat.profilePicUrl || undefined}
-          sx={{ width: 36, height: 36, bgcolor: '#25D366' }}
+          sx={{ width: 40, height: 40, bgcolor: '#DFE5E7', color: '#fff' }}
         >
-          {displayName.charAt(0).toUpperCase()}
+          {chat.isGroup ? '👥' : <Person />}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography variant="subtitle2" noWrap fontWeight={600}>
+          <Typography
+            noWrap
+            sx={{
+              fontSize: '1rem',
+              fontWeight: 500,
+              color: (theme) =>
+                theme.palette.mode === 'dark' ? '#E9EDEF' : '#111B21',
+            }}
+          >
             {displayName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {chat.remoteJid.split('@')[0]}
           </Typography>
         </Box>
       </Box>
