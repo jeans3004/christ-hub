@@ -5,8 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { getAdminDb } from '@/lib/firebase-admin';
 import * as XLSX from 'xlsx';
 
 const HEADERS = [
@@ -65,8 +64,10 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const turmaIdFilter = searchParams.get('turmaId') || '';
 
+    const db = getAdminDb();
+
     // Buscar turmas para mapear turmaId -> letra da turma
-    const turmasSnapshot = await getDocs(collection(db, 'turmas'));
+    const turmasSnapshot = await db.collection('turmas').get();
     const turmasMap = new Map<string, { turma: string; serie: string; ensino: string; turno: string }>();
     turmasSnapshot.docs.forEach(doc => {
       const data = doc.data();
@@ -79,14 +80,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Buscar alunos (com filtro opcional)
-    let alunosQuery;
+    let alunosQuery: FirebaseFirestore.Query = db.collection('alunos');
     if (turmaIdFilter) {
-      alunosQuery = query(collection(db, 'alunos'), where('turmaId', '==', turmaIdFilter));
-    } else {
-      alunosQuery = collection(db, 'alunos');
+      alunosQuery = alunosQuery.where('turmaId', '==', turmaIdFilter);
     }
 
-    const alunosSnapshot = await getDocs(alunosQuery);
+    const alunosSnapshot = await alunosQuery.get();
 
     // Montar linhas da planilha
     const rows: any[][] = [HEADERS];

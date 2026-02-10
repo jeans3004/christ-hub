@@ -159,6 +159,17 @@ export function useAuthActions() {
       await signOut(auth);
       logout();
       useDriveStore.getState().reset();
+
+      // Limpar caches do dispositivo
+      if (typeof window !== 'undefined') {
+        try { localStorage.clear(); } catch {}
+        try { sessionStorage.clear(); } catch {}
+        if ('caches' in window) {
+          const keys = await caches.keys();
+          await Promise.all(keys.map(k => caches.delete(k)));
+        }
+      }
+
       addToast('Logout realizado com sucesso!', 'success');
       router.push('/login');
     } catch (error) {

@@ -72,5 +72,8 @@ filesMD/
 # Windows Zone.Identifier files
 *:Zone.Identifier
 
+# Scripts de dados locais
+scripts/*.json
+
 # Claude Code
 CLAUDE.md

@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, connectAuthEmulator, browserSessionPersistence, setPersistence } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
@@ -19,9 +19,9 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Set auth persistence to session (works better with tracking prevention)
+// Set auth persistence to local (user stays logged in across tabs/sessions)
 if (typeof window !== 'undefined') {
-  setPersistence(auth, browserSessionPersistence).catch(console.error);
+  setPersistence(auth, browserLocalPersistence).catch(console.error);
 }
 
 // Connect to emulators in development

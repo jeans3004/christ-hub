@@ -114,11 +114,16 @@ export function DrawSettings({
       {showQuantidade && (
         <TextField
           label={modo === 'equipes' ? 'Numero de equipes' : 'Quantidade de alunos'}
-          type="number"
+          inputMode="numeric"
           size="small"
           value={quantidade}
-          onChange={(e) => onQuantidadeChange(Math.max(1, Math.min(maxQuantidade, Number(e.target.value))))}
-          inputProps={{ min: 1, max: maxQuantidade }}
+          onChange={(e) => {
+            const raw = e.target.value.replace(/\D/g, '');
+            if (raw === '') { onQuantidadeChange(1); return; }
+            onQuantidadeChange(Number(raw));
+          }}
+          onBlur={() => onQuantidadeChange(Math.max(1, Math.min(maxQuantidade, quantidade)))}
+          helperText={`Min: 1 — Max: ${maxQuantidade}`}
           fullWidth
         />
       )}
