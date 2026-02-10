@@ -16,6 +16,14 @@ export function formatDateFull(dateStr: string): string {
   return `${dias[date.getDay()]}, ${date.getDate()} de ${meses[date.getMonth()]} de ${date.getFullYear()}`;
 }
 
+// Formatar horario de registro (HH:mm)
+export function formatTime(date: Date | unknown): string {
+  if (!date) return '';
+  const d = date instanceof Date ? date : new Date(date as string | number);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
 // Formatar periodo
 export function formatPeriodo(dataInicio: string, dataFim: string): string {
   return `${formatDate(dataInicio)} a ${formatDate(dataFim)}`;

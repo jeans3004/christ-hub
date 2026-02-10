@@ -151,7 +151,8 @@ export function useChamadaData({
       setLoading(true);
       try {
         const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada + 'T12:00:00'));
-        const chamada = chamadas.find(c => c.disciplinaId === disciplinaId);
+        const tempoAtual = calcularTempo(turno);
+        const chamada = chamadas.find(c => c.disciplinaId === disciplinaId && c.tempo === tempoAtual);
 
         if (chamada) {
           const loadedPresencas: Record<string, boolean> = {};
@@ -174,7 +175,7 @@ export function useChamadaData({
     };
 
     loadChamada();
-  }, [serieId, disciplinaId, dataChamada]);
+  }, [serieId, disciplinaId, dataChamada, turno]);
 
   const handlePresencaChange = useCallback((alunoId: string) => {
     setPresencas(prev => ({ ...prev, [alunoId]: !prev[alunoId] }));
@@ -225,9 +226,12 @@ export function useChamadaData({
         return presenca;
       });
 
-      // Check if chamada already exists
-      const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada));
-      const existingChamada = chamadas.find(c => c.disciplinaId === disciplinaId);
+      // Calcular tempo baseado no horario atual e turno da turma
+      const tempoCalculado = calcularTempo(turno) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+      // Check if chamada already exists (usar T12:00:00 para evitar problemas de timezone)
+      const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada + 'T12:00:00'));
+      const existingChamada = chamadas.find(c => c.disciplinaId === disciplinaId && c.tempo === tempoCalculado);
 
       // Dados base da chamada (sem campos undefined)
       const chamadaData: {
@@ -250,9 +254,6 @@ export function useChamadaData({
       if (existingChamada) {
         await chamadaService.update(existingChamada.id, chamadaData);
       } else {
-        // Calcular tempo baseado no horário atual e turno da turma
-        const tempoCalculado = calcularTempo(turno) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
-
         // Usar T12:00:00 para evitar problemas de timezone
         await chamadaService.create({
           turmaId: serieId,

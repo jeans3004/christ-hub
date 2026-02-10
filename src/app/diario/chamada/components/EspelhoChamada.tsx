@@ -27,6 +27,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
+import { formatTime } from './relatorios/utils';
 
 interface EspelhoChamadaProps {
   chamadas: Chamada[];
@@ -150,8 +151,16 @@ export function EspelhoChamada({
     );
   }
 
+  // Ordenar por horario de registro (crescente)
+  const sortedChamadas = [...chamadas].sort((a, b) => {
+    if (a.createdAt && b.createdAt) {
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    }
+    return a.tempo - b.tempo;
+  });
+
   // Calcular totais gerais
-  const totaisGerais = chamadas.reduce(
+  const totaisGerais = sortedChamadas.reduce(
     (acc, chamada) => {
       const presentes = chamada.presencas.filter(p => p.presente).length;
       const ausentes = chamada.presencas.filter(p => !p.presente).length;
@@ -226,7 +235,7 @@ export function EspelhoChamada({
 
       {/* Conteudo para impressao */}
       <Box ref={printRef}>
-        {chamadas.map((chamada, index) => {
+        {sortedChamadas.map((chamada, index) => {
           const turma = turmas.find(t => t.id === chamada.turmaId);
           const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
           const presentes = chamada.presencas.filter(p => p.presente);
@@ -247,7 +256,7 @@ export function EspelhoChamada({
                   {turma?.nome || 'Turma N/A'}
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.9 }} className="section-subtitle">
-                  {disciplina?.nome || 'Disciplina N/A'} - {chamada.tempo}o Tempo
+                  {disciplina?.nome || 'Disciplina N/A'} - {chamada.createdAt ? `Registrado as ${formatTime(chamada.createdAt)}` : `${chamada.tempo}o Tempo`}
                 </Typography>
               </Box>
 

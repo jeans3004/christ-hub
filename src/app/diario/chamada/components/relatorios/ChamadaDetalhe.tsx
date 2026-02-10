@@ -33,7 +33,7 @@ import {
 import { Chamada, Turma, Disciplina, Usuario, PresencaAluno } from '@/types';
 import { chamadaService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
-import { formatDateFull, printReport } from './utils';
+import { formatDateFull, formatTime, printReport } from './utils';
 
 interface ChamadaDetalheProps {
   chamada: Chamada;
@@ -112,7 +112,7 @@ export function ChamadaDetalhe({
       <div class="chamada-section">
         <div class="section-header">
           <p class="section-title">${turma?.nome || 'Turma N/A'}</p>
-          <p class="section-subtitle">${disciplina?.nome || 'Disciplina N/A'} - ${chamada.tempo}o Tempo</p>
+          <p class="section-subtitle">${disciplina?.nome || 'Disciplina N/A'} - ${formatTime(chamada.createdAt) ? 'Registrado as ' + formatTime(chamada.createdAt) : chamada.tempo + 'o Tempo'}</p>
         </div>
         <div class="stats">
           <span class="stat-item"><strong>${presentes.length}</strong> Presentes</span>
@@ -162,7 +162,7 @@ export function ChamadaDetalhe({
               {turma?.nome || 'Turma N/A'}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {disciplina?.nome || 'Disciplina N/A'} - {chamada.tempo}o Tempo
+              {disciplina?.nome || 'Disciplina N/A'} - {chamada.createdAt ? `Registrado as ${formatTime(chamada.createdAt)}` : `${chamada.tempo}o Tempo`}
             </Typography>
           </Box>
         </Box>

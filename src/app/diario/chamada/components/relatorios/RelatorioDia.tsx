@@ -24,7 +24,7 @@ import {
   ChevronRight,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
-import { formatDate, formatDateFull, printReport } from './utils';
+import { formatDate, formatDateFull, formatTime, printReport } from './utils';
 import { ChamadaDetalhe } from './ChamadaDetalhe';
 
 interface RelatorioDiaProps {
@@ -44,7 +44,14 @@ export function RelatorioDia({
   data,
   onChamadaUpdate,
 }: RelatorioDiaProps) {
-  const [chamadas, setChamadas] = useState(initialChamadas);
+  const [chamadas, setChamadas] = useState(
+    [...initialChamadas].sort((a, b) => {
+      if (a.createdAt && b.createdAt) {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      }
+      return a.tempo - b.tempo;
+    })
+  );
   const [selectedChamada, setSelectedChamada] = useState<Chamada | null>(null);
   const printRef = useRef<HTMLDivElement>(null);
 
@@ -63,7 +70,7 @@ export function RelatorioDia({
   );
 
   const handlePrint = () => {
-    const tableRows = chamadas.map((chamada) => {
+    const tableRows = chamadas.map((chamada, idx) => {
       const turma = turmas.find(t => t.id === chamada.turmaId);
       const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
       const presentes = chamada.presencas.filter(p => p.presente).length;
@@ -71,9 +78,10 @@ export function RelatorioDia({
 
       return `
         <tr>
+          <td style="text-align: center">${idx + 1}</td>
           <td>${turma?.nome || 'N/A'}</td>
           <td>${disciplina?.nome || 'N/A'}</td>
-          <td style="text-align: center">${chamada.tempo}o</td>
+          <td style="text-align: center">${formatTime(chamada.createdAt) || chamada.tempo + 'o'}</td>
           <td style="text-align: center" class="presente">${presentes}</td>
           <td style="text-align: center" class="ausente">${ausentes}</td>
           <td style="text-align: center">${chamada.presencas.length}</td>
@@ -102,9 +110,10 @@ export function RelatorioDia({
       <table>
         <thead>
           <tr>
+            <th style="width: 40px; text-align: center">N\u00BA</th>
             <th>Turma</th>
             <th>Disciplina</th>
-            <th style="width: 80px; text-align: center">Tempo</th>
+            <th style="width: 80px; text-align: center">Horario</th>
             <th style="width: 80px; text-align: center">Presentes</th>
             <th style="width: 80px; text-align: center">Ausentes</th>
             <th style="width: 80px; text-align: center">Total</th>
@@ -206,9 +215,10 @@ export function RelatorioDia({
           <Table>
             <TableHead>
               <TableRow sx={{ bgcolor: 'grey.100' }}>
+                <TableCell sx={{ width: 50 }} align="center">N&ordm;</TableCell>
                 <TableCell>Turma</TableCell>
                 <TableCell>Disciplina</TableCell>
-                <TableCell align="center" sx={{ width: 80 }}>Tempo</TableCell>
+                <TableCell align="center" sx={{ width: 80 }}>Horario</TableCell>
                 <TableCell align="center" sx={{ width: 100 }}>Presentes</TableCell>
                 <TableCell align="center" sx={{ width: 100 }}>Ausentes</TableCell>
                 <TableCell align="center" sx={{ width: 80 }}>Total</TableCell>
@@ -216,7 +226,7 @@ export function RelatorioDia({
               </TableRow>
             </TableHead>
             <TableBody>
-              {chamadas.map((chamada) => {
+              {chamadas.map((chamada, idx) => {
                 const turma = turmas.find(t => t.id === chamada.turmaId);
                 const disciplina = disciplinas.find(d => d.id === chamada.disciplinaId);
                 const presentes = chamada.presencas.filter(p => p.presente).length;
@@ -229,6 +239,11 @@ export function RelatorioDia({
                     sx={{ cursor: 'pointer' }}
                     onClick={() => setSelectedChamada(chamada)}
                   >
+                    <TableCell align="center">
+                      <Typography variant="body2" color="text.secondary">
+                        {idx + 1}
+                      </Typography>
+                    </TableCell>
                     <TableCell>
                       <Typography variant="body2" fontWeight={500}>
                         {turma?.nome || 'N/A'}
@@ -240,7 +255,7 @@ export function RelatorioDia({
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
-                      <Chip label={`${chamada.tempo}o`} size="small" variant="outlined" />
+                      <Chip label={formatTime(chamada.createdAt) || `${chamada.tempo}o`} size="small" variant="outlined" />
                     </TableCell>
                     <TableCell align="center">
                       <Chip
