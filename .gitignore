@@ -71,3 +71,6 @@ filesMD/
 
 # Windows Zone.Identifier files
 *:Zone.Identifier
+
+# Claude Code
+CLAUDE.md
