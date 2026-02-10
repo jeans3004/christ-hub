@@ -49,10 +49,10 @@ export function MapeamentoFilters({
       sx={{
         p: 2,
         mb: 2,
-        bgcolor: 'grey.50',
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
         borderRadius: 2,
         border: '1px solid',
-        borderColor: 'grey.200',
+        borderColor: 'divider',
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>

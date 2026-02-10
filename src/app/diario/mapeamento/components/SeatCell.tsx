@@ -3,7 +3,7 @@
  */
 
 import { useRef } from 'react';
-import { Box, Avatar, Typography, Tooltip } from '@mui/material';
+import { Box, Avatar, Typography, Tooltip, useTheme } from '@mui/material';
 import { Person, Block, School, SwapHoriz } from '@mui/icons-material';
 import { CelulaMapa, TIPO_COLORS, ModoEdicao } from '../types';
 import { useTouchDrag } from './TouchDragContext';
@@ -31,7 +31,13 @@ export function SeatCell({
   col,
   size = 64,
 }: SeatCellProps) {
-  const colors = TIPO_COLORS[celula.tipo];
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+  const rawColors = TIPO_COLORS[celula.tipo];
+  const colors = {
+    bg: isDark ? rawColors.bgDark : rawColors.bg,
+    border: isDark ? rawColors.borderDark : rawColors.border,
+  };
   const { startDrag, updatePosition, endDrag, dragState } = useTouchDrag();
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
@@ -186,7 +192,7 @@ export function SeatCell({
     if (selected) return { borderColor: 'primary.main', borderWidth: 2 };
     if (isDropTarget && !hasOccupant) return { borderColor: 'success.main', borderWidth: 2 };
     if (isDropTarget && hasOccupant) return { borderColor: 'warning.main', borderWidth: 2 };
-    if (hasOccupant) return { borderColor: '#1565c0', borderWidth: 2 };
+    if (hasOccupant) return { borderColor: isDark ? '#42a5f5' : '#1565c0', borderWidth: 2 };
     return { borderColor: colors.border, borderWidth: 1 };
   };
 
@@ -212,20 +218,22 @@ export function SeatCell({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        bgcolor: hasOccupant ? '#bbdefb' : colors.bg,
+        bgcolor: hasOccupant ? (isDark ? '#1a3a5c' : '#bbdefb') : colors.bg,
         border: `${borderStyle.borderWidth}px solid`,
         borderColor: borderStyle.borderColor,
         borderRadius: 2,
         cursor: isDraggable ? 'grab' : 'pointer',
         transition: 'all 0.15s ease',
-        boxShadow: selected ? '0 0 0 3px rgba(25, 118, 210, 0.3)' : (hasOccupant ? '0 2px 4px rgba(0,0,0,0.08)' : 'none'),
+        boxShadow: selected
+          ? `0 0 0 3px ${isDark ? 'rgba(66, 165, 245, 0.4)' : 'rgba(25, 118, 210, 0.3)'}`
+          : (hasOccupant ? `0 2px 4px ${isDark ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)'}` : 'none'),
         userSelect: 'none',
         touchAction: isDraggable ? 'none' : 'auto',
         position: 'relative',
         '&:hover': {
           borderColor: 'primary.main',
           transform: 'scale(1.03)',
-          boxShadow: '0 4px 8px rgba(0,0,0,0.12)',
+          boxShadow: isDark ? '0 4px 8px rgba(0,0,0,0.4)' : '0 4px 8px rgba(0,0,0,0.12)',
         },
         '&:active': {
           cursor: isDraggable ? 'grabbing' : 'pointer',

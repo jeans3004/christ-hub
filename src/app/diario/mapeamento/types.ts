@@ -57,12 +57,12 @@ export const LAYOUT_LIMITS = {
 };
 
 /**
- * Cores dos tipos de assento
+ * Cores dos tipos de assento (light e dark mode)
  */
-export const TIPO_COLORS: Record<TipoAssento, { bg: string; border: string }> = {
-  mesa: { bg: '#e3f2fd', border: '#1976d2' },
-  vazio: { bg: '#f5f5f5', border: '#e0e0e0' },
-  professor: { bg: '#fff3e0', border: '#ff9800' },
+export const TIPO_COLORS: Record<TipoAssento, { bg: string; border: string; bgDark: string; borderDark: string }> = {
+  mesa: { bg: '#e3f2fd', border: '#1976d2', bgDark: '#0d2137', borderDark: '#42a5f5' },
+  vazio: { bg: '#f5f5f5', border: '#e0e0e0', bgDark: '#2c2c2c', borderDark: '#555555' },
+  professor: { bg: '#fff3e0', border: '#ff9800', bgDark: '#3e2723', borderDark: '#ffb74d' },
 };
 
 /**

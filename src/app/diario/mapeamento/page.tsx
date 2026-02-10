@@ -4,7 +4,7 @@
  * Pagina de mapeamento de sala - Redesign com melhor UX.
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -63,21 +63,32 @@ export default function MapeamentoPage() {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
   const loading = loadingAlunos || loadingMapeamento;
   const isVisualizando = !!professorIdVisualizando;
+  const autoRedirectDoneRef = useRef(false);
 
   // Verificar se o usuario pode configurar layout (admin, coord ou conselheiro da turma)
   const podeConfigurarLayout = isCoordinatorOrAbove() ||
     (usuario && turmaSelecionada?.professorConselheiroId === usuario.id);
 
-  // Definir visualizacao padrao do conselheiro se existir e o usuario ainda nao tiver mapeamento
+  // Verificar se o professor tem mapeamento proprio
+  const meuMapeamentoExiste = !!(usuario && mapeamentosDaTurma.find(m => m.professorId === usuario.id));
+
+  // Reset auto-redirect quando turma muda
   useEffect(() => {
+    autoRedirectDoneRef.current = false;
+  }, [turmaId]);
+
+  // Auto-mostrar mapeamento do conselheiro somente UMA VEZ por turma selecionada
+  useEffect(() => {
+    if (autoRedirectDoneRef.current) return;
     if (turmaId && conselheiroId && mapeamentosDaTurma.length > 0 && usuario) {
       const meuMapeamento = mapeamentosDaTurma.find(m => m.professorId === usuario.id);
       const mapeamentoConselheiro = mapeamentosDaTurma.find(m => m.professorId === conselheiroId);
-      if (!meuMapeamento && mapeamentoConselheiro && !professorIdVisualizando) {
+      if (!meuMapeamento && mapeamentoConselheiro) {
         setProfessorIdVisualizando(conselheiroId);
+        autoRedirectDoneRef.current = true;
       }
     }
-  }, [turmaId, conselheiroId, mapeamentosDaTurma, usuario, professorIdVisualizando, setProfessorIdVisualizando]);
+  }, [turmaId, conselheiroId, mapeamentosDaTurma, usuario, setProfessorIdVisualizando]);
 
   const handleCelulaClick = useCallback((row: number, col: number) => {
     if (modoEdicao === 'visualizar') return;
@@ -172,10 +183,10 @@ export default function MapeamentoPage() {
               textAlign: 'center',
               py: 6,
               px: 3,
-              bgcolor: 'grey.50',
+              bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
               borderRadius: 3,
               border: '2px dashed',
-              borderColor: 'grey.300',
+              borderColor: 'divider',
             }}
           >
             <GridView sx={{ fontSize: 64, color: 'grey.400', mb: 2 }} />
@@ -203,6 +214,22 @@ export default function MapeamentoPage() {
               />
             )}
 
+            {/* Banner: professor sem mapeamento - modo edicao */}
+            {!isVisualizando && !meuMapeamentoExiste && (
+              <Alert
+                severity="info"
+                sx={{ mb: 2, borderRadius: 2 }}
+                icon={<Add />}
+              >
+                <Typography variant="body2" fontWeight={500}>
+                  Voce ainda nao tem um mapeamento para esta turma.
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Arraste alunos da lista para as mesas e clique em &quot;Salvar&quot; para criar seu mapeamento.
+                </Typography>
+              </Alert>
+            )}
+
             {/* Toolbar de edicao */}
             {!isVisualizando && (
               <Paper
@@ -210,10 +237,10 @@ export default function MapeamentoPage() {
                 sx={{
                   p: 1.5,
                   mb: 2,
-                  bgcolor: 'grey.50',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
                   borderRadius: 2,
                   border: '1px solid',
-                  borderColor: 'grey.200',
+                  borderColor: 'divider',
                 }}
               >
                 <Box sx={{
@@ -349,7 +376,7 @@ export default function MapeamentoPage() {
                 sx={{
                   p: 1.5,
                   mb: 2,
-                  bgcolor: 'info.light',
+                  bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(2, 136, 209, 0.15)' : 'info.light',
                   borderRadius: 2,
                   display: 'flex',
                   alignItems: 'center',
@@ -359,12 +386,12 @@ export default function MapeamentoPage() {
                 }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Settings sx={{ color: 'info.dark' }} />
+                  <Settings sx={{ color: 'info.main' }} />
                   <Box>
-                    <Typography variant="body2" fontWeight={600} color="info.dark">
+                    <Typography variant="body2" fontWeight={600} color="info.main">
                       Configuracao de Layout da Turma
                     </Typography>
-                    <Typography variant="caption" color="info.dark">
+                    <Typography variant="caption" color="info.main">
                       {layoutConfigurado
                         ? 'Layout padrao definido. Professores nao podem alterar linhas/colunas.'
                         : 'Defina o layout padrao para esta turma.'}
@@ -390,7 +417,7 @@ export default function MapeamentoPage() {
                       onClick={handleToggleLayoutConfig}
                       sx={{
                         bgcolor: 'background.paper',
-                        '&:hover': { bgcolor: 'grey.200' },
+                        '&:hover': { bgcolor: 'action.hover' },
                       }}
                     >
                       {layoutConfigurado ? <LockOpen /> : <Lock />}

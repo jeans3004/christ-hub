@@ -5,6 +5,7 @@
 'use client';
 
 import { createContext, useContext, useState, useCallback, useRef, ReactNode } from 'react';
+import { useTheme } from '@mui/material';
 
 interface DragState {
   isDragging: boolean;
@@ -84,6 +85,9 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
     setDragState(initialDragState);
   }, []);
 
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   return (
     <TouchDragContext.Provider value={{ dragState, startDrag, updatePosition, endDrag, cancelDrag }}>
       {children}
@@ -97,7 +101,7 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
             top: dragState.position.y - 30,
             width: 60,
             height: 60,
-            backgroundColor: '#1976d2',
+            backgroundColor: isDark ? '#42a5f5' : '#1976d2',
             borderRadius: '50%',
             display: 'flex',
             alignItems: 'center',
@@ -105,7 +109,7 @@ export function TouchDragProvider({ children }: { children: ReactNode }) {
             color: 'white',
             fontWeight: 'bold',
             fontSize: '14px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            boxShadow: isDark ? '0 4px 12px rgba(0,0,0,0.6)' : '0 4px 12px rgba(0,0,0,0.3)',
             pointerEvents: 'none',
             zIndex: 9999,
             transform: 'scale(1.1)',

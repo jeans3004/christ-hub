@@ -96,10 +96,10 @@ export function StudentList({
         height: 'fit-content',
         minWidth: { xs: '100%', sm: 280 },
         maxWidth: { xs: '100%', sm: 320 },
-        bgcolor: 'grey.50',
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
         borderRadius: 3,
         border: '1px solid',
-        borderColor: 'grey.200',
+        borderColor: 'divider',
       }}
     >
       {/* Header */}
@@ -136,7 +136,7 @@ export function StudentList({
           bgcolor: 'background.paper',
           borderRadius: 2,
           border: '1px solid',
-          borderColor: 'grey.300',
+          borderColor: 'divider',
           px: 1.5,
           py: 0.5,
           mb: 2,
@@ -223,7 +223,7 @@ export function StudentList({
                 onTouchEnd={handleTouchEnd}
                 sx={{
                   border: '1px solid',
-                  borderColor: 'grey.200',
+                  borderColor: 'divider',
                   bgcolor: 'background.paper',
                   touchAction: 'none',
                   userSelect: 'none',

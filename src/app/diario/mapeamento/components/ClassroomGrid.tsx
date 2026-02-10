@@ -2,10 +2,10 @@
  * Grid visual do mapa de sala - Redesign com melhor UX.
  */
 
-import { Box, Paper, Typography, IconButton, Tooltip, Slider, Chip } from '@mui/material';
+import { Box, Paper, Typography, IconButton, Tooltip, Slider, Chip, useTheme } from '@mui/material';
 import { Add, Remove, GridView, Settings } from '@mui/icons-material';
 import { LayoutSala } from '@/types';
-import { CelulaMapa, ModoEdicao, LAYOUT_LIMITS } from '../types';
+import { CelulaMapa, ModoEdicao, LAYOUT_LIMITS, TIPO_COLORS } from '../types';
 import { SeatCell } from './SeatCell';
 
 interface ClassroomGridProps {
@@ -31,6 +31,9 @@ export function ClassroomGrid({
   showLayoutControls = true,
   compact = false,
 }: ClassroomGridProps) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   const handleRowChange = (_: Event, value: number | number[]) => {
     const newRows = value as number;
     if (newRows >= LAYOUT_LIMITS.minRows && newRows <= LAYOUT_LIMITS.maxRows) {
@@ -71,10 +74,10 @@ export function ClassroomGrid({
         p: { xs: 1.5, sm: 2 },
         overflow: 'auto',
         width: '100%',
-        bgcolor: 'grey.50',
+        bgcolor: isDark ? 'grey.900' : 'grey.50',
         borderRadius: 3,
         border: '1px solid',
-        borderColor: 'grey.200',
+        borderColor: 'divider',
       }}
     >
       {/* Header com estatisticas */}
@@ -120,7 +123,7 @@ export function ClassroomGrid({
           bgcolor: 'background.paper',
           borderRadius: 2,
           border: '1px solid',
-          borderColor: 'grey.200',
+          borderColor: 'divider',
           flexWrap: 'wrap',
         }}>
           {/* Controle de colunas */}
@@ -182,7 +185,7 @@ export function ClassroomGrid({
             alignItems: 'center',
             justifyContent: 'center',
             mb: 1,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.4)' : '0 2px 8px rgba(0,0,0,0.15)',
           }}
         >
           <Typography variant="caption" color="white" fontWeight={600} letterSpacing={1}>
@@ -241,7 +244,7 @@ export function ClassroomGrid({
         mt: 2,
         pt: 2,
         borderTop: '1px solid',
-        borderColor: 'grey.200',
+        borderColor: 'divider',
         flexWrap: 'wrap',
         justifyContent: 'center',
       }}>
@@ -249,8 +252,9 @@ export function ClassroomGrid({
           <Box sx={{
             width: 16,
             height: 16,
-            bgcolor: '#e3f2fd',
-            border: '1px solid #1976d2',
+            bgcolor: isDark ? TIPO_COLORS.mesa.bgDark : TIPO_COLORS.mesa.bg,
+            border: '1px solid',
+            borderColor: isDark ? TIPO_COLORS.mesa.borderDark : TIPO_COLORS.mesa.border,
             borderRadius: 0.5,
           }} />
           <Typography variant="caption" color="text.secondary">Mesa vazia</Typography>
@@ -259,8 +263,9 @@ export function ClassroomGrid({
           <Box sx={{
             width: 16,
             height: 16,
-            bgcolor: '#bbdefb',
-            border: '2px solid #1976d2',
+            bgcolor: isDark ? '#1a3a5c' : '#bbdefb',
+            border: '2px solid',
+            borderColor: isDark ? '#42a5f5' : '#1976d2',
             borderRadius: 0.5,
           }} />
           <Typography variant="caption" color="text.secondary">Mesa ocupada</Typography>
@@ -269,8 +274,9 @@ export function ClassroomGrid({
           <Box sx={{
             width: 16,
             height: 16,
-            bgcolor: '#f5f5f5',
-            border: '1px solid #e0e0e0',
+            bgcolor: isDark ? TIPO_COLORS.vazio.bgDark : TIPO_COLORS.vazio.bg,
+            border: '1px solid',
+            borderColor: isDark ? TIPO_COLORS.vazio.borderDark : TIPO_COLORS.vazio.border,
             borderRadius: 0.5,
           }} />
           <Typography variant="caption" color="text.secondary">Vazio</Typography>
@@ -279,8 +285,9 @@ export function ClassroomGrid({
           <Box sx={{
             width: 16,
             height: 16,
-            bgcolor: '#fff3e0',
-            border: '1px solid #ff9800',
+            bgcolor: isDark ? TIPO_COLORS.professor.bgDark : TIPO_COLORS.professor.bg,
+            border: '1px solid',
+            borderColor: isDark ? TIPO_COLORS.professor.borderDark : TIPO_COLORS.professor.border,
             borderRadius: 0.5,
           }} />
           <Typography variant="caption" color="text.secondary">Professor</Typography>

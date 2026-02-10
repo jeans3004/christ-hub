@@ -6,8 +6,8 @@
  */
 
 import { useMemo, useEffect } from 'react';
-import { Box, Tabs, Tab, Chip, Typography, Tooltip, Paper } from '@mui/material';
-import { Star, Edit, Visibility, Person } from '@mui/icons-material';
+import { Box, Tabs, Tab, Chip, Typography, Tooltip, Paper, Button } from '@mui/material';
+import { Star, Edit, Visibility, Person, ArrowBack } from '@mui/icons-material';
 import { MapeamentoComProfessor } from '../hooks/mapeamentoTypes';
 
 interface ProfessorTabsProps {
@@ -82,10 +82,10 @@ export function ProfessorTabs({
       elevation={0}
       sx={{
         mb: 2,
-        bgcolor: 'grey.50',
+        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.50',
         borderRadius: 2,
         border: '1px solid',
-        borderColor: 'grey.200',
+        borderColor: 'divider',
         overflow: 'hidden',
       }}
     >
@@ -175,15 +175,28 @@ export function ProfessorTabs({
         <Box sx={{
           px: 2,
           py: 1.5,
-          bgcolor: 'info.light',
+          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'rgba(2, 136, 209, 0.15)' : 'info.light',
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 1,
         }}>
-          <Visibility sx={{ color: 'info.dark', fontSize: 18 }} />
-          <Typography variant="body2" color="info.dark" fontWeight={500}>
-            Modo visualizacao - vendo o mapeamento de outro professor
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Visibility sx={{ color: 'info.main', fontSize: 18 }} />
+            <Typography variant="body2" color="info.main" fontWeight={500}>
+              Modo somente leitura - visualizando mapeamento de outro professor
+            </Typography>
+          </Box>
+          <Button
+            size="small"
+            variant="outlined"
+            color="info"
+            startIcon={<ArrowBack />}
+            onClick={() => onProfessorChange(null)}
+            sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+          >
+            Editar meu
+          </Button>
         </Box>
       )}
     </Paper>
