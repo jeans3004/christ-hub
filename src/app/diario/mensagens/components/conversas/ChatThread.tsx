@@ -9,7 +9,7 @@ import {
   Avatar,
   Alert,
 } from '@mui/material';
-import { ArrowBack, Person } from '@mui/icons-material';
+import { ArrowBack, Person, InfoOutlined } from '@mui/icons-material';
 import { ChatMessage, ChatConversation } from '../../types';
 import { ChatBubble } from './ChatBubble';
 import { ChatInput } from './ChatInput';
@@ -24,6 +24,7 @@ interface ChatThreadProps {
   onBack: () => void;
   onClearSendError?: () => void;
   showBackButton?: boolean;
+  onToggleSidebar?: () => void;
 }
 
 export function ChatThread({
@@ -36,6 +37,7 @@ export function ChatThread({
   onBack,
   onClearSendError,
   showBackButton,
+  onToggleSidebar,
 }: ChatThreadProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
@@ -125,6 +127,11 @@ export function ChatThread({
             {displayName}
           </Typography>
         </Box>
+        {onToggleSidebar && (
+          <IconButton size="small" onClick={onToggleSidebar}>
+            <InfoOutlined fontSize="small" />
+          </IconButton>
+        )}
       </Box>
 
       {/* Messages */}
@@ -149,7 +156,22 @@ export function ChatThread({
             <Typography variant="body2">Nenhuma mensagem encontrada</Typography>
           </Box>
         ) : (
-          messages.map((msg) => <ChatBubble key={msg.id} message={msg} />)
+          messages.map((msg, idx) => {
+            const prev = idx > 0 ? messages[idx - 1] : null;
+            const currentSender = msg.fromMe ? '__me__' : (msg.participant || msg.remoteJid);
+            const prevSender = prev ? (prev.fromMe ? '__me__' : (prev.participant || prev.remoteJid)) : null;
+            const showSenderName = chat.isGroup
+              ? currentSender !== prevSender
+              : !msg.fromMe && currentSender !== prevSender;
+            return (
+              <ChatBubble
+                key={msg.id}
+                message={msg}
+                isGroup={chat.isGroup}
+                showSenderName={showSenderName}
+              />
+            );
+          })
         )}
       </Box>
 

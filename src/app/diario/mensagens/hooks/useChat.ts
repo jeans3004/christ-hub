@@ -5,6 +5,28 @@ import { ChatConversation, ChatMessage } from '../types';
 
 const CHAT_LIST_INTERVAL = 30_000; // 30s para lista
 const MESSAGES_INTERVAL = 7_000;   // 7s para mensagens ativas
+const TABS_STORAGE_KEY = 'chat-open-tabs';
+
+export interface ChatTab {
+  jid: string;
+  name: string;
+}
+
+function loadTabs(): ChatTab[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(TABS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTabs(tabs: ChatTab[]) {
+  try {
+    localStorage.setItem(TABS_STORAGE_KEY, JSON.stringify(tabs));
+  } catch { /* ignore */ }
+}
 
 export function useChat(active: boolean) {
   const [chats, setChats] = useState<ChatConversation[]>([]);
@@ -15,9 +37,19 @@ export function useChat(active: boolean) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [openTabs, setOpenTabs] = useState<ChatTab[]>([]);
 
   const chatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const msgIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const tabsInitRef = useRef(false);
+
+  // Carregar tabs do localStorage na inicializacao
+  useEffect(() => {
+    if (!tabsInitRef.current) {
+      tabsInitRef.current = true;
+      setOpenTabs(loadTabs());
+    }
+  }, []);
 
   // Buscar lista de conversas
   const fetchChats = useCallback(async (showLoading = false) => {
@@ -58,12 +90,48 @@ export function useChat(active: boolean) {
     }
   }, []);
 
-  // Selecionar conversa
+  // Selecionar conversa (e adicionar tab)
   const selectChat = useCallback((jid: string) => {
     setSelectedJid(jid);
     setMessages([]);
     fetchMessages(jid, true);
-  }, [fetchMessages]);
+
+    // Adicionar tab se nao existe
+    setOpenTabs((prev) => {
+      if (prev.some((t) => t.jid === jid)) return prev;
+      // Buscar nome do chat
+      const chat = chats.find((c) => c.remoteJid === jid);
+      const name = chat?.name || jid.split('@')[0].replace(/^55/, '');
+      const next = [...prev, { jid, name }].slice(-8); // max 8 tabs
+      saveTabs(next);
+      return next;
+    });
+  }, [fetchMessages, chats]);
+
+  // Fechar tab
+  const closeTab = useCallback((jid: string) => {
+    setOpenTabs((prev) => {
+      const next = prev.filter((t) => t.jid !== jid);
+      saveTabs(next);
+
+      // Se a tab fechada era a selecionada, selecionar a proxima
+      if (jid === selectedJid) {
+        const closedIdx = prev.findIndex((t) => t.jid === jid);
+        if (next.length > 0) {
+          const newIdx = Math.min(closedIdx, next.length - 1);
+          const newJid = next[newIdx].jid;
+          setSelectedJid(newJid);
+          setMessages([]);
+          fetchMessages(newJid, true);
+        } else {
+          setSelectedJid(null);
+          setMessages([]);
+        }
+      }
+
+      return next;
+    });
+  }, [selectedJid, fetchMessages]);
 
   // Voltar para lista (mobile)
   const deselectChat = useCallback(() => {
@@ -166,5 +234,7 @@ export function useChat(active: boolean) {
     deselectChat,
     sendMessage,
     refresh,
+    openTabs,
+    closeTab,
   };
 }

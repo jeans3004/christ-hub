@@ -13,12 +13,29 @@ const MEDIA_LABELS: Record<string, string> = {
   location: '📍 Localizacao',
 };
 
-interface ChatBubbleProps {
-  message: ChatMessage;
+// Paleta de cores para nomes de remetentes em grupos
+const SENDER_COLORS = [
+  '#E15D64', '#D4805A', '#D6993B', '#58A65C',
+  '#45A5A0', '#5DADE2', '#6C83C4', '#B07CC6',
+  '#CF6FA0', '#E67E73', '#68B984', '#7B98D1',
+];
+
+function getSenderColor(sender: string): string {
+  let hash = 0;
+  for (let i = 0; i < sender.length; i++) {
+    hash = ((hash << 5) - hash + sender.charCodeAt(i)) | 0;
+  }
+  return SENDER_COLORS[Math.abs(hash) % SENDER_COLORS.length];
 }
 
-export function ChatBubble({ message }: ChatBubbleProps) {
-  const { fromMe, text, mediaType, timestamp, status } = message;
+interface ChatBubbleProps {
+  message: ChatMessage;
+  isGroup?: boolean;
+  showSenderName?: boolean;
+}
+
+export function ChatBubble({ message, isGroup, showSenderName }: ChatBubbleProps) {
+  const { fromMe, text, mediaType, timestamp, status, pushName, participant } = message;
 
   const time = timestamp
     ? new Date(timestamp * 1000).toLocaleTimeString('pt-BR', {
@@ -31,6 +48,11 @@ export function ChatBubble({ message }: ChatBubbleProps) {
   const displayText = text || mediaLabel || '';
 
   if (!displayText) return null;
+
+  // Determinar nome do remetente
+  const senderName = pushName || (participant ? participant.split('@')[0] : '');
+  const senderKey = participant || (fromMe ? '__me__' : message.remoteJid);
+  const shouldShowName = showSenderName && !fromMe && senderName;
 
   // Checkmarks for sent messages
   const checkmark = fromMe
@@ -48,6 +70,7 @@ export function ChatBubble({ message }: ChatBubbleProps) {
         justifyContent: fromMe ? 'flex-end' : 'flex-start',
         mb: 0.25,
         px: 1.5,
+        mt: shouldShowName ? 0.5 : 0,
       }}
     >
       <Box
@@ -89,6 +112,23 @@ export function ChatBubble({ message }: ChatBubbleProps) {
           },
         }}
       >
+        {/* Sender name header */}
+        {shouldShowName && (
+          <Typography
+            component="span"
+            sx={{
+              display: 'block',
+              fontWeight: 600,
+              fontSize: '0.8125rem',
+              lineHeight: 1.4,
+              mb: 0.125,
+              color: isGroup ? getSenderColor(senderKey) : 'primary.main',
+              userSelect: 'none',
+            }}
+          >
+            {senderName}
+          </Typography>
+        )}
         {mediaLabel && text && (
           <Typography
             component="span"

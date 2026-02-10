@@ -23,7 +23,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const messages = await whatsappService.findMessages(remoteJid, limit);
+    const isGroup = remoteJid.endsWith('@g.us');
+
+    // Buscar mensagens e contatos em paralelo para grupos
+    const [messages, contacts] = await Promise.all([
+      whatsappService.findMessages(remoteJid, limit),
+      isGroup ? whatsappService.findContacts() : Promise.resolve([]),
+    ]);
+
+    // Montar mapa JID -> nome dos contatos
+    const contactMap = new Map<string, string>();
+    for (const c of contacts) {
+      const jid = c.remoteJid as string | undefined;
+      const name = (c.pushName as string) || (c.profileName as string) || '';
+      if (jid && name) {
+        contactMap.set(jid, name);
+      }
+    }
 
     // Normalizar mensagens para o frontend
     const normalized = messages.map((m) => {
@@ -61,6 +77,15 @@ export async function POST(request: NextRequest) {
         }
       }
 
+      // Extrair participante (remetente em grupos)
+      const participant = (key?.participant as string) || '';
+
+      // Resolver pushName: usar do msg, senao buscar no mapa de contatos
+      let pushName = (m.pushName as string) || '';
+      if (!pushName && participant && contactMap.has(participant)) {
+        pushName = contactMap.get(participant)!;
+      }
+
       return {
         id: (key?.id as string) || (m.id as string) || '',
         fromMe: (key?.fromMe as boolean) || false,
@@ -68,7 +93,8 @@ export async function POST(request: NextRequest) {
         text,
         mediaType,
         timestamp: (m.messageTimestamp as number) || 0,
-        pushName: (m.pushName as string) || '',
+        pushName,
+        participant,
         status: (m.status as string) || '',
       };
     }).sort((a, b) => Number(a.timestamp) - Number(b.timestamp));

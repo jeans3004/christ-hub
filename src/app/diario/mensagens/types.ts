@@ -229,6 +229,7 @@ export interface ChatMessage {
   mediaType: string | null;
   timestamp: number;
   pushName: string;
+  participant?: string;
   status: string;
 }
 
