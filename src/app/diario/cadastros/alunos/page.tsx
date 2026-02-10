@@ -4,12 +4,13 @@
  * Pagina de cadastro de alunos.
  */
 
-import { useMemo, useState } from 'react';
-import { Box, Button, Typography, Chip, Alert, Avatar, FormControl, InputLabel, Select, MenuItem, Menu } from '@mui/material';
+import { useMemo, useState, useCallback } from 'react';
+import { Box, Button, Typography, Chip, Alert, Avatar, FormControl, InputLabel, Select, MenuItem, Menu, CircularProgress } from '@mui/material';
 import { Add, Edit, Delete, Upload, DeleteSweep, Download } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { DataTable, ConfirmDialog, FormModal } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useUIStore } from '@/store/uiStore';
 import { Aluno } from '@/types';
 import { useAlunosPage, useAlunosImport } from './hooks';
 import { AlunoFormContent, EmptyState, ImportDialog } from './components';
@@ -49,10 +50,70 @@ export default function AlunosPage() {
     clearResult,
   } = useAlunosImport(refetch);
 
+  const { addToast } = useUIStore();
+
   // State for dialogs
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [deleteAllDialogOpen, setDeleteAllDialogOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
+  const [exporting, setExporting] = useState(false);
+
+  // Export client-side (authenticated context)
+  const handleExport = useCallback(async () => {
+    setExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+      const alunosToExport = filterTurmaId
+        ? alunos.filter(a => a.turmaId === filterTurmaId)
+        : alunos;
+
+      const turmaMap = new Map(turmas.map(t => [t.id, t]));
+
+      const formatDate = (value: any): string => {
+        if (!value) return '';
+        let d: Date | null = null;
+        if (value instanceof Date) d = value;
+        else if (value?.toDate) d = value.toDate();
+        else if (typeof value === 'string') { const p = new Date(value); if (!isNaN(p.getTime())) d = p; }
+        if (!d) return '';
+        return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+      };
+
+      const headers = [
+        'Matricula','INEP','Nome','CPF','RG','Sexo','Data de Nascimento',
+        'Naturalidade','UF','Serie','Ensino','Turma','Turno',
+        'Responsavel','Telefone','CPF','Email',
+        'Pai','Telefone','Email',
+        'Mae','Telefone','Email',
+        'Logradouro','CEP','Bairro','Indicador',
+      ];
+
+      const rows = [headers, ...alunosToExport.map(a => {
+        const t = turmaMap.get(a.turmaId);
+        return [
+          a.matricula || '', a.inep || '', a.nome || '', a.cpf || '', a.rg || '',
+          a.sexo || '', formatDate(a.dataNascimento), a.naturalidade || '', a.uf || '',
+          a.serie || t?.serie || '', a.ensino || t?.ensino || '',
+          t?.turma || t?.nome || '', a.turno || t?.turno || '',
+          a.responsavelNome || '', a.responsavelTelefone || '', a.responsavelCpf || '', a.responsavelEmail || '',
+          a.paiNome || '', a.paiTelefone || '', a.paiEmail || '',
+          a.maeNome || '', a.maeTelefone || '', a.maeEmail || '',
+          a.logradouro || '', a.cep || '', a.bairro || '', (a as any).indicador || '',
+        ];
+      })];
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Alunos');
+      XLSX.writeFile(wb, 'alunos.xlsx');
+      addToast('Planilha exportada com sucesso!', 'success');
+    } catch (error) {
+      console.error('Export error:', error);
+      addToast('Erro ao exportar alunos', 'error');
+    } finally {
+      setExporting(false);
+    }
+  }, [alunos, turmas, filterTurmaId, addToast]);
 
   const columns = useMemo(() => [
     {
@@ -134,17 +195,12 @@ export default function AlunosPage() {
             </FormControl>
             <Button
               variant="outlined"
-              startIcon={<Download />}
-              disabled={alunos.length === 0}
-              onClick={() => {
-                const url = filterTurmaId
-                  ? `/api/alunos/export?turmaId=${filterTurmaId}`
-                  : '/api/alunos/export';
-                window.open(url, '_blank');
-              }}
+              startIcon={exporting ? <CircularProgress size={18} /> : <Download />}
+              disabled={alunos.length === 0 || exporting}
+              onClick={handleExport}
               sx={{ textTransform: 'none' }}
             >
-              Exportar
+              {exporting ? 'Exportando...' : 'Exportar'}
             </Button>
             <Button
               variant="outlined"
