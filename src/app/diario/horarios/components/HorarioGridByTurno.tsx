@@ -4,6 +4,7 @@
  * Linhas: Dias x Tempos (7 tempos por dia, 5 dias = 35 linhas)
  */
 
+import { Fragment } from 'react';
 import {
   Table,
   TableBody,
@@ -14,11 +15,37 @@ import {
   Typography,
   Box,
   Paper,
-  Chip,
+  alpha,
+  useTheme,
 } from '@mui/material';
-import { DiaSemana, DiasSemanaNomesAbrev, HorarioAula, Turma, Disciplina, Usuario, HorarioSlot } from '@/types';
+import { DiaSemana, HorarioAula, Turma, Disciplina, Usuario, HorarioSlot } from '@/types';
+
+const DIAS_NOMES: Record<number, string> = {
+  1: 'Segunda-feira',
+  2: 'Terça-feira',
+  3: 'Quarta-feira',
+  4: 'Quinta-feira',
+  5: 'Sexta-feira',
+};
 
 const DIAS_SEMANA: DiaSemana[] = [1, 2, 3, 4, 5]; // Segunda a Sexta
+
+// Paleta expandida — 20 matizes distintos (mesma do HorarioCell)
+const DISCIPLINA_COLORS = [
+  '#2563EB', '#059669', '#DC2626', '#7C3AED',
+  '#EA580C', '#0891B2', '#DB2777', '#65A30D',
+  '#CA8A04', '#4F46E5', '#0D9488', '#E11D48',
+  '#9333EA', '#C2410C', '#0284C7', '#16A34A',
+  '#A21CAF', '#B45309', '#6D28D9', '#BE185D',
+];
+
+function getColorForDisciplina(nome: string): string {
+  let hash = 0;
+  for (let i = 0; i < nome.length; i++) {
+    hash = nome.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return DISCIPLINA_COLORS[Math.abs(hash) % DISCIPLINA_COLORS.length];
+}
 
 // Converte horario HH:MM para minutos desde meia-noite
 const timeToMinutes = (time: string): number => {
@@ -79,6 +106,9 @@ export function HorarioGridByTurno({
   canEdit,
   onCellClick,
 }: HorarioGridByTurnoProps) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
+
   // Filtrar turmas pelo turno e ordenar: Fundamental primeiro, depois Médio
   const turmasFiltradas = turmas
     .filter(t => t.turno === turno && t.ativo !== false)
@@ -206,13 +236,13 @@ export function HorarioGridByTurno({
                 key={turma.id}
                 align="center"
                 sx={{
-                  minWidth: 120,
-                  bgcolor: 'background.paper',
+                  minWidth: 130,
+                  bgcolor: isDark ? alpha(theme.palette.primary.main, 0.12) : alpha(theme.palette.primary.main, 0.06),
                   borderBottom: 2,
-                  borderColor: 'divider',
+                  borderColor: 'primary.main',
                 }}
               >
-                <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.7rem' }}>
+                <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.75rem', color: 'text.primary' }}>
                   {turma.nome}
                 </Typography>
               </TableCell>
@@ -220,152 +250,184 @@ export function HorarioGridByTurno({
           </TableRow>
         </TableHead>
         <TableBody>
-          {rows.map((row, rowIndex) => (
-            <TableRow
-              key={`${row.dia}-${row.slotIndex}`}
-              sx={{
-                bgcolor: row.isFirstOfDay ? 'action.hover' : 'inherit',
-                borderTop: row.isFirstOfDay ? 2 : 0,
-                borderColor: 'divider',
-              }}
-            >
-              <TableCell
-                sx={{
-                  bgcolor: row.isFirstOfDay ? 'primary.main' : 'background.default',
-                  color: row.isFirstOfDay ? 'primary.contrastText' : 'text.primary',
-                  borderRight: 1,
-                  borderColor: 'divider',
-                  position: 'sticky',
-                  left: 0,
-                  zIndex: 1,
-                  py: 0.5,
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  {row.isFirstOfDay && (
-                    <Chip
-                      label={DiasSemanaNomesAbrev[row.dia]}
-                      size="small"
-                      sx={{
-                        height: 18,
-                        fontSize: '0.65rem',
-                        bgcolor: 'primary.dark',
-                        color: 'primary.contrastText',
-                      }}
-                    />
-                  )}
-                  <Typography variant="caption" fontWeight={500}>
-                    {row.slot.label}
-                  </Typography>
-                </Box>
-              </TableCell>
-              {turmasFiltradas.map(turma => {
-                const horario = getHorario(turma.id, row.dia, row.slot);
-                const disciplina = horario ? disciplinas.find(d => d.id === horario.disciplinaId) : null;
-                // Suporte a múltiplos professores
-                const professorNames = horario
-                  ? (horario.professorIds && horario.professorIds.length > 0
-                      ? horario.professorIds.map(id => professores.find(p => p.id === id)?.nome?.split(' ')[0] || '?').join(', ')
-                      : professores.find(p => p.id === horario.professorId)?.nome?.split(' ')[0] || '?')
-                  : null;
-
-                return (
+          {rows.map((row) => (
+            <Fragment key={`${row.dia}-${row.slotIndex}`}>
+              {/* Header do dia — linha separadora com nome completo */}
+              {row.isFirstOfDay && (
+                <TableRow>
                   <TableCell
-                    key={turma.id}
-                    align="center"
-                    onClick={() => canEdit && onCellClick(horario || undefined, { dia: row.dia, slot: row.slot, turmaId: turma.id })}
+                    colSpan={turmasFiltradas.length + 1}
                     sx={{
-                      p: 0.5,
-                      cursor: canEdit ? 'pointer' : 'default',
-                      '&:hover': canEdit ? { bgcolor: 'action.hover' } : {},
-                      borderRight: 1,
-                      borderColor: 'divider',
-                      minHeight: 40,
+                      bgcolor: isDark ? alpha(theme.palette.primary.main, 0.18) : alpha(theme.palette.primary.main, 0.08),
+                      borderTop: 3,
+                      borderBottom: 1,
+                      borderColor: 'primary.main',
+                      py: 0.75,
+                      px: 1.5,
                     }}
                   >
-                    {horario ? (
-                      <Box
-                        sx={{
-                          bgcolor: horario.temConflito ? 'warning.main' : 'primary.light',
-                          color: horario.temConflito ? 'warning.contrastText' : 'primary.contrastText',
-                          borderRadius: 1,
-                          p: 0.5,
-                          minHeight: 32,
-                          position: 'relative',
-                          ...(horario.temConflito && {
-                            border: '2px dashed',
-                            borderColor: 'warning.dark',
-                          }),
-                        }}
-                        title={horario.temConflito ? 'Professor com duplicidade neste horário' : undefined}
-                      >
-                        {horario.temConflito && (
-                          <Typography
-                            component="span"
-                            sx={{
-                              position: 'absolute',
-                              top: 1,
-                              right: 3,
-                              fontSize: '0.6rem',
-                            }}
-                          >
-                            ⚠
-                          </Typography>
-                        )}
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '0.6rem',
-                            fontWeight: 600,
-                            display: 'block',
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {disciplina?.nome?.substring(0, 15) || '?'}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontSize: '0.55rem',
-                            opacity: 0.9,
-                            display: 'block',
-                            lineHeight: 1.1,
-                          }}
-                        >
-                          {professorNames}
-                        </Typography>
-                        {horario.sala && (
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              fontSize: '0.5rem',
-                              opacity: 0.8,
-                            }}
-                          >
-                            {horario.sala}
-                          </Typography>
-                        )}
-                      </Box>
-                    ) : (
-                      <Box
-                        sx={{
-                          height: 32,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        {canEdit && (
-                          <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.6rem' }}>
-                            +
-                          </Typography>
-                        )}
-                      </Box>
-                    )}
+                    <Typography fontWeight={700} sx={{ fontSize: '0.82rem', color: 'primary.main', letterSpacing: 0.5 }}>
+                      {DIAS_NOMES[row.dia]}
+                    </Typography>
                   </TableCell>
-                );
-              })}
-            </TableRow>
+                </TableRow>
+              )}
+
+              {/* Linha do tempo */}
+              <TableRow>
+                <TableCell
+                  sx={{
+                    bgcolor: 'background.default',
+                    color: 'text.primary',
+                    borderRight: 1,
+                    borderColor: 'divider',
+                    position: 'sticky',
+                    left: 0,
+                    zIndex: 1,
+                    py: 0.5,
+                    pl: 1.5,
+                  }}
+                >
+                  <Typography variant="caption" fontWeight={600} sx={{ fontSize: '0.72rem' }}>
+                    {row.slot.label}
+                  </Typography>
+                  <Typography variant="caption" sx={{ fontSize: '0.58rem', color: 'text.disabled', ml: 0.5 }}>
+                    {row.slot.horaInicio}
+                  </Typography>
+                </TableCell>
+
+                {turmasFiltradas.map(turma => {
+                  const horario = getHorario(turma.id, row.dia, row.slot);
+                  const disciplina = horario ? disciplinas.find(d => d.id === horario.disciplinaId) : null;
+                  const professorNames = horario
+                    ? (horario.professorIds && horario.professorIds.length > 0
+                        ? horario.professorIds.map(id => professores.find(p => p.id === id)?.nome?.split(' ')[0] || '?').join(', ')
+                        : professores.find(p => p.id === horario.professorId)?.nome?.split(' ')[0] || '?')
+                    : null;
+
+                  return (
+                    <TableCell
+                      key={turma.id}
+                      align="center"
+                      onClick={() => canEdit && onCellClick(horario || undefined, { dia: row.dia, slot: row.slot, turmaId: turma.id })}
+                      sx={{
+                        p: 0.5,
+                        cursor: canEdit ? 'pointer' : 'default',
+                        '&:hover': canEdit ? { bgcolor: 'action.hover' } : {},
+                        borderRight: 1,
+                        borderColor: 'divider',
+                        minHeight: 40,
+                      }}
+                    >
+                      {horario ? (() => {
+                        const discColor = disciplina
+                          ? getColorForDisciplina(disciplina.nome)
+                          : theme.palette.grey[500];
+                        const hasConflict = horario.temConflito;
+                        const cellColor = hasConflict ? theme.palette.warning.main : discColor;
+
+                        return (
+                          <Box
+                            sx={{
+                              bgcolor: alpha(cellColor, isDark ? 0.32 : 0.22),
+                              borderLeft: `4px solid ${cellColor}`,
+                              borderRadius: 1,
+                              p: 0.5,
+                              minHeight: 36,
+                              position: 'relative',
+                              transition: 'background-color 0.15s',
+                              '&:hover': {
+                                bgcolor: alpha(cellColor, isDark ? 0.45 : 0.35),
+                              },
+                              ...(hasConflict && {
+                                border: '1.5px dashed',
+                                borderColor: theme.palette.warning.main,
+                                borderLeftWidth: 4,
+                                borderLeftStyle: 'solid',
+                              }),
+                            }}
+                            title={hasConflict ? 'Professor com duplicidade neste horario' : undefined}
+                          >
+                            {hasConflict && (
+                              <Typography
+                                component="span"
+                                sx={{
+                                  position: 'absolute',
+                                  top: 1,
+                                  right: 3,
+                                  fontSize: '0.65rem',
+                                }}
+                              >
+                                ⚠
+                              </Typography>
+                            )}
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: '0.68rem',
+                                fontWeight: 700,
+                                display: 'block',
+                                lineHeight: 1.2,
+                                color: cellColor,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {disciplina?.nome?.substring(0, 18) || '?'}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: '0.62rem',
+                                display: 'block',
+                                lineHeight: 1.15,
+                                color: 'text.secondary',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {professorNames}
+                            </Typography>
+                            {horario.sala && (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: '0.58rem',
+                                  display: 'block',
+                                  lineHeight: 1.1,
+                                  color: 'text.disabled',
+                                }}
+                              >
+                                {horario.sala}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })() : (
+                        <Box
+                          sx={{
+                            height: 36,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: 1,
+                            border: `1px dashed ${alpha(theme.palette.divider, 0.4)}`,
+                          }}
+                        >
+                          {canEdit && (
+                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: '0.7rem' }}>
+                              +
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            </Fragment>
           ))}
         </TableBody>
       </Table>

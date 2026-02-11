@@ -6,10 +6,13 @@ import { Box, Typography, alpha, useTheme, Tooltip } from '@mui/material';
 import { Add as AddIcon, Person as PersonIcon } from '@mui/icons-material';
 import { HorarioCellProps } from '../types';
 
-// Cores para disciplinas (hash simples baseado no nome)
+// Paleta expandida — 20 matizes distintos para cobrir ~57 disciplinas com minimo de colisao
 const DISCIPLINA_COLORS = [
-  '#1976d2', '#388e3c', '#d32f2f', '#7b1fa2',
-  '#f57c00', '#0288d1', '#c2185b', '#689f38',
+  '#2563EB', '#059669', '#DC2626', '#7C3AED',
+  '#EA580C', '#0891B2', '#DB2777', '#65A30D',
+  '#CA8A04', '#4F46E5', '#0D9488', '#E11D48',
+  '#9333EA', '#C2410C', '#0284C7', '#16A34A',
+  '#A21CAF', '#B45309', '#6D28D9', '#BE185D',
 ];
 
 function getColorForDisciplina(nome: string): string {
