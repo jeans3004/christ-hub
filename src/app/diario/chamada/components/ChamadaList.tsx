@@ -27,6 +27,7 @@ interface ChamadaListProps {
   atestadosVigentes?: Record<string, Atestado>; // alunoId -> atestado vigente
   atrasosHoje?: Record<string, Atraso>; // alunoId -> atraso do dia
   isPrimeiroTempo?: boolean; // se estamos no 1o tempo
+  showTurma?: boolean; // exibir serie/turma do aluno (usado no preparatorio)
   totalPresentes: number;
   totalAusentes: number;
   saving: boolean;
@@ -44,6 +45,7 @@ export function ChamadaList({
   atestadosVigentes = {},
   atrasosHoje = {},
   isPrimeiroTempo = false,
+  showTurma = false,
   totalPresentes,
   totalAusentes,
   saving,
@@ -366,7 +368,15 @@ export function ChamadaList({
                     </Box>
                   )}
                 </Box>
-                {aluno.matricula && (
+                {(showTurma && aluno.serie) && (
+                  <Typography
+                    variant="caption"
+                    sx={{ color: 'text.secondary', fontWeight: 500, fontSize: '0.7rem' }}
+                  >
+                    {aluno.serie}
+                  </Typography>
+                )}
+                {!showTurma && aluno.matricula && (
                   <Typography
                     variant="caption"
                     sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'block' } }}

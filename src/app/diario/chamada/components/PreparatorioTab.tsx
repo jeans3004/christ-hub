@@ -158,6 +158,7 @@ export function PreparatorioTab() {
           alunos={alunos}
           presencas={presencas}
           observacoes={observacoes}
+          showTurma
           totalPresentes={totalPresentes}
           totalAusentes={totalAusentes}
           saving={saving}
