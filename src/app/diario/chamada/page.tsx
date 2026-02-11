@@ -4,9 +4,9 @@
  * Pagina de chamada - registra presencas dos alunos.
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Box, Typography, CircularProgress, Alert, Tabs, Tab, Paper } from '@mui/material';
-import { Person, Edit as EditIcon, Assessment as ReportIcon, Route as TrilhasIcon } from '@mui/icons-material';
+import { Person, Edit as EditIcon, Assessment as ReportIcon, Route as TrilhasIcon, PeopleOutline, School } from '@mui/icons-material';
 import MainLayout from '@/components/layout/MainLayout';
 import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
@@ -16,7 +16,7 @@ import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, AlunosDisciplinaTab, PreparatorioTab } from './components';
 import { Atestado, Atraso } from '@/types';
 
 export default function ChamadaPage() {
@@ -128,6 +128,16 @@ export default function ChamadaPage() {
   // IDs dos alunos atrasados que devem ser bloqueados como ausente (so no 1o tempo)
   const atrasadosIds = isPrimeiroTempo ? Object.keys(atrasosHoje) : [];
 
+  // Filtrar alunos pela whitelist da disciplina selecionada
+  const alunosFiltrados = useMemo(() => {
+    if (!disciplinaId || !serieId) return alunos;
+    const disciplina = todasDisciplinas.find(d => d.id === disciplinaId);
+    const whitelist = disciplina?.alunosPorTurma?.[serieId];
+    if (!whitelist?.length) return alunos;
+    const whitelistSet = new Set(whitelist);
+    return alunos.filter(a => whitelistSet.has(a.id));
+  }, [alunos, disciplinaId, serieId, todasDisciplinas]);
+
   // Chamada data hook
   const {
     presencas,
@@ -146,7 +156,7 @@ export default function ChamadaPage() {
     serieId,
     disciplinaId,
     dataChamada,
-    alunos,
+    alunos: alunosFiltrados,
     turno: turmaSelecionada?.turno,
     atrasadosIds,
   });
@@ -265,6 +275,20 @@ export default function ChamadaPage() {
             label="Trilhas"
             sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
           />
+          <Tab
+            icon={<School />}
+            iconPosition="start"
+            label="Preparatorio"
+            sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
+          />
+          {usuario?.tipo !== 'professor' && (
+            <Tab
+              icon={<PeopleOutline />}
+              iconPosition="start"
+              label="Alunos por Disciplina"
+              sx={{ minHeight: 56, '& .MuiTab-iconWrapper': { mr: { xs: 0, sm: 1 } }, fontSize: { xs: 0, sm: '0.875rem' }, minWidth: 0 }}
+            />
+          )}
         </Tabs>
       </Paper>
 
@@ -307,13 +331,13 @@ export default function ChamadaPage() {
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
                 <CircularProgress />
               </Box>
-            ) : alunos.length === 0 ? (
+            ) : alunosFiltrados.length === 0 ? (
               <Alert severity="info">
                 Nenhum aluno encontrado nesta turma. Cadastre alunos primeiro.
               </Alert>
             ) : (
               <ChamadaList
-                alunos={alunos}
+                alunos={alunosFiltrados}
                 presencas={presencas}
                 observacoes={observacoes}
                 atestadosVigentes={atestadosVigentes}
@@ -362,6 +386,16 @@ export default function ChamadaPage() {
         ) : (
           <TrilhasConfig ano={ano} />
         )
+      )}
+
+      {/* Tab: Preparatorio */}
+      {activeTab === 3 && (
+        <PreparatorioTab />
+      )}
+
+      {/* Tab: Alunos por Disciplina (admin/coordenador only) */}
+      {activeTab === 4 && usuario?.tipo !== 'professor' && (
+        <AlunosDisciplinaTab />
       )}
 
       {/* Conteudo Modal */}

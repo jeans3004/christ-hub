@@ -178,6 +178,7 @@ export interface Disciplina {
   parentId?: string | null;  // Referencia ao pai (hierarquia)
   ordem: number;             // Ordenacao dentro do nivel
   isGroup?: boolean;         // true = grupo organizacional, nao selecionavel
+  alunosPorTurma?: Record<string, string[]>; // turmaId -> alunoIds whitelist
   ativo: boolean;
   createdAt: Date;
   updatedAt: Date;

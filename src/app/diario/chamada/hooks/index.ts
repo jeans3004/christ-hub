@@ -3,6 +3,8 @@
  */
 
 export { useChamadaData } from './useChamadaData';
+export { useAlunosDisciplinaConfig } from './useAlunosDisciplinaConfig';
+export { usePreparatorioLoader } from './usePreparatorioLoader';
 
 // Trilhas
 export { useTrilhasLoader } from './useTrilhasLoader';

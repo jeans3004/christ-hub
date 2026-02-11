@@ -3,6 +3,7 @@
  */
 
 import { Disciplina } from '@/types';
+import { deleteField } from 'firebase/firestore';
 import { getDocument, getDocuments, createDocument, updateDocument, deleteDocument, where, orderBy } from './base';
 
 const COLLECTION = 'disciplinas';
@@ -112,5 +113,19 @@ export const disciplinaService = {
     });
 
     return { grupos, disciplinas, byParent };
+  },
+
+  // Atualiza whitelist de alunos para uma turma especifica
+  updateAlunosPorTurma: async (disciplinaId: string, turmaId: string, alunoIds: string[]) => {
+    await updateDocument(COLLECTION, disciplinaId, {
+      [`alunosPorTurma.${turmaId}`]: alunoIds,
+    } as Partial<Disciplina>);
+  },
+
+  // Limpa whitelist de uma turma (volta a mostrar todos os alunos)
+  clearAlunosPorTurma: async (disciplinaId: string, turmaId: string) => {
+    await updateDocument(COLLECTION, disciplinaId, {
+      [`alunosPorTurma.${turmaId}`]: deleteField(),
+    } as Partial<Disciplina>);
   },
 };

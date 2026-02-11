@@ -10,5 +10,8 @@ export { EspelhoChamada } from './EspelhoChamada';
 export { RelatoriosChamada } from './RelatoriosChamada';
 export { SalvarChamadaModal } from './SalvarChamadaModal';
 
+export { AlunosDisciplinaTab } from './AlunosDisciplinaTab';
+export { PreparatorioTab } from './PreparatorioTab';
+
 // Trilhas
 export { TrilhasView, TrilhasConfig } from './trilhas';
