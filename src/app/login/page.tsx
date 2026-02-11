@@ -4,7 +4,7 @@
  * Pagina de login - sempre em modo claro.
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import NextLink from 'next/link';
 import { Box, Paper, Typography, Link, Collapse, ThemeProvider } from '@mui/material';
@@ -15,9 +15,16 @@ import { lightTheme } from '@/lib/theme';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithGoogle, isLoading } = useAuth();
+  const { login, loginWithGoogle, isLoading, isAuthenticated } = useAuth();
   const [showEmailLogin, setShowEmailLogin] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+
+  // Redirecionar se ja esta autenticado (ex: PWA reaberta)
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.replace('/diario/menu');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   const onSubmit = async (data: LoginFormData) => {
     const email = `${data.cpf.replace(/\D/g, '')}@luminar.local`;

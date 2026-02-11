@@ -3,7 +3,7 @@
   "name": "Luminar",
   "short_name": "Luminar",
   "description": "Luminar - Plataforma Educacional",
-  "start_url": "/login",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "prefer_related_applications": false,

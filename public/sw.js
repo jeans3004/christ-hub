@@ -1,131 +1,110 @@
-// Service Worker for Diário Digital PWA
+// Service Worker for Luminar PWA
+// v2 - Network-first for pages, cache-first for static assets
 
-const CACHE_NAME = 'diario-digital-v1';
-const OFFLINE_URL = '/offline.html';
+const CACHE_NAME = 'luminar-v2';
 
-const STATIC_ASSETS = [
-  '/',
-  '/login',
-  '/diario/menu',
-  '/manifest.json',
-  '/offline.html',
-];
+// Listen for SKIP_WAITING message from client
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
-// Install event
+// Install - no precaching of HTML pages (they should always come from network)
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Caching static assets');
-      return cache.addAll(STATIC_ASSETS);
+      return cache.addAll([
+        '/manifest.json',
+        '/offline.html',
+      ]);
     })
   );
-  self.skipWaiting();
 });
 
-// Activate event
+// Activate - clean up ALL old caches
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => {
+            console.log('[SW] Deleting old cache:', name);
+            return caches.delete(name);
+          })
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
-// Fetch event - Network first, then cache
+// Fetch handler
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
 
-  // Skip Chrome extension requests
+  const url = new URL(event.request.url);
+
+  // API calls - skip SW, go straight to network
+  if (url.pathname.startsWith('/api/')) return;
+
+  // Chrome extension requests - skip
   if (event.request.url.includes('chrome-extension')) return;
 
+  // Next.js immutable static assets (hashed filenames) - Cache First
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Fonts - Cache First with long expiry
+  if (url.pathname.match(/\.(woff2?|ttf|eot|otf)$/) ||
+      url.hostname === 'fonts.googleapis.com' ||
+      url.hostname === 'fonts.gstatic.com') {
+    event.respondWith(
+      caches.match(event.request).then((cached) => {
+        if (cached) return cached;
+        return fetch(event.request).then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return response;
+        });
+      })
+    );
+    return;
+  }
+
+  // Everything else (HTML pages, images, etc) - Network First
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
-
-        // Cache successful responses
-        if (response.status === 200) {
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
-
         return response;
       })
       .catch(() => {
-        // Try to get from cache
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
-          }
-
-          // Return offline page for navigation requests
+        return caches.match(event.request).then((cached) => {
+          if (cached) return cached;
           if (event.request.mode === 'navigate') {
-            return caches.match(OFFLINE_URL);
+            return caches.match('/offline.html');
           }
-
-          return new Response('Offline', {
-            status: 503,
-            statusText: 'Service Unavailable',
-          });
+          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
         });
       })
   );
-});
-
-// Background sync for offline data
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-data') {
-    event.waitUntil(syncData());
-  }
-});
-
-async function syncData() {
-  // Implement data synchronization logic here
-  console.log('Syncing offline data...');
-}
-
-// Push notifications
-self.addEventListener('push', (event) => {
-  const options = {
-    body: event.data?.text() || 'Nova notificação do Diário Digital',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
-    vibrate: [100, 50, 100],
-    data: {
-      dateOfArrival: Date.now(),
-    },
-    actions: [
-      { action: 'open', title: 'Abrir' },
-      { action: 'close', title: 'Fechar' },
-    ],
-  };
-
-  event.waitUntil(
-    self.registration.showNotification('Diário Digital', options)
-  );
-});
-
-// Notification click
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-
-  if (event.action === 'open') {
-    event.waitUntil(
-      clients.openWindow('/')
-    );
-  }
 });
