@@ -29,6 +29,7 @@ import {
   Save,
   CheckCircle as PresentIcon,
   Cancel as AbsentIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario, PresencaAluno } from '@/types';
 import { chamadaService } from '@/services/firestore';
@@ -43,6 +44,7 @@ interface ChamadaDetalheProps {
   data: string;
   onBack: () => void;
   onUpdate: (updatedChamada: Chamada) => void;
+  onDelete?: (chamadaId: string) => void;
 }
 
 const avatarColors = [
@@ -58,6 +60,7 @@ export function ChamadaDetalhe({
   data,
   onBack,
   onUpdate,
+  onDelete,
 }: ChamadaDetalheProps) {
   const { addToast } = useUIStore();
   const [presencas, setPresencas] = useState<PresencaAluno[]>(chamada.presencas);
@@ -193,6 +196,17 @@ export function ChamadaDetalhe({
             </>
           ) : (
             <>
+              {onDelete && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<DeleteIcon />}
+                  onClick={() => onDelete(chamada.id)}
+                  size="small"
+                >
+                  Excluir
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 startIcon={<PrintIcon />}

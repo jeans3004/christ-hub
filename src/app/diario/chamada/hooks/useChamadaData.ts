@@ -15,7 +15,7 @@ import { Aluno, PresencaAluno, Turno } from '@/types';
  * Tarde: 1º 13:00, 2º 13:45, 3º 14:30, 4º 15:15, 5º 16:00, 6º 16:45, 7º 17:30 (45 min)
  * Sexta tarde: 1º 13:00, 2º 13:35, 3º 14:10, 4º 14:45, 5º 15:20, 6º 15:55, 7º 16:30 (35 min)
  */
-function calcularTempo(turno?: Turno): number {
+export function calcularTempo(turno?: Turno): number {
   const now = new Date();
   const hours = now.getHours();
   const minutes = now.getMinutes();
@@ -112,7 +112,7 @@ interface UseChamadaDataReturn {
   handlePresencaChange: (alunoId: string) => void;
   handleObservacaoChange: (alunoId: string, observacao: string) => void;
   handleMarcarTodos: (presente: boolean) => void;
-  handleSaveChamada: () => Promise<void>;
+  handleSaveChamada: (quantidadeTempos?: number, tempoInicial?: number) => Promise<void>;
 }
 
 export function useChamadaData({
@@ -198,7 +198,7 @@ export function useChamadaData({
     setPresencas(novasPresencas);
   }, [alunos]);
 
-  const handleSaveChamada = useCallback(async () => {
+  const handleSaveChamada = useCallback(async (quantidadeTempos: number = 1, tempoInicial?: number) => {
     if (!serieId || !disciplinaId || !usuario) {
       addToast('Selecione turma e disciplina', 'error');
       return;
@@ -226,8 +226,8 @@ export function useChamadaData({
         return presenca;
       });
 
-      // Calcular tempo baseado no horario atual e turno da turma
-      const tempoCalculado = calcularTempo(turno) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
+      // Usar tempo inicial informado ou calcular baseado no horario atual
+      const tempoCalculado = (tempoInicial || calcularTempo(turno)) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
       // Check if chamada already exists (usar T12:00:00 para evitar problemas de timezone)
       const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada + 'T12:00:00'));
@@ -265,7 +265,28 @@ export function useChamadaData({
         });
       }
 
-      addToast('Chamada salva com sucesso!', 'success');
+      // Salvar segundo tempo consecutivo se solicitado
+      if (quantidadeTempos === 2 && tempoCalculado < 7) {
+        const segundoTempo = (tempoCalculado + 1) as 1 | 2 | 3 | 4 | 5 | 6 | 7;
+        const existingSegundo = chamadas.find(c => c.disciplinaId === disciplinaId && c.tempo === segundoTempo);
+
+        if (existingSegundo) {
+          await chamadaService.update(existingSegundo.id, chamadaData);
+        } else {
+          await chamadaService.create({
+            turmaId: serieId,
+            disciplinaId,
+            professorId: usuario.id,
+            data: new Date(dataChamada + 'T12:00:00'),
+            tempo: segundoTempo,
+            ...chamadaData,
+          });
+        }
+
+        addToast('2 chamadas salvas com sucesso!', 'success');
+      } else {
+        addToast('Chamada salva com sucesso!', 'success');
+      }
     } catch (error) {
       console.error('Error saving chamada:', error);
       addToast('Erro ao salvar chamada', 'error');

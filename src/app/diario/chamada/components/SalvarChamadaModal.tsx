@@ -1,6 +1,6 @@
 /**
- * Modal para registrar conteudo ministrado.
- * Professor seleciona tempo inicial e escolhe 1 ou 2 tempos consecutivos.
+ * Modal para escolher salvar 1 ou 2 tempos consecutivos.
+ * Professor pode ajustar o tempo inicial (ex: registrar no final da aula dupla).
  */
 
 import { useState, useEffect } from 'react';
@@ -13,11 +13,11 @@ import {
   Typography,
   Box,
   Chip,
-  TextField,
+  CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
 } from '@mui/material';
-import { MenuBook, Schedule } from '@mui/icons-material';
+import { Schedule } from '@mui/icons-material';
 import { Turno } from '@/types';
 import { calcularTempo } from '../hooks/useChamadaData';
 
@@ -34,29 +34,19 @@ function getHorarioLabel(tempo: number, turno?: Turno): string {
   return '';
 }
 
-interface ConteudoModalProps {
+interface SalvarChamadaModalProps {
   open: boolean;
-  dataConteudo: string;
-  conteudo: string;
   turno?: Turno;
+  saving: boolean;
   onClose: () => void;
-  onDataChange: (data: string) => void;
-  onConteudoChange: (conteudo: string) => void;
-  onSave: (tempoInicial: number, quantidade: number) => void;
+  onConfirm: (quantidade: number, tempoInicial: number) => void;
 }
 
-export function ConteudoModal({
-  open,
-  dataConteudo,
-  conteudo,
-  turno,
-  onClose,
-  onDataChange,
-  onConteudoChange,
-  onSave,
-}: ConteudoModalProps) {
-  const [tempoSelecionado, setTempoSelecionado] = useState(calcularTempo(turno));
+export function SalvarChamadaModal({ open, turno, saving, onClose, onConfirm }: SalvarChamadaModalProps) {
+  const tempoDetectado = calcularTempo(turno);
+  const [tempoSelecionado, setTempoSelecionado] = useState(tempoDetectado);
 
+  // Reset tempo selecionado quando modal abre
   useEffect(() => {
     if (open) setTempoSelecionado(calcularTempo(turno));
   }, [open, turno]);
@@ -66,8 +56,8 @@ export function ConteudoModal({
   const podeDoisTempos = tempoSelecionado < 7;
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Registrar Conteudo</DialogTitle>
+    <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>Registrar Chamada</DialogTitle>
       <DialogContent>
         {/* Tempo - hero display */}
         <Box
@@ -103,19 +93,16 @@ export function ConteudoModal({
           >
             Tempo selecionado
           </Typography>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MenuBook sx={{ fontSize: 28, color: 'primary.main', opacity: 0.7 }} />
-            <Typography
-              sx={{
-                fontSize: '2.5rem',
-                fontWeight: 700,
-                lineHeight: 1,
-                color: 'primary.main',
-              }}
-            >
-              {tempoSelecionado}º
-            </Typography>
-          </Box>
+          <Typography
+            sx={{
+              fontSize: '2.5rem',
+              fontWeight: 700,
+              lineHeight: 1,
+              color: 'primary.main',
+            }}
+          >
+            {tempoSelecionado}º
+          </Typography>
           {horarioSelecionado && (
             <Chip
               icon={<Schedule sx={{ fontSize: 14 }} />}
@@ -161,45 +148,26 @@ export function ConteudoModal({
           </ToggleButtonGroup>
         </Box>
 
-        {/* Campos */}
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2.5 }}>
-          <TextField
-            label="Data"
-            type="date"
-            value={dataConteudo}
-            onChange={(e) => onDataChange(e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            size="small"
-          />
-          <TextField
-            label="Conteudo ministrado"
-            multiline
-            rows={4}
-            value={conteudo}
-            onChange={(e) => onConteudoChange(e.target.value)}
-            fullWidth
-            placeholder="Descreva o conteudo ministrado nesta aula..."
-          />
-        </Box>
-
         {/* Opcoes de quantidade */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
           <Button
             variant="outlined"
             fullWidth
-            onClick={() => onSave(tempoSelecionado, 1)}
+            onClick={() => onConfirm(1, tempoSelecionado)}
+            disabled={saving}
             sx={{ py: 1.5, justifyContent: 'flex-start', textTransform: 'none' }}
           >
+            {saving ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
             1 Tempo ({tempoSelecionado}º{horarioSelecionado ? ` - ${horarioSelecionado}` : ''})
           </Button>
           <Button
             variant="outlined"
             fullWidth
-            onClick={() => onSave(tempoSelecionado, 2)}
-            disabled={!podeDoisTempos}
+            onClick={() => onConfirm(2, tempoSelecionado)}
+            disabled={saving || !podeDoisTempos}
             sx={{ py: 1.5, justifyContent: 'flex-start', textTransform: 'none' }}
           >
+            {saving ? <CircularProgress size={20} sx={{ mr: 1 }} /> : null}
             2 Tempos consecutivos ({tempoSelecionado}º e {tempoSelecionado + 1}º{horarioProximo ? ` - ${horarioSelecionado} e ${horarioProximo}` : ''})
           </Button>
           {!podeDoisTempos && (
@@ -210,7 +178,7 @@ export function ConteudoModal({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} color="inherit">
+        <Button onClick={onClose} disabled={saving} color="inherit">
           Cancelar
         </Button>
       </DialogActions>

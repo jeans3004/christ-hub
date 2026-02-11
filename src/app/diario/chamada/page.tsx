@@ -12,10 +12,11 @@ import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
+import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal } from './components';
 import { Atestado, Atraso } from '@/types';
 
 export default function ChamadaPage() {
@@ -80,6 +81,7 @@ export default function ChamadaPage() {
   // Local state for date and modal
   const [dataChamada, setDataChamada] = useState(new Date().toISOString().split('T')[0]);
   const [conteudoModalOpen, setConteudoModalOpen] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [dataConteudo, setDataConteudo] = useState(new Date().toISOString().split('T')[0]);
 
   // Obter turno da turma selecionada
@@ -190,8 +192,36 @@ export default function ChamadaPage() {
     loadAtestados();
   }, [loadAtestados]);
 
-  const handleSaveConteudo = () => {
-    addToast('Conteudo sera salvo junto com a chamada', 'info');
+  const handleSaveConteudo = async (tempoInicial: number, quantidade: number) => {
+    if (!serieId || !disciplinaId) {
+      addToast('Selecione turma e disciplina', 'error');
+      return;
+    }
+
+    try {
+      const chamadas = await chamadaService.getByTurmaData(serieId, new Date(dataChamada + 'T12:00:00'));
+      const tempos = [tempoInicial];
+      if (quantidade === 2 && tempoInicial < 7) tempos.push(tempoInicial + 1);
+
+      let salvou = false;
+      for (const tempo of tempos) {
+        const chamadaExistente = chamadas.find(c => c.disciplinaId === disciplinaId && c.tempo === tempo);
+        if (chamadaExistente) {
+          await chamadaService.update(chamadaExistente.id, { conteudo: conteudo || undefined });
+          salvou = true;
+        }
+      }
+
+      if (salvou) {
+        addToast(quantidade === 2 ? 'Conteudo salvo em 2 tempos!' : 'Conteudo salvo com sucesso!', 'success');
+      } else {
+        addToast('Conteudo sera salvo junto com a chamada', 'info');
+      }
+    } catch (error) {
+      console.error('Erro ao salvar conteudo:', error);
+      addToast('Erro ao salvar conteudo', 'error');
+    }
+
     setConteudoModalOpen(false);
   };
 
@@ -295,7 +325,7 @@ export default function ChamadaPage() {
                 onPresencaChange={handlePresencaChange}
                 onObservacaoChange={handleObservacaoChange}
                 onMarcarTodos={handleMarcarTodos}
-                onSave={handleSaveChamada}
+                onSave={() => setShowSaveModal(true)}
                 onOpenConteudo={() => setConteudoModalOpen(true)}
               />
             )}
@@ -339,10 +369,23 @@ export default function ChamadaPage() {
         open={conteudoModalOpen}
         dataConteudo={dataConteudo}
         conteudo={conteudo}
+        turno={turmaSelecionada?.turno}
         onClose={() => setConteudoModalOpen(false)}
         onDataChange={setDataConteudo}
         onConteudoChange={setConteudo}
         onSave={handleSaveConteudo}
+      />
+
+      {/* Salvar Chamada Modal - escolher 1 ou 2 tempos */}
+      <SalvarChamadaModal
+        open={showSaveModal}
+        turno={turmaSelecionada?.turno}
+        saving={saving}
+        onClose={() => setShowSaveModal(false)}
+        onConfirm={async (quantidade, tempoInicial) => {
+          await handleSaveChamada(quantidade, tempoInicial);
+          setShowSaveModal(false);
+        }}
       />
     </MainLayout>
   );

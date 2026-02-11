@@ -33,7 +33,7 @@ interface ChamadaListProps {
   onPresencaChange: (alunoId: string) => void;
   onObservacaoChange: (alunoId: string, observacao: string) => void;
   onMarcarTodos: (presente: boolean) => void;
-  onSave: () => Promise<void>;
+  onSave: () => void | Promise<void>;
   onOpenConteudo: () => void;
 }
 

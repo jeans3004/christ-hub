@@ -22,8 +22,12 @@ import {
   CheckCircle as PresentIcon,
   Cancel as AbsentIcon,
   ChevronRight,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
+import { chamadaService } from '@/services/firestore';
+import { useUIStore } from '@/store/uiStore';
+import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { formatDate, formatDateFull, formatTime, printReport } from './utils';
 import { ChamadaDetalhe } from './ChamadaDetalhe';
 
@@ -53,6 +57,9 @@ export function RelatorioDia({
     })
   );
   const [selectedChamada, setSelectedChamada] = useState<Chamada | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ open: boolean; chamadaId: string }>({ open: false, chamadaId: '' });
+  const [deleting, setDeleting] = useState(false);
+  const { addToast } = useUIStore();
   const printRef = useRef<HTMLDivElement>(null);
 
   // Calcular totais gerais
@@ -138,24 +145,57 @@ export function RelatorioDia({
     onChamadaUpdate?.(updatedChamada);
   };
 
+  const handleDelete = async () => {
+    if (!confirmDelete.chamadaId) return;
+    setDeleting(true);
+    try {
+      await chamadaService.delete(confirmDelete.chamadaId);
+      setChamadas(prev => prev.filter(c => c.id !== confirmDelete.chamadaId));
+      // Se estava no detalhe, volta para lista
+      if (selectedChamada?.id === confirmDelete.chamadaId) {
+        setSelectedChamada(null);
+      }
+      addToast('Chamada excluida com sucesso', 'success');
+    } catch (error) {
+      console.error('Erro ao excluir chamada:', error);
+      addToast('Erro ao excluir chamada', 'error');
+    } finally {
+      setDeleting(false);
+      setConfirmDelete({ open: false, chamadaId: '' });
+    }
+  };
+
   // Se uma chamada esta selecionada, mostra o detalhe
   if (selectedChamada) {
     const turma = turmas.find(t => t.id === selectedChamada.turmaId);
     const disciplina = disciplinas.find(d => d.id === selectedChamada.disciplinaId);
 
     return (
-      <ChamadaDetalhe
-        chamada={selectedChamada}
-        turma={turma}
-        disciplina={disciplina}
-        professor={professor}
-        data={data}
-        onBack={() => setSelectedChamada(null)}
-        onUpdate={(updated) => {
-          handleChamadaUpdate(updated);
-          setSelectedChamada(updated);
-        }}
-      />
+      <>
+        <ChamadaDetalhe
+          chamada={selectedChamada}
+          turma={turma}
+          disciplina={disciplina}
+          professor={professor}
+          data={data}
+          onBack={() => setSelectedChamada(null)}
+          onUpdate={(updated) => {
+            handleChamadaUpdate(updated);
+            setSelectedChamada(updated);
+          }}
+          onDelete={(chamadaId) => setConfirmDelete({ open: true, chamadaId })}
+        />
+        <ConfirmDialog
+          open={confirmDelete.open}
+          onClose={() => setConfirmDelete({ open: false, chamadaId: '' })}
+          onConfirm={handleDelete}
+          title="Excluir Chamada"
+          message="Tem certeza que deseja excluir esta chamada? Esta acao nao pode ser desfeita."
+          confirmLabel="Excluir"
+          confirmColor="error"
+          loading={deleting}
+        />
+      </>
     );
   }
 
@@ -281,9 +321,21 @@ export function RelatorioDia({
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small">
-                        <ChevronRight />
-                      </IconButton>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setConfirmDelete({ open: true, chamadaId: chamada.id });
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small">
+                          <ChevronRight />
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   </TableRow>
                 );
@@ -297,6 +349,18 @@ export function RelatorioDia({
       <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
         Clique em uma chamada para visualizar detalhes e editar
       </Typography>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        open={confirmDelete.open}
+        onClose={() => setConfirmDelete({ open: false, chamadaId: '' })}
+        onConfirm={handleDelete}
+        title="Excluir Chamada"
+        message="Tem certeza que deseja excluir esta chamada? Esta acao nao pode ser desfeita."
+        confirmLabel="Excluir"
+        confirmColor="error"
+        loading={deleting}
+      />
     </Box>
   );
 }
