@@ -9,7 +9,7 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged, signOut, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, authReady } from '@/lib/firebase';
 import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { useDriveStore } from '@/store/driveStore';
@@ -103,7 +103,13 @@ export function useAuthStateListener() {
         });
     };
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    // Aguardar persistence estar pronta antes de registrar listener
+    let cancelled = false;
+    let unsubscribe: (() => void) | null = null;
+
+    authReady.then(() => {
+      if (cancelled) return;
+      unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         if (!isAllowedDomain(firebaseUser.email)) {
           console.warn(`Acesso negado para email: ${firebaseUser.email}`);
@@ -232,7 +238,11 @@ export function useAuthStateListener() {
       }
       setLoading(false);
     });
+    });
 
-    return () => unsubscribe();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
   }, [setUser, setUsuario, setLoading, addToast]);
 }

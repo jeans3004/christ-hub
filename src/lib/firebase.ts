@@ -20,9 +20,11 @@ export const db = getFirestore(app);
 export const storage = getStorage(app);
 
 // Set auth persistence to local (user stays logged in across tabs/sessions)
-if (typeof window !== 'undefined') {
-  setPersistence(auth, browserLocalPersistence).catch(console.error);
-}
+// Exporta a Promise para garantir que persistence esteja pronta antes de usar auth
+export const authReady: Promise<void> =
+  typeof window !== 'undefined'
+    ? setPersistence(auth, browserLocalPersistence).catch(console.error).then(() => {})
+    : Promise.resolve();
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === 'development' && typeof window !== 'undefined') {
