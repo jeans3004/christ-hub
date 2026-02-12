@@ -16,8 +16,9 @@ import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, AlunosDisciplinaTab, PreparatorioTab } from './components';
-import { Atestado, Atraso } from '@/types';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, EAlunoConfigModal, AlunosDisciplinaTab, PreparatorioTab } from './components';
+import { eAlunoConfigService } from '@/services/firestore/eAlunoConfigService';
+import { Atestado, Atraso, EAlunoConfig } from '@/types';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -83,6 +84,11 @@ export default function ChamadaPage() {
   const [conteudoModalOpen, setConteudoModalOpen] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [dataConteudo, setDataConteudo] = useState(new Date().toISOString().split('T')[0]);
+
+  // E-Aluno (SGE) integration
+  const [eAlunoConfig, setEAlunoConfig] = useState<EAlunoConfig | null>(null);
+  const [eAlunoConfigOpen, setEAlunoConfigOpen] = useState(false);
+  const [syncingSGE, setSyncingSGE] = useState(false);
 
   // Obter turno da turma selecionada
   const turmaSelecionada = turmas.find(t => t.id === serieId);
@@ -201,6 +207,289 @@ export default function ChamadaPage() {
   useEffect(() => {
     loadAtestados();
   }, [loadAtestados]);
+
+  // Load e-aluno config
+  useEffect(() => {
+    if (!usuario?.id) return;
+    eAlunoConfigService.getByUser(usuario.id).then(setEAlunoConfig).catch(() => {});
+  }, [usuario?.id]);
+
+  // Normalize name for matching: lowercase, remove accents, trim
+  const normalizeName = (name: string) =>
+    name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+  // Aliases: Luminar name -> e-aluno name (when names differ between systems)
+  const disciplinaAliases: Record<string, string> = {
+    'robotica e educacao digital': 'pensamento computacional',
+    'educacao digital': 'pensamento computacional',
+    'robotica': 'pensamento computacional',
+  };
+
+  // Send chamada to e-aluno (SGE)
+  const handleEnviarSGE = async () => {
+    if (!usuario?.id) return;
+
+    // Check if config exists
+    const config = eAlunoConfig || await eAlunoConfigService.getByUser(usuario.id);
+    if (!config?.credentials?.user || !config?.credentials?.password) {
+      setEAlunoConfigOpen(true);
+      return;
+    }
+
+    if (!serieId || !disciplinaId) {
+      addToast('Selecione turma e disciplina', 'warning');
+      return;
+    }
+
+    setSyncingSGE(true);
+    try {
+      const turmaMap = config.turmaMap?.[serieId];
+      const discMap = config.disciplinaMap?.[disciplinaId];
+
+      if (!turmaMap || !discMap) {
+        // Need to discover mappings - fetch e-aluno data and auto-match
+        addToast('Mapeamento nao configurado. Buscando dados do e-aluno...', 'info');
+
+        // Login and fetch page data
+        const loginRes = await fetch('/api/ealuno/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user: config.credentials.user,
+            password: config.credentials.password,
+          }),
+        });
+
+        const loginData = await loginRes.json();
+        if (!loginData.success) {
+          addToast(`Erro no e-aluno: ${loginData.error}`, 'error');
+          setSyncingSGE(false);
+          return;
+        }
+
+        // Auto-match turma from combined cmbSerie options
+        if (!turmaMap && turmaSelecionada) {
+          const options: Array<{ serie: number; turma: number; turno: string; label: string }> = loginData.data.options || [];
+          const turno = turmaSelecionada.turno || '';
+          const serieName = turmaSelecionada.serie || '';
+          const turmaLetter = (turmaSelecionada.turma || '').trim();
+
+          const matched = options.find(opt => {
+            // Must match turno
+            if (normalizeName(opt.turno) !== normalizeName(turno)) return false;
+            // Label must contain serie name (e.g. "6o ano" in "6o ano - ensino fundamental ii [ matutino a ]")
+            if (serieName && !normalizeName(opt.label).includes(normalizeName(serieName))) return false;
+            // Extract turma letter from brackets: "[ Matutino A ]" -> "A"
+            if (turmaLetter) {
+              const bracketMatch = opt.label.match(/\[\s*\S+\s+(\S+)\s*\]/);
+              if (!bracketMatch || bracketMatch[1].toUpperCase() !== turmaLetter.toUpperCase()) return false;
+            }
+            return true;
+          });
+
+          if (matched) {
+            await eAlunoConfigService.saveTurmaMap(usuario.id, serieId, {
+              serie: matched.serie,
+              turma: matched.turma,
+              turno: matched.turno,
+            });
+            addToast(`Turma mapeada: ${matched.label}`, 'info');
+          } else {
+            addToast('Nao foi possivel mapear a turma automaticamente. Configure manualmente.', 'warning');
+            setEAlunoConfigOpen(true);
+            setSyncingSGE(false);
+            return;
+          }
+        }
+
+        // Reload config after mapping
+        const updatedConfig = await eAlunoConfigService.getByUser(usuario.id);
+        if (updatedConfig) setEAlunoConfig(updatedConfig);
+
+        // If still missing disciplina mapping, try to fetch and match
+        if (!discMap) {
+          const tm = updatedConfig?.turmaMap?.[serieId] || turmaMap;
+          if (tm) {
+            const dataRes = await fetch('/api/ealuno/data', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user: config.credentials.user,
+                password: config.credentials.password,
+                serie: tm.serie,
+                turma: tm.turma,
+                turno: tm.turno,
+                ano,
+                fetch: 'disciplinas',
+              }),
+            });
+
+            const dataResult = await dataRes.json();
+            if (dataResult.success && dataResult.data.disciplinas) {
+              const disciplinaLuminar = todasDisciplinas.find(d => d.id === disciplinaId);
+              if (disciplinaLuminar) {
+                const normalizedDisc = normalizeName(disciplinaLuminar.nome);
+                const aliasName = disciplinaAliases[normalizedDisc];
+                const matched = dataResult.data.disciplinas.find(
+                  (d: { id: number; nome: string }) => {
+                    const normalizedEAluno = normalizeName(d.nome);
+                    return normalizedEAluno === normalizedDisc ||
+                      normalizedEAluno.includes(normalizedDisc) ||
+                      normalizedDisc.includes(normalizedEAluno) ||
+                      (aliasName && normalizedEAluno.includes(aliasName));
+                  }
+                );
+                if (matched) {
+                  await eAlunoConfigService.saveDisciplinaMap(usuario.id, disciplinaId, matched.id);
+                  addToast(`Disciplina mapeada: ${matched.nome}`, 'info');
+                } else {
+                  addToast(`Disciplina "${disciplinaLuminar.nome}" nao encontrada no e-aluno. Configure manualmente.`, 'warning');
+                  setSyncingSGE(false);
+                  return;
+                }
+              }
+            }
+          }
+        }
+
+        // Reload config with all mappings
+        const finalConfig = await eAlunoConfigService.getByUser(usuario.id);
+        if (finalConfig) setEAlunoConfig(finalConfig);
+
+        // Now try the sync with updated config
+        const tm2 = finalConfig?.turmaMap?.[serieId];
+        const dm2 = finalConfig?.disciplinaMap?.[disciplinaId];
+        if (!tm2 || !dm2) {
+          addToast('Mapeamento incompleto. Configure manualmente.', 'error');
+          setSyncingSGE(false);
+          return;
+        }
+
+        // Auto-match students
+        await autoMatchAndSubmit(finalConfig!, tm2, dm2);
+        return;
+      }
+
+      // Mappings exist - proceed directly
+      await autoMatchAndSubmit(config, turmaMap, discMap);
+    } catch (error) {
+      console.error('Erro ao enviar para SGE:', error);
+      addToast('Erro ao enviar chamada para o e-aluno', 'error');
+    } finally {
+      setSyncingSGE(false);
+    }
+  };
+
+  const autoMatchAndSubmit = async (
+    config: EAlunoConfig,
+    turmaMap: { serie: number; turma: number; turno: string },
+    disciplinaId_eAluno: number
+  ) => {
+    // Fetch e-aluno students to match
+    const dataRes = await fetch('/api/ealuno/data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: config.credentials.user,
+        password: config.credentials.password,
+        serie: turmaMap.serie,
+        turma: turmaMap.turma,
+        turno: turmaMap.turno,
+        ano,
+        fetch: 'alunos',
+      }),
+    });
+
+    const dataResult = await dataRes.json();
+    if (!dataResult.success || !dataResult.data.alunos) {
+      addToast('Erro ao buscar alunos do e-aluno', 'error');
+      return;
+    }
+
+    const eAlunoStudents: Array<{ id: number; nome: string }> = dataResult.data.alunos;
+
+    // Build aluno mapping (auto-match by name)
+    const alunoMap: Record<string, number> = { ...config.alunoMap };
+    const unmatchedLuminar: string[] = [];
+
+    for (const aluno of alunosFiltrados) {
+      if (alunoMap[aluno.id]) continue; // Already mapped
+
+      const normalizedAluno = normalizeName(aluno.nome);
+      const matched = eAlunoStudents.find(ea => normalizeName(ea.nome) === normalizedAluno);
+
+      if (matched) {
+        alunoMap[aluno.id] = matched.id;
+      } else {
+        // Try partial match (first + last name)
+        const parts = normalizedAluno.split(' ');
+        const firstName = parts[0];
+        const lastName = parts[parts.length - 1];
+        const partialMatch = eAlunoStudents.find(ea => {
+          const eaParts = normalizeName(ea.nome).split(' ');
+          return eaParts[0] === firstName && eaParts[eaParts.length - 1] === lastName;
+        });
+
+        if (partialMatch) {
+          alunoMap[aluno.id] = partialMatch.id;
+        } else {
+          unmatchedLuminar.push(aluno.nome);
+        }
+      }
+    }
+
+    // Save updated mappings
+    if (Object.keys(alunoMap).length > Object.keys(config.alunoMap || {}).length) {
+      await eAlunoConfigService.saveAlunoMap(usuario!.id, alunoMap);
+    }
+
+    if (unmatchedLuminar.length > 0) {
+      addToast(`${unmatchedLuminar.length} aluno(s) nao mapeados: ${unmatchedLuminar.slice(0, 3).join(', ')}`, 'warning');
+    }
+
+    // Build presencas map considering atestados and atrasos
+    const presencasEfetivas: Record<string, boolean> = {};
+    for (const aluno of alunosFiltrados) {
+      if (!alunoMap[aluno.id]) continue; // Skip unmapped
+      const atestado = atestadosVigentes[aluno.id];
+      const atraso = atrasosHoje[aluno.id];
+      const atrasoAtivo = atraso && isPrimeiroTempo;
+
+      if (atestado) {
+        presencasEfetivas[aluno.id] = true; // Justified = present
+      } else if (atrasoAtivo) {
+        presencasEfetivas[aluno.id] = false; // Late in 1st period = absent
+      } else {
+        presencasEfetivas[aluno.id] = presencas[aluno.id] ?? true;
+      }
+    }
+
+    // Submit to e-aluno
+    const res = await fetch('/api/ealuno/chamada', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: config.credentials.user,
+        password: config.credentials.password,
+        serie: turmaMap.serie,
+        turma: turmaMap.turma,
+        turno: turmaMap.turno,
+        disciplina: disciplinaId_eAluno,
+        ano,
+        data: dataChamada,
+        aula: 1,
+        alunoMap,
+        presencas: presencasEfetivas,
+      }),
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      addToast(`Chamada enviada para o e-aluno! (${result.presentCount} presentes)`, 'success');
+    } else {
+      addToast(`Erro no e-aluno: ${result.error || result.message}`, 'error');
+    }
+  };
 
   const handleSaveConteudo = async (tempoInicial: number, quantidade: number) => {
     if (!serieId || !disciplinaId) {
@@ -346,11 +635,13 @@ export default function ChamadaPage() {
                 totalPresentes={totalPresentes}
                 totalAusentes={totalAusentes}
                 saving={saving}
+                syncingSGE={syncingSGE}
                 onPresencaChange={handlePresencaChange}
                 onObservacaoChange={handleObservacaoChange}
                 onMarcarTodos={handleMarcarTodos}
                 onSave={() => setShowSaveModal(true)}
                 onOpenConteudo={() => setConteudoModalOpen(true)}
+                onEnviarSGE={handleEnviarSGE}
               />
             )}
           </Box>
@@ -420,6 +711,13 @@ export default function ChamadaPage() {
           await handleSaveChamada(quantidade, tempoInicial);
           setShowSaveModal(false);
         }}
+      />
+
+      {/* E-Aluno Config Modal */}
+      <EAlunoConfigModal
+        open={eAlunoConfigOpen}
+        onClose={() => setEAlunoConfigOpen(false)}
+        onConfigSaved={(config) => setEAlunoConfig(config)}
       />
     </MainLayout>
   );

@@ -711,3 +711,55 @@ export interface PreviewLinhaErro {
 }
 
 export type ImportacaoStatus = 'idle' | 'loading' | 'preview' | 'importing' | 'success' | 'error';
+
+// ========== E-Aluno (SGE Externo) ==========
+
+export interface EAlunoCredentials {
+  user: string;       // CPF sem pontos
+  password: string;   // Encrypted
+}
+
+export interface EAlunoTurmaMap {
+  serie: number;
+  turma: number;
+  turno: string;
+}
+
+export interface EAlunoConfig {
+  id: string;
+  userId: string;
+  credentials: EAlunoCredentials;
+  turmaMap: Record<string, EAlunoTurmaMap>;        // luminarTurmaId -> e-aluno serie+turma+turno
+  disciplinaMap: Record<string, number>;             // luminarDisciplinaId -> e-aluno disciplina ID
+  alunoMap: Record<string, number>;                  // luminarAlunoId -> e-aluno aluno ID
+  lastSync?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Opcao combinada do dropdown cmbSerie do e-aluno.
+ * Cada opcao contem serie + turma + turno.
+ * Ex: value="11" data-name="Matutino" data-code="7" -> "6º Ano - Ensino Fundamental II [ Matutino A ]"
+ */
+export interface EAlunoSerieOption {
+  serie: number;      // value attribute (ex: 11)
+  turma: number;      // data-code attribute (ex: 7)
+  turno: string;      // data-name attribute (ex: "Matutino")
+  label: string;      // display text (ex: "6º Ano - Ensino Fundamental II [ Matutino A ]")
+}
+
+export interface EAlunoDisciplinaOption {
+  id: number;
+  nome: string;
+}
+
+export interface EAlunoStudent {
+  id: number;
+  nome: string;
+}
+
+export interface EAlunoPageData {
+  options: EAlunoSerieOption[];
+  ano: number;
+}

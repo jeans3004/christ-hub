@@ -15,7 +15,7 @@ import {
   Tooltip,
   Badge,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule } from '@mui/icons-material';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Sync } from '@mui/icons-material';
 import { Aluno, Atestado, Atraso } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
@@ -31,11 +31,13 @@ interface ChamadaListProps {
   totalPresentes: number;
   totalAusentes: number;
   saving: boolean;
+  syncingSGE?: boolean;
   onPresencaChange: (alunoId: string) => void;
   onObservacaoChange: (alunoId: string, observacao: string) => void;
   onMarcarTodos: (presente: boolean) => void;
   onSave: () => void | Promise<void>;
   onOpenConteudo: () => void;
+  onEnviarSGE?: () => void;
 }
 
 export function ChamadaList({
@@ -49,11 +51,13 @@ export function ChamadaList({
   totalPresentes,
   totalAusentes,
   saving,
+  syncingSGE = false,
   onPresencaChange,
   onObservacaoChange,
   onMarcarTodos,
   onSave,
   onOpenConteudo,
+  onEnviarSGE,
 }: ChamadaListProps) {
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
   const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
@@ -440,6 +444,18 @@ export function ChamadaList({
 
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end', flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
+        {onEnviarSGE && (
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={syncingSGE ? <CircularProgress size={18} color="inherit" /> : <Sync />}
+            onClick={onEnviarSGE}
+            disabled={alunos.length === 0 || syncingSGE}
+            sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
+          >
+            {syncingSGE ? 'Enviando...' : 'Enviar para SGE'}
+          </Button>
+        )}
         <Button
           variant="outlined"
           onClick={onOpenConteudo}
