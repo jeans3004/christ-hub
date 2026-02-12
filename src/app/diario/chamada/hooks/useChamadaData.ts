@@ -112,7 +112,7 @@ interface UseChamadaDataReturn {
   handlePresencaChange: (alunoId: string) => void;
   handleObservacaoChange: (alunoId: string, observacao: string) => void;
   handleMarcarTodos: (presente: boolean) => void;
-  handleSaveChamada: (quantidadeTempos?: number, tempoInicial?: number) => Promise<void>;
+  handleSaveChamada: (quantidadeTempos?: number, tempoInicial?: number) => Promise<boolean>;
 }
 
 export function useChamadaData({
@@ -198,10 +198,10 @@ export function useChamadaData({
     setPresencas(novasPresencas);
   }, [alunos]);
 
-  const handleSaveChamada = useCallback(async (quantidadeTempos: number = 1, tempoInicial?: number) => {
+  const handleSaveChamada = useCallback(async (quantidadeTempos: number = 1, tempoInicial?: number): Promise<boolean> => {
     if (!serieId || !disciplinaId || !usuario) {
       addToast('Selecione turma e disciplina', 'error');
-      return;
+      return false;
     }
 
     setSaving(true);
@@ -287,9 +287,11 @@ export function useChamadaData({
       } else {
         addToast('Chamada salva com sucesso!', 'success');
       }
+      return true;
     } catch (error) {
       console.error('Error saving chamada:', error);
       addToast('Erro ao salvar chamada', 'error');
+      return false;
     } finally {
       setSaving(false);
     }

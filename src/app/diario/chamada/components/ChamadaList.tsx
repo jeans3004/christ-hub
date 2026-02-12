@@ -14,6 +14,8 @@ import {
   IconButton,
   Tooltip,
   Badge,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Sync } from '@mui/icons-material';
 import { Aluno, Atestado, Atraso } from '@/types';
@@ -38,6 +40,8 @@ interface ChamadaListProps {
   onSave: () => void | Promise<void>;
   onOpenConteudo: () => void;
   onEnviarSGE?: () => void;
+  autoSyncSGE?: boolean;
+  onAutoSyncToggle?: (value: boolean) => void;
 }
 
 export function ChamadaList({
@@ -58,6 +62,8 @@ export function ChamadaList({
   onSave,
   onOpenConteudo,
   onEnviarSGE,
+  autoSyncSGE = false,
+  onAutoSyncToggle,
 }: ChamadaListProps) {
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
   const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
@@ -445,16 +451,30 @@ export function ChamadaList({
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end', flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
         {onEnviarSGE && (
-          <Button
-            variant="outlined"
-            color="secondary"
-            startIcon={syncingSGE ? <CircularProgress size={18} color="inherit" /> : <Sync />}
-            onClick={onEnviarSGE}
-            disabled={alunos.length === 0 || syncingSGE}
-            sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
-          >
-            {syncingSGE ? 'Enviando...' : 'Enviar para SGE'}
-          </Button>
+          <>
+            <Button
+              variant="outlined"
+              color="secondary"
+              startIcon={syncingSGE ? <CircularProgress size={18} color="inherit" /> : <Sync />}
+              onClick={onEnviarSGE}
+              disabled={alunos.length === 0 || syncingSGE}
+              sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
+            >
+              {syncingSGE ? 'Enviando...' : 'Enviar para SGE'}
+            </Button>
+            <FormControlLabel
+              control={
+                <Switch
+                  size="small"
+                  checked={autoSyncSGE}
+                  onChange={(e) => onAutoSyncToggle?.(e.target.checked)}
+                  color="secondary"
+                />
+              }
+              label={<Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Sync automatico</Typography>}
+              sx={{ ml: 0 }}
+            />
+          </>
         )}
         <Button
           variant="outlined"

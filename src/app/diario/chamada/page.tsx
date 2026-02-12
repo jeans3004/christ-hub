@@ -89,6 +89,15 @@ export default function ChamadaPage() {
   const [eAlunoConfig, setEAlunoConfig] = useState<EAlunoConfig | null>(null);
   const [eAlunoConfigOpen, setEAlunoConfigOpen] = useState(false);
   const [syncingSGE, setSyncingSGE] = useState(false);
+  const [autoSyncSGE, setAutoSyncSGE] = useState(false);
+
+  // Load autoSyncSGE from localStorage
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('chamada-auto-sync-sge');
+      if (saved === 'true') setAutoSyncSGE(true);
+    } catch {}
+  }, []);
 
   // Obter turno da turma selecionada
   const turmaSelecionada = turmas.find(t => t.id === serieId);
@@ -642,6 +651,11 @@ export default function ChamadaPage() {
                 onSave={() => setShowSaveModal(true)}
                 onOpenConteudo={() => setConteudoModalOpen(true)}
                 onEnviarSGE={handleEnviarSGE}
+                autoSyncSGE={autoSyncSGE}
+                onAutoSyncToggle={(v) => {
+                  setAutoSyncSGE(v);
+                  try { localStorage.setItem('chamada-auto-sync-sge', String(v)); } catch {}
+                }}
               />
             )}
           </Box>
@@ -708,8 +722,11 @@ export default function ChamadaPage() {
         saving={saving}
         onClose={() => setShowSaveModal(false)}
         onConfirm={async (quantidade, tempoInicial) => {
-          await handleSaveChamada(quantidade, tempoInicial);
+          const success = await handleSaveChamada(quantidade, tempoInicial);
           setShowSaveModal(false);
+          if (success && autoSyncSGE) {
+            handleEnviarSGE();
+          }
         }}
       />
 
