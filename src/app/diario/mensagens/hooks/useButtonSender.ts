@@ -87,8 +87,14 @@ export function useButtonSender(): UseButtonSenderReturn {
 
     const rodape = form.rodape.trim();
     const nomeUsuario = usuario?.nome;
+    const getDisplayName = (nome: string): string => {
+      if (nome.toUpperCase().includes('COORDENACAO PEDAGOGICA') || nome.toUpperCase().includes('COORDENAÇÃO PEDAGÓGICA')) {
+        return 'Coordenador Pedagógico Carlos Cruz';
+      }
+      return nome;
+    };
     const footerTexto = nomeUsuario
-      ? (rodape ? `${rodape} | Enviado por: ${nomeUsuario}` : `Enviado por: ${nomeUsuario} - Christ Master`)
+      ? (rodape ? `${rodape} | ${getDisplayName(nomeUsuario)}` : getDisplayName(nomeUsuario))
       : (rodape || undefined);
 
     return {

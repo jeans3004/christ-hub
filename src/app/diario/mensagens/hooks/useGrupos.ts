@@ -24,7 +24,13 @@ export function useGrupos(): UseGruposReturn {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
 
-  const assinatura = usuario?.nome ? `\n\n_Enviado por: ${usuario.nome} - Christ Master_` : '';
+  const getDisplayName = (nome: string): string => {
+    if (nome.toUpperCase().includes('COORDENACAO PEDAGOGICA') || nome.toUpperCase().includes('COORDENAÇÃO PEDAGÓGICA')) {
+      return 'Coordenador Pedagógico Carlos Cruz';
+    }
+    return nome;
+  };
+  const nomeHeader = usuario?.nome ? `*${getDisplayName(usuario.nome)}*:\n` : '';
 
   const fetchGrupos = useCallback(async () => {
     setLoading(true);
@@ -69,7 +75,7 @@ export function useGrupos(): UseGruposReturn {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           groupId,
-          mensagem: mensagem + assinatura,
+          mensagem: nomeHeader + mensagem,
         }),
       });
 
@@ -96,7 +102,7 @@ export function useGrupos(): UseGruposReturn {
     } finally {
       setSending(false);
     }
-  }, [assinatura]);
+  }, [nomeHeader]);
 
   const sendMediaToGroup = useCallback(async (groupId: string, media: MediaData, caption?: string) => {
     setSending(true);
@@ -111,7 +117,7 @@ export function useGrupos(): UseGruposReturn {
           mediaUrl: media.url,
           filename: media.filename,
           mimetype: media.mimetype,
-          caption: caption ? caption + assinatura : assinatura.trim(),
+          caption: caption ? nomeHeader + caption : nomeHeader.trim(),
         }),
       });
 
@@ -137,7 +143,7 @@ export function useGrupos(): UseGruposReturn {
     } finally {
       setSending(false);
     }
-  }, [assinatura]);
+  }, [nomeHeader]);
 
   useEffect(() => {
     fetchGrupos();
