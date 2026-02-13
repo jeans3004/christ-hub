@@ -29,6 +29,7 @@ import {
   Class as TurmaIcon,
   Assessment as ConsolidadoIcon,
   Print as PrintIcon,
+  Sync as SyncIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
 import { chamadaService } from '@/services/firestore';
@@ -40,8 +41,9 @@ import { RelatorioPeriodo } from './relatorios/RelatorioPeriodo';
 import { RelatorioFaltas } from './relatorios/RelatorioFaltas';
 import { RelatorioTurma } from './relatorios/RelatorioTurma';
 import { RelatorioConsolidado } from './relatorios/RelatorioConsolidado';
+import { RelatorioSGE } from './relatorios/RelatorioSGE';
 
-type TipoRelatorio = 'dia' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | null;
+type TipoRelatorio = 'dia' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | 'sge' | null;
 
 interface RelatoriosChamadaProps {
   professor: Usuario | null;
@@ -84,6 +86,13 @@ const TIPOS_RELATORIO = [
     descricao: 'Resumo geral de todas as turmas',
     icon: ConsolidadoIcon,
     color: 'warning',
+  },
+  {
+    id: 'sge' as TipoRelatorio,
+    titulo: 'Sincronizar SGE',
+    descricao: 'Enviar chamadas em lote para o e-aluno',
+    icon: SyncIcon,
+    color: 'secondary',
   },
 ];
 
@@ -155,6 +164,7 @@ export function RelatoriosChamada({
         case 'periodo':
         case 'faltas':
         case 'consolidado':
+        case 'sge':
           data = await chamadaService.getByProfessorPeriodo(
             professor.id,
             new Date(dataInicio + 'T00:00:00'),
@@ -296,7 +306,7 @@ export function RelatoriosChamada({
             sx={{ minWidth: { xs: '100%', sm: 150 } }}
           />
 
-          {/* Data Fim (apenas para periodo) */}
+          {/* Data Fim (para periodo, faltas, turma, consolidado, sge) */}
           {tipoRelatorio !== 'dia' && (
             <TextField
               label="Data Fim"
@@ -404,6 +414,15 @@ export function RelatoriosChamada({
               professor={professor}
               dataInicio={dataInicio}
               dataFim={dataFim}
+            />
+          )}
+
+          {tipoRelatorio === 'sge' && (
+            <RelatorioSGE
+              chamadas={chamadas}
+              turmas={turmas}
+              disciplinas={disciplinas}
+              professor={professor}
             />
           )}
         </>
