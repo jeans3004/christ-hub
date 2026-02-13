@@ -91,7 +91,7 @@ export function ChamadaFilters({
             <FormControl fullWidth size="small">
               <InputLabel>Turma</InputLabel>
               <Select
-                value={serieId}
+                value={loadingTurmas || (serieId && turmas.length === 0) ? '' : serieId}
                 label="Turma"
                 onChange={(e) => setSerieId(e.target.value)}
                 disabled={loadingTurmas}
@@ -106,7 +106,7 @@ export function ChamadaFilters({
             <FormControl fullWidth size="small">
               <InputLabel>Disciplina</InputLabel>
               <Select
-                value={disciplinaId}
+                value={loadingDisciplinas || (disciplinaId && disciplinas.length === 0) ? '' : disciplinaId}
                 label="Disciplina"
                 onChange={(e) => setDisciplinaId(e.target.value)}
                 disabled={loadingDisciplinas || !serieId}

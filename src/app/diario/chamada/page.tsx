@@ -704,6 +704,23 @@ export default function ChamadaPage() {
             const sgeResult = await handleEnviarSGE();
             setSyncingSGE(false);
             setSyncResult({ luminar: !!luminarOk, sge: sgeResult.success, sgeMessage: sgeResult.message });
+
+            // Mark sgeSyncedAt on the chamada(s) we just saved
+            if (sgeResult.success && serieId && disciplinaId) {
+              try {
+                const savedChamadas = await chamadaService.getByTurmaData(
+                  serieId,
+                  new Date(dataChamada + 'T12:00:00')
+                );
+                for (const c of savedChamadas) {
+                  if (c.disciplinaId === disciplinaId && !c.sgeSyncedAt) {
+                    await chamadaService.update(c.id, { sgeSyncedAt: new Date() });
+                  }
+                }
+              } catch (e) {
+                console.error('Erro ao marcar sgeSyncedAt:', e);
+              }
+            }
           }
         }}
       />
