@@ -16,7 +16,7 @@ import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, EAlunoConfigModal, AlunosDisciplinaTab, PreparatorioTab } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, EAlunoConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal } from './components';
 import { eAlunoConfigService } from '@/services/firestore/eAlunoConfigService';
 import { Atestado, Atraso, EAlunoConfig } from '@/types';
 
@@ -90,6 +90,7 @@ export default function ChamadaPage() {
   const [eAlunoConfigOpen, setEAlunoConfigOpen] = useState(false);
   const [syncingSGE, setSyncingSGE] = useState(false);
   const [autoSyncSGE, setAutoSyncSGE] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ luminar: boolean; sge: boolean; sgeMessage: string } | null>(null);
 
   // Load autoSyncSGE from localStorage
   useEffect(() => {
@@ -234,30 +235,26 @@ export default function ChamadaPage() {
     'robotica': 'pensamento computacional',
   };
 
-  // Send chamada to e-aluno (SGE)
-  const handleEnviarSGE = async () => {
-    if (!usuario?.id) return;
+  // Send chamada to e-aluno (SGE) - returns result for SyncResultModal
+  const handleEnviarSGE = async (): Promise<{ success: boolean; message: string }> => {
+    if (!usuario?.id) return { success: false, message: 'Usuario nao autenticado' };
 
     // Check if config exists
     const config = eAlunoConfig || await eAlunoConfigService.getByUser(usuario.id);
     if (!config?.credentials?.user || !config?.credentials?.password) {
-      setEAlunoConfigOpen(true);
-      return;
+      return { success: false, message: 'Credenciais SGE nao configuradas' };
     }
 
     if (!serieId || !disciplinaId) {
-      addToast('Selecione turma e disciplina', 'warning');
-      return;
+      return { success: false, message: 'Selecione turma e disciplina' };
     }
 
-    setSyncingSGE(true);
     try {
       const turmaMap = config.turmaMap?.[serieId];
       const discMap = config.disciplinaMap?.[disciplinaId];
 
       if (!turmaMap || !discMap) {
         // Need to discover mappings - fetch e-aluno data and auto-match
-        addToast('Mapeamento nao configurado. Buscando dados do e-aluno...', 'info');
 
         // Login and fetch page data
         const loginRes = await fetch('/api/ealuno/login', {
@@ -271,9 +268,7 @@ export default function ChamadaPage() {
 
         const loginData = await loginRes.json();
         if (!loginData.success) {
-          addToast(`Erro no e-aluno: ${loginData.error}`, 'error');
-          setSyncingSGE(false);
-          return;
+          return { success: false, message: `Erro no e-aluno: ${loginData.error}` };
         }
 
         // Auto-match turma from combined cmbSerie options
@@ -284,11 +279,8 @@ export default function ChamadaPage() {
           const turmaLetter = (turmaSelecionada.turma || '').trim();
 
           const matched = options.find(opt => {
-            // Must match turno
             if (normalizeName(opt.turno) !== normalizeName(turno)) return false;
-            // Label must contain serie name (e.g. "6o ano" in "6o ano - ensino fundamental ii [ matutino a ]")
             if (serieName && !normalizeName(opt.label).includes(normalizeName(serieName))) return false;
-            // Extract turma letter from brackets: "[ Matutino A ]" -> "A"
             if (turmaLetter) {
               const bracketMatch = opt.label.match(/\[\s*\S+\s+(\S+)\s*\]/);
               if (!bracketMatch || bracketMatch[1].toUpperCase() !== turmaLetter.toUpperCase()) return false;
@@ -302,12 +294,8 @@ export default function ChamadaPage() {
               turma: matched.turma,
               turno: matched.turno,
             });
-            addToast(`Turma mapeada: ${matched.label}`, 'info');
           } else {
-            addToast('Nao foi possivel mapear a turma automaticamente. Configure manualmente.', 'warning');
-            setEAlunoConfigOpen(true);
-            setSyncingSGE(false);
-            return;
+            return { success: false, message: 'Nao foi possivel mapear a turma automaticamente' };
           }
         }
 
@@ -350,11 +338,8 @@ export default function ChamadaPage() {
                 );
                 if (matched) {
                   await eAlunoConfigService.saveDisciplinaMap(usuario.id, disciplinaId, matched.id);
-                  addToast(`Disciplina mapeada: ${matched.nome}`, 'info');
                 } else {
-                  addToast(`Disciplina "${disciplinaLuminar.nome}" nao encontrada no e-aluno. Configure manualmente.`, 'warning');
-                  setSyncingSGE(false);
-                  return;
+                  return { success: false, message: `Disciplina "${disciplinaLuminar.nome}" nao encontrada no e-aluno` };
                 }
               }
             }
@@ -365,27 +350,20 @@ export default function ChamadaPage() {
         const finalConfig = await eAlunoConfigService.getByUser(usuario.id);
         if (finalConfig) setEAlunoConfig(finalConfig);
 
-        // Now try the sync with updated config
         const tm2 = finalConfig?.turmaMap?.[serieId];
         const dm2 = finalConfig?.disciplinaMap?.[disciplinaId];
         if (!tm2 || !dm2) {
-          addToast('Mapeamento incompleto. Configure manualmente.', 'error');
-          setSyncingSGE(false);
-          return;
+          return { success: false, message: 'Mapeamento incompleto. Configure manualmente.' };
         }
 
-        // Auto-match students
-        await autoMatchAndSubmit(finalConfig!, tm2, dm2);
-        return;
+        return await autoMatchAndSubmit(finalConfig!, tm2, dm2);
       }
 
       // Mappings exist - proceed directly
-      await autoMatchAndSubmit(config, turmaMap, discMap);
+      return await autoMatchAndSubmit(config, turmaMap, discMap);
     } catch (error) {
       console.error('Erro ao enviar para SGE:', error);
-      addToast('Erro ao enviar chamada para o e-aluno', 'error');
-    } finally {
-      setSyncingSGE(false);
+      return { success: false, message: 'Erro ao enviar chamada para o e-aluno' };
     }
   };
 
@@ -393,7 +371,7 @@ export default function ChamadaPage() {
     config: EAlunoConfig,
     turmaMap: { serie: number; turma: number; turno: string },
     disciplinaId_eAluno: number
-  ) => {
+  ): Promise<{ success: boolean; message: string }> => {
     // Fetch e-aluno students to match
     const dataRes = await fetch('/api/ealuno/data', {
       method: 'POST',
@@ -411,8 +389,7 @@ export default function ChamadaPage() {
 
     const dataResult = await dataRes.json();
     if (!dataResult.success || !dataResult.data.alunos) {
-      addToast('Erro ao buscar alunos do e-aluno', 'error');
-      return;
+      return { success: false, message: 'Erro ao buscar alunos do e-aluno' };
     }
 
     const eAlunoStudents: Array<{ id: number; nome: string }> = dataResult.data.alunos;
@@ -422,7 +399,7 @@ export default function ChamadaPage() {
     const unmatchedLuminar: string[] = [];
 
     for (const aluno of alunosFiltrados) {
-      if (alunoMap[aluno.id]) continue; // Already mapped
+      if (alunoMap[aluno.id]) continue;
 
       const normalizedAluno = normalizeName(aluno.nome);
       const matched = eAlunoStudents.find(ea => normalizeName(ea.nome) === normalizedAluno);
@@ -430,7 +407,6 @@ export default function ChamadaPage() {
       if (matched) {
         alunoMap[aluno.id] = matched.id;
       } else {
-        // Try partial match (first + last name)
         const parts = normalizedAluno.split(' ');
         const firstName = parts[0];
         const lastName = parts[parts.length - 1];
@@ -452,22 +428,18 @@ export default function ChamadaPage() {
       await eAlunoConfigService.saveAlunoMap(usuario!.id, alunoMap);
     }
 
-    if (unmatchedLuminar.length > 0) {
-      addToast(`${unmatchedLuminar.length} aluno(s) nao mapeados: ${unmatchedLuminar.slice(0, 3).join(', ')}`, 'warning');
-    }
-
     // Build presencas map considering atestados and atrasos
     const presencasEfetivas: Record<string, boolean> = {};
     for (const aluno of alunosFiltrados) {
-      if (!alunoMap[aluno.id]) continue; // Skip unmapped
+      if (!alunoMap[aluno.id]) continue;
       const atestado = atestadosVigentes[aluno.id];
       const atraso = atrasosHoje[aluno.id];
       const atrasoAtivo = atraso && isPrimeiroTempo;
 
       if (atestado) {
-        presencasEfetivas[aluno.id] = true; // Justified = present
+        presencasEfetivas[aluno.id] = true;
       } else if (atrasoAtivo) {
-        presencasEfetivas[aluno.id] = false; // Late in 1st period = absent
+        presencasEfetivas[aluno.id] = false;
       } else {
         presencasEfetivas[aluno.id] = presencas[aluno.id] ?? true;
       }
@@ -494,9 +466,12 @@ export default function ChamadaPage() {
 
     const result = await res.json();
     if (result.success) {
-      addToast(`Chamada enviada para o e-aluno! (${result.presentCount} presentes)`, 'success');
+      const warning = unmatchedLuminar.length > 0
+        ? ` (${unmatchedLuminar.length} aluno(s) nao mapeados)`
+        : '';
+      return { success: true, message: `Chamada enviada (${result.presentCount} presentes)${warning}` };
     } else {
-      addToast(`Erro no e-aluno: ${result.error || result.message}`, 'error');
+      return { success: false, message: `Erro no e-aluno: ${result.error || result.message}` };
     }
   };
 
@@ -650,7 +625,7 @@ export default function ChamadaPage() {
                 onMarcarTodos={handleMarcarTodos}
                 onSave={() => setShowSaveModal(true)}
                 onOpenConteudo={() => setConteudoModalOpen(true)}
-                onEnviarSGE={handleEnviarSGE}
+                onEnviarSGE={() => setEAlunoConfigOpen(true)}
                 autoSyncSGE={autoSyncSGE}
                 onAutoSyncToggle={(v) => {
                   setAutoSyncSGE(v);
@@ -722,10 +697,13 @@ export default function ChamadaPage() {
         saving={saving}
         onClose={() => setShowSaveModal(false)}
         onConfirm={async (quantidade, tempoInicial) => {
-          const success = await handleSaveChamada(quantidade, tempoInicial);
+          const luminarOk = await handleSaveChamada(quantidade, tempoInicial);
           setShowSaveModal(false);
-          if (success && autoSyncSGE) {
-            handleEnviarSGE();
+          if (autoSyncSGE) {
+            setSyncingSGE(true);
+            const sgeResult = await handleEnviarSGE();
+            setSyncingSGE(false);
+            setSyncResult({ luminar: !!luminarOk, sge: sgeResult.success, sgeMessage: sgeResult.message });
           }
         }}
       />
@@ -736,6 +714,17 @@ export default function ChamadaPage() {
         onClose={() => setEAlunoConfigOpen(false)}
         onConfigSaved={(config) => setEAlunoConfig(config)}
       />
+
+      {/* Sync Result Modal */}
+      {syncResult && (
+        <SyncResultModal
+          open={!!syncResult}
+          onClose={() => setSyncResult(null)}
+          luminar={syncResult.luminar}
+          sge={syncResult.sge}
+          sgeMessage={syncResult.sgeMessage}
+        />
+      )}
     </MainLayout>
   );
 }

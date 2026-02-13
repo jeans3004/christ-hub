@@ -17,7 +17,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Sync } from '@mui/icons-material';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Settings } from '@mui/icons-material';
 import { Aluno, Atestado, Atraso } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
@@ -451,30 +451,15 @@ export function ChamadaList({
       {/* Action Buttons */}
       <Box sx={{ display: 'flex', gap: 2, mt: 3, justifyContent: 'flex-end', flexWrap: 'wrap', flexDirection: { xs: 'column', sm: 'row' } }}>
         {onEnviarSGE && (
-          <>
-            <Button
-              variant="outlined"
-              color="secondary"
-              startIcon={syncingSGE ? <CircularProgress size={18} color="inherit" /> : <Sync />}
-              onClick={onEnviarSGE}
-              disabled={alunos.length === 0 || syncingSGE}
-              sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
-            >
-              {syncingSGE ? 'Enviando...' : 'Enviar para SGE'}
-            </Button>
-            <FormControlLabel
-              control={
-                <Switch
-                  size="small"
-                  checked={autoSyncSGE}
-                  onChange={(e) => onAutoSyncToggle?.(e.target.checked)}
-                  color="secondary"
-                />
-              }
-              label={<Typography variant="body2" sx={{ fontSize: '0.8rem' }}>Sync automatico</Typography>}
-              sx={{ ml: 0 }}
-            />
-          </>
+          <Button
+            variant="outlined"
+            color="secondary"
+            startIcon={<Settings />}
+            onClick={onEnviarSGE}
+            sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
+          >
+            Configurar SGE
+          </Button>
         )}
         <Button
           variant="outlined"
@@ -483,6 +468,18 @@ export function ChamadaList({
         >
           Registrar Conteudo
         </Button>
+        <FormControlLabel
+          control={
+            <Switch
+              size="small"
+              checked={autoSyncSGE}
+              onChange={(e) => onAutoSyncToggle?.(e.target.checked)}
+              color="success"
+            />
+          }
+          label={<Typography variant="body2" sx={{ fontSize: '0.8rem', fontWeight: autoSyncSGE ? 600 : 400 }}>Salvar + SGE</Typography>}
+          sx={{ ml: 0, mr: 0 }}
+        />
         <Button
           variant="contained"
           color="success"
@@ -491,7 +488,7 @@ export function ChamadaList({
           disabled={saving}
           sx={{ textTransform: 'none', borderRadius: 1, px: 3 }}
         >
-          {saving ? 'Salvando...' : 'Salvar Chamada'}
+          {saving ? 'Salvando...' : autoSyncSGE ? 'Salvar + SGE' : 'Salvar Chamada'}
         </Button>
       </Box>
 
