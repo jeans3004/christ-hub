@@ -194,6 +194,7 @@ export interface Chamada {
   tempo: 1 | 2 | 3 | 4 | 5 | 6 | 7;
   presencas: PresencaAluno[];
   conteudo?: string;
+  sgeSyncedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

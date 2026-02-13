@@ -90,6 +90,7 @@ export async function POST(request: NextRequest) {
       success: result.success,
       message: result.message,
       presentCount: presentIds.length,
+      responseBody: result.responseBody,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Erro ao registrar chamada no e-aluno';

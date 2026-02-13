@@ -195,6 +195,14 @@ export async function eAlunoFetchStudents(
 }
 
 /**
+ * Convert YYYY-MM-DD to DD/MM/YYYY (format expected by e-aluno PHP).
+ */
+function toEAlunoDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+}
+
+/**
  * Submit chamada (attendance) to e-aluno.
  */
 export async function eAlunoSubmitChamada(
@@ -209,9 +217,22 @@ export async function eAlunoSubmitChamada(
     disciplina: number;
     ano: number;
   }
-): Promise<{ success: boolean; message: string }> {
+): Promise<{ success: boolean; message: string; responseBody?: string }> {
   const lista = params.presentStudentIds.join(',');
-  const url = `${BASE_URL}/insert_chamada.php?lista=${lista}`;
+  const url = `${BASE_URL}/insert_chamada.php?lista=${encodeURIComponent(lista)}`;
+
+  const dataBR = toEAlunoDate(params.data);
+
+  console.log('[eAluno] Enviando chamada:', {
+    url,
+    data: dataBR,
+    aula: params.aula,
+    serie: params.serie,
+    turma: params.turma,
+    turno: params.turno,
+    disciplina: params.disciplina,
+    presentCount: params.presentStudentIds.length,
+  });
 
   const res = await fetch(url, {
     method: 'POST',
@@ -221,7 +242,7 @@ export async function eAlunoSubmitChamada(
       Cookie: session.cookie,
     },
     body: new URLSearchParams({
-      data: params.data,
+      data: dataBR,
       aula: String(params.aula),
       serie: String(params.serie),
       turma: String(params.turma),
@@ -233,6 +254,7 @@ export async function eAlunoSubmitChamada(
   });
 
   const text = await res.text();
+  console.log('[eAluno] Resposta insert_chamada:', text.substring(0, 500));
 
   // e-aluno typically returns a success/error message or redirects
   const isError = text.toLowerCase().includes('erro') || text.toLowerCase().includes('error');
@@ -240,6 +262,69 @@ export async function eAlunoSubmitChamada(
   return {
     success: !isError,
     message: isError ? text.trim() : 'Chamada registrada no e-aluno',
+    responseBody: text.substring(0, 200),
+  };
+}
+
+// ========== Chamada Status Check ==========
+
+/**
+ * Check if a chamada already exists in e-aluno for given params.
+ * Fetches show_chamadas.php with data/disciplina/aula and checks
+ * if any checkboxes are checked (indicating attendance was already recorded).
+ */
+export async function eAlunoFetchChamadaStatus(
+  session: EAlunoSession,
+  params: {
+    serie: number;
+    turma: number;
+    turno: string;
+    ano: number;
+    data: string;       // YYYY-MM-DD
+    disciplina: number;
+    aula: number;
+  }
+): Promise<{ exists: boolean; presentIds: number[] }> {
+  const url = `${BASE_URL}/show_chamadas.php?serie=${params.serie}&turma=${params.turma}&turno=${encodeURIComponent(params.turno)}&ano=${params.ano}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest',
+      Cookie: session.cookie,
+    },
+    body: new URLSearchParams({
+      data: toEAlunoDate(params.data),
+      disciplina: String(params.disciplina),
+      aula: String(params.aula),
+      show: '1',
+    }),
+  });
+
+  const html = await res.text();
+
+  // Parse checkboxes: <input type='checkbox' value='5720' name='check' checked>
+  const checkedRegex = /<input[^>]*type=['"]checkbox['"][^>]*value=['"](\d+)['"][^>]*checked[^>]*>/gi;
+  const presentIds: number[] = [];
+  let match;
+
+  while ((match = checkedRegex.exec(html)) !== null) {
+    presentIds.push(parseInt(match[1], 10));
+  }
+
+  // Also check reverse attribute order: checked before value
+  const checkedRegex2 = /<input[^>]*checked[^>]*value=['"](\d+)['"][^>]*type=['"]checkbox['"][^>]*>/gi;
+  while ((match = checkedRegex2.exec(html)) !== null) {
+    const id = parseInt(match[1], 10);
+    if (!presentIds.includes(id)) {
+      presentIds.push(id);
+    }
+  }
+
+  return {
+    exists: presentIds.length > 0,
+    presentIds,
   };
 }
 
