@@ -11,7 +11,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { useFilterStore } from '@/store/filterStore';
 import { useUIStore } from '@/store/uiStore';
 import { useAuth } from '@/hooks/useAuth';
-import { useTurmas, useDisciplinas, useAlunosByTurma } from '@/hooks/useFirestoreData';
+import { useTurmas, useDisciplinas, useAlunosByTurma, useRubricas } from '@/hooks/useFirestoreData';
 import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
@@ -19,6 +19,8 @@ import { useChamadaData } from './hooks';
 import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, EAlunoConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal } from './components';
 import { eAlunoConfigService } from '@/services/firestore/eAlunoConfigService';
 import { Atestado, Atraso, EAlunoConfig } from '@/types';
+import { useDossieModal } from '@/app/diario/dossie/hooks/useDossieModal';
+import { AlunoDetailModal } from '@/app/diario/dossie/components/AlunoDetailModal';
 
 export default function ChamadaPage() {
   const { ano, setAno, serieId, setSerieId, disciplinaId, setDisciplinaId } = useFilterStore();
@@ -32,6 +34,7 @@ export default function ChamadaPage() {
   const { turmas: todasTurmas, loading: loadingTurmas } = useTurmas(ano);
   const { disciplinas: todasDisciplinas, loading: loadingDisciplinas } = useDisciplinas();
   const { alunos, loading: loadingAlunos } = useAlunosByTurma(serieId || null);
+  const { rubricas } = useRubricas();
 
   // Filter turmas by professor's vinculos (professors only see their turmas)
   // Fallback: if professor has no turmaIds, show turmas that have their disciplinas
@@ -175,6 +178,15 @@ export default function ChamadaPage() {
     alunos: alunosFiltrados,
     turno: turmaSelecionada?.turno,
     atrasadosIds,
+  });
+
+  // Mini dossie modal (ao clicar no avatar do aluno)
+  const dossieModal = useDossieModal({
+    alunos: alunosFiltrados,
+    turmas: todasTurmas,
+    rubricas,
+    disciplinas: todasDisciplinas,
+    ano,
   });
 
   // Clear disciplinaId when turma changes and current disciplina is not linked
@@ -631,6 +643,7 @@ export default function ChamadaPage() {
                   setAutoSyncSGE(v);
                   try { localStorage.setItem('chamada-auto-sync-sge', String(v)); } catch {}
                 }}
+                onViewDossie={dossieModal.openModal}
               />
             )}
           </Box>
@@ -742,6 +755,18 @@ export default function ChamadaPage() {
           sgeMessage={syncResult.sgeMessage}
         />
       )}
+
+      {/* Mini Dossie Modal (ao clicar no avatar) */}
+      <AlunoDetailModal
+        open={dossieModal.modalState.open}
+        loading={dossieModal.modalState.loading}
+        dossie={dossieModal.dossieData}
+        canEdit={false}
+        usuario={usuario}
+        ano={ano}
+        onClose={dossieModal.closeModal}
+        onPhotoChange={() => {}}
+      />
     </MainLayout>
   );
 }

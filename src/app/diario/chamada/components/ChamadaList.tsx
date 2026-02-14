@@ -16,8 +16,13 @@ import {
   Badge,
   FormControlLabel,
   Switch,
+  Menu,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
+  Dialog,
 } from '@mui/material';
-import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Settings } from '@mui/icons-material';
+import { CheckCircle, Cancel, Save, NoteAlt, MedicalServices, OpenInNew, AccessTime, Schedule, Settings, Photo, Description } from '@mui/icons-material';
 import { Aluno, Atestado, Atraso } from '@/types';
 import { getAvatarColor } from '../types';
 import { ObservacaoPopover } from './ObservacaoPopover';
@@ -42,6 +47,7 @@ interface ChamadaListProps {
   onEnviarSGE?: () => void;
   autoSyncSGE?: boolean;
   onAutoSyncToggle?: (value: boolean) => void;
+  onViewDossie?: (alunoId: string) => void;
 }
 
 export function ChamadaList({
@@ -64,9 +70,15 @@ export function ChamadaList({
   onEnviarSGE,
   autoSyncSGE = false,
   onAutoSyncToggle,
+  onViewDossie,
 }: ChamadaListProps) {
   const [popoverAnchor, setPopoverAnchor] = useState<HTMLElement | null>(null);
   const [selectedAluno, setSelectedAluno] = useState<Aluno | null>(null);
+
+  // Menu do avatar (ver foto / ver dossie)
+  const [avatarMenuAnchor, setAvatarMenuAnchor] = useState<HTMLElement | null>(null);
+  const [avatarMenuAluno, setAvatarMenuAluno] = useState<Aluno | null>(null);
+  const [photoDialogOpen, setPhotoDialogOpen] = useState(false);
 
   const handleOpenObservacao = (event: React.MouseEvent<HTMLElement>, aluno: Aluno) => {
     event.stopPropagation();
@@ -232,20 +244,31 @@ export function ChamadaList({
                 }}
               />
 
-              <Avatar
-                src={aluno.fotoUrl}
-                sx={{
-                  width: { xs: 36, sm: 42 },
-                  height: { xs: 36, sm: 42 },
-                  fontSize: { xs: '0.9rem', sm: '1rem' },
-                  fontWeight: 600,
-                  bgcolor: avatarColor,
-                  border: '2px solid',
-                  borderColor: atrasoAtivo ? '#f57c00' : (atestado ? '#1976d2' : (isPresente ? 'transparent' : 'error.main')),
+              <Box
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setAvatarMenuAnchor(e.currentTarget);
+                  setAvatarMenuAluno(aluno);
                 }}
+                sx={{ cursor: 'pointer' }}
               >
-                {aluno.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
-              </Avatar>
+                <Avatar
+                  src={aluno.fotoUrl}
+                  sx={{
+                    width: { xs: 36, sm: 42 },
+                    height: { xs: 36, sm: 42 },
+                    fontSize: { xs: '0.9rem', sm: '1rem' },
+                    fontWeight: 600,
+                    bgcolor: avatarColor,
+                    border: '2px solid',
+                    borderColor: atrasoAtivo ? '#f57c00' : (atestado ? '#1976d2' : (isPresente ? 'transparent' : 'error.main')),
+                    transition: 'transform 0.15s',
+                    '&:hover': { transform: 'scale(1.1)' },
+                  }}
+                >
+                  {aluno.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+                </Avatar>
+              </Box>
 
               <Box sx={{ flex: 1, minWidth: 0 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
@@ -500,6 +523,86 @@ export function ChamadaList({
         onClose={handleCloseObservacao}
         onSave={handleSaveObservacao}
       />
+
+      {/* Menu do avatar */}
+      <Menu
+        anchorEl={avatarMenuAnchor}
+        open={Boolean(avatarMenuAnchor)}
+        onClose={() => { setAvatarMenuAnchor(null); setAvatarMenuAluno(null); }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <MenuItem
+          onClick={() => {
+            setAvatarMenuAnchor(null);
+            setPhotoDialogOpen(true);
+          }}
+        >
+          <ListItemIcon><Photo fontSize="small" /></ListItemIcon>
+          <ListItemText>Ver foto de perfil</ListItemText>
+        </MenuItem>
+        {onViewDossie && (
+          <MenuItem
+            onClick={() => {
+              const id = avatarMenuAluno?.id;
+              setAvatarMenuAnchor(null);
+              setAvatarMenuAluno(null);
+              if (id) onViewDossie(id);
+            }}
+          >
+            <ListItemIcon><Description fontSize="small" /></ListItemIcon>
+            <ListItemText>Ver dossie</ListItemText>
+          </MenuItem>
+        )}
+      </Menu>
+
+      {/* Dialog de foto ampliada */}
+      <Dialog
+        open={photoDialogOpen}
+        onClose={() => { setPhotoDialogOpen(false); setAvatarMenuAluno(null); }}
+        maxWidth="md"
+        PaperProps={{
+          sx: { bgcolor: 'transparent', boxShadow: 'none', overflow: 'visible' },
+          onClick: () => { setPhotoDialogOpen(false); setAvatarMenuAluno(null); },
+        }}
+        slotProps={{ backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.8)' } } }}
+      >
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
+          {avatarMenuAluno?.fotoUrl ? (
+            <Box
+              component="img"
+              src={avatarMenuAluno.fotoUrl}
+              alt={avatarMenuAluno.nome}
+              sx={{
+                maxWidth: { xs: '85vw', sm: 420 },
+                maxHeight: '70vh',
+                objectFit: 'contain',
+                borderRadius: 2,
+                border: '4px solid white',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+                imageRendering: 'auto',
+              }}
+            />
+          ) : (
+            <Avatar
+              sx={{
+                width: 200,
+                height: 200,
+                fontSize: '4rem',
+                fontWeight: 700,
+                bgcolor: avatarMenuAluno ? getAvatarColor(alunos.indexOf(avatarMenuAluno)) : 'grey.400',
+                border: '4px solid white',
+                boxShadow: '0 4px 24px rgba(0,0,0,0.4)',
+              }}
+            >
+              {avatarMenuAluno?.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
+            </Avatar>
+          )}
+          <Typography sx={{ color: 'white', fontWeight: 600, fontSize: '1.1rem', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
+            {avatarMenuAluno?.nome}
+          </Typography>
+        </Box>
+      </Dialog>
     </>
   );
 }
