@@ -7,5 +7,6 @@ export { RelatorioPeriodo } from './RelatorioPeriodo';
 export { RelatorioFaltas } from './RelatorioFaltas';
 export { RelatorioTurma } from './RelatorioTurma';
 export { RelatorioConsolidado } from './RelatorioConsolidado';
-export { RelatorioSGE } from './RelatorioSGE';
+export { RelatorioConsultaDia } from './RelatorioConsultaDia';
+export { RelatorioMensal } from './RelatorioMensal';
 export * from './utils';

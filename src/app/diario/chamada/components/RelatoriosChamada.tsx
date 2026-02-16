@@ -1,6 +1,7 @@
 /**
  * Componente principal de Relatorios de Chamada.
  * Permite ao professor escolher entre diferentes tipos de relatorio.
+ * 3 relatorios SGE (espelho do dia, consultar dia, mensal) + 4 Luminar.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -20,7 +21,6 @@ import {
   CardActionArea,
   CircularProgress,
   Alert,
-  Chip,
 } from '@mui/material';
 import {
   Today as TodayIcon,
@@ -28,22 +28,22 @@ import {
   Warning as FaltasIcon,
   Class as TurmaIcon,
   Assessment as ConsolidadoIcon,
-  Print as PrintIcon,
-  Sync as SyncIcon,
+  Search as SearchIcon,
+  CalendarMonth as CalendarMonthIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario } from '@/types';
 import { chamadaService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
 
-// Relatorio do Dia
 import { RelatorioDia } from './relatorios/RelatorioDia';
 import { RelatorioPeriodo } from './relatorios/RelatorioPeriodo';
 import { RelatorioFaltas } from './relatorios/RelatorioFaltas';
 import { RelatorioTurma } from './relatorios/RelatorioTurma';
 import { RelatorioConsolidado } from './relatorios/RelatorioConsolidado';
-import { RelatorioSGE } from './relatorios/RelatorioSGE';
+import { RelatorioConsultaDia } from './relatorios/RelatorioConsultaDia';
+import { RelatorioMensal } from './relatorios/RelatorioMensal';
 
-type TipoRelatorio = 'dia' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | 'sge' | null;
+type TipoRelatorio = 'dia' | 'consultar_dia' | 'mensal' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | null;
 
 interface RelatoriosChamadaProps {
   professor: Usuario | null;
@@ -55,9 +55,26 @@ const TIPOS_RELATORIO = [
   {
     id: 'dia' as TipoRelatorio,
     titulo: 'Espelho do Dia',
-    descricao: 'Todas as chamadas de um dia especifico',
+    descricao: 'Todas as chamadas de um dia com status SGE',
     icon: TodayIcon,
     color: 'primary',
+    grupo: 'sge',
+  },
+  {
+    id: 'consultar_dia' as TipoRelatorio,
+    titulo: 'Consultar Dia',
+    descricao: 'Detalhamento da chamada por aluno com comparacao SGE',
+    icon: SearchIcon,
+    color: 'secondary',
+    grupo: 'sge',
+  },
+  {
+    id: 'mensal' as TipoRelatorio,
+    titulo: 'Detalhamento do Mes',
+    descricao: 'Resumo mensal com aulas, conteudo e status SGE',
+    icon: CalendarMonthIcon,
+    color: 'info',
+    grupo: 'sge',
   },
   {
     id: 'periodo' as TipoRelatorio,
@@ -65,6 +82,7 @@ const TIPOS_RELATORIO = [
     descricao: 'Chamadas de um periodo (semana, mes)',
     icon: PeriodIcon,
     color: 'info',
+    grupo: 'luminar',
   },
   {
     id: 'faltas' as TipoRelatorio,
@@ -72,6 +90,7 @@ const TIPOS_RELATORIO = [
     descricao: 'Alunos com mais faltas no periodo',
     icon: FaltasIcon,
     color: 'error',
+    grupo: 'luminar',
   },
   {
     id: 'turma' as TipoRelatorio,
@@ -79,6 +98,7 @@ const TIPOS_RELATORIO = [
     descricao: 'Historico de uma turma especifica',
     icon: TurmaIcon,
     color: 'success',
+    grupo: 'luminar',
   },
   {
     id: 'consolidado' as TipoRelatorio,
@@ -86,14 +106,23 @@ const TIPOS_RELATORIO = [
     descricao: 'Resumo geral de todas as turmas',
     icon: ConsolidadoIcon,
     color: 'warning',
+    grupo: 'luminar',
   },
-  {
-    id: 'sge' as TipoRelatorio,
-    titulo: 'Sincronizar SGE',
-    descricao: 'Enviar chamadas em lote para o e-aluno',
-    icon: SyncIcon,
-    color: 'secondary',
-  },
+];
+
+const MESES_OPTIONS = [
+  { value: 0, label: 'Janeiro' },
+  { value: 1, label: 'Fevereiro' },
+  { value: 2, label: 'Marco' },
+  { value: 3, label: 'Abril' },
+  { value: 4, label: 'Maio' },
+  { value: 5, label: 'Junho' },
+  { value: 6, label: 'Julho' },
+  { value: 7, label: 'Agosto' },
+  { value: 8, label: 'Setembro' },
+  { value: 9, label: 'Outubro' },
+  { value: 10, label: 'Novembro' },
+  { value: 11, label: 'Dezembro' },
 ];
 
 export function RelatoriosChamada({
@@ -106,12 +135,11 @@ export function RelatoriosChamada({
   // Estado do tipo de relatorio selecionado
   const [tipoRelatorio, setTipoRelatorio] = useState<TipoRelatorio>(null);
 
-  // Filtros - usando funcao para garantir data valida
+  // Filtros
   const getToday = () => {
     try {
       return new Date().toISOString().split('T')[0];
     } catch {
-      // Fallback se algo der errado
       const now = new Date();
       const year = now.getFullYear();
       const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -122,6 +150,8 @@ export function RelatoriosChamada({
   const [dataInicio, setDataInicio] = useState(getToday);
   const [dataFim, setDataFim] = useState(getToday);
   const [turmaId, setTurmaId] = useState('');
+  const [disciplinaId, setDisciplinaId] = useState('');
+  const [mesSelecionado, setMesSelecionado] = useState(new Date().getMonth());
 
   // Dados carregados
   const [chamadas, setChamadas] = useState<Chamada[]>([]);
@@ -134,17 +164,38 @@ export function RelatoriosChamada({
     return !isNaN(date.getTime());
   };
 
+  // Needs turma+disciplina filters
+  const needsTurmaDisciplina = tipoRelatorio === 'consultar_dia' || tipoRelatorio === 'mensal';
+  // Needs data range
+  const needsDataRange = tipoRelatorio === 'periodo' || tipoRelatorio === 'faltas' || tipoRelatorio === 'turma' || tipoRelatorio === 'consolidado';
+  // Needs single date
+  const needsSingleDate = tipoRelatorio === 'dia' || tipoRelatorio === 'consultar_dia';
+  // Needs month
+  const needsMonth = tipoRelatorio === 'mensal';
+  // Needs turma only
+  const needsTurmaOnly = tipoRelatorio === 'turma';
+  // Self-managed relatorios (load data internally)
+  const isSelfManaged = tipoRelatorio === 'consultar_dia' || tipoRelatorio === 'mensal';
+
+  // Handle card selection - reset data to today for 'dia'
+  const handleSelectTipo = (tipo: TipoRelatorio) => {
+    if (tipo === 'dia' || tipo === 'consultar_dia') {
+      setDataInicio(getToday());
+    }
+    setTipoRelatorio(tipo);
+    setChamadas([]);
+  };
+
   // Carregar dados do relatorio
   const loadRelatorio = useCallback(async () => {
-    if (!professor?.id || !tipoRelatorio) return;
+    if (!professor?.id || !tipoRelatorio || isSelfManaged) return;
 
-    // Validar datas antes de prosseguir
     if (!isValidDate(dataInicio)) {
       addToast('Data invalida', 'error');
       return;
     }
 
-    if (tipoRelatorio !== 'dia' && !isValidDate(dataFim)) {
+    if (needsDataRange && !isValidDate(dataFim)) {
       addToast('Data fim invalida', 'error');
       return;
     }
@@ -164,7 +215,6 @@ export function RelatoriosChamada({
         case 'periodo':
         case 'faltas':
         case 'consolidado':
-        case 'sge':
           data = await chamadaService.getByProfessorPeriodo(
             professor.id,
             new Date(dataInicio + 'T00:00:00'),
@@ -174,7 +224,6 @@ export function RelatoriosChamada({
 
         case 'turma':
           if (turmaId) {
-            // Buscar todas as chamadas da turma no periodo
             const todasChamadas = await chamadaService.getByProfessorPeriodo(
               professor.id,
               new Date(dataInicio + 'T00:00:00'),
@@ -192,13 +241,15 @@ export function RelatoriosChamada({
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [professor?.id, tipoRelatorio, dataInicio, dataFim, turmaId, addToast]);
 
-  // Carregar ao mudar filtros
+  // Carregar ao mudar filtros (only for non-self-managed)
   useEffect(() => {
-    if (tipoRelatorio) {
+    if (tipoRelatorio && !isSelfManaged) {
       loadRelatorio();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tipoRelatorio, loadRelatorio]);
 
   // Voltar para selecao de tipo
@@ -209,6 +260,9 @@ export function RelatoriosChamada({
 
   // Tela de selecao de tipo de relatorio
   if (!tipoRelatorio) {
+    const sgeCards = TIPOS_RELATORIO.filter(t => t.grupo === 'sge');
+    const luminarCards = TIPOS_RELATORIO.filter(t => t.grupo === 'luminar');
+
     return (
       <Box sx={{ p: { xs: 2, sm: 3 } }}>
         <Typography variant="h5" fontWeight={600} gutterBottom>
@@ -218,8 +272,12 @@ export function RelatoriosChamada({
           Selecione o tipo de relatorio que deseja gerar
         </Typography>
 
-        <Grid container spacing={2}>
-          {TIPOS_RELATORIO.map((tipo) => {
+        {/* SGE Reports */}
+        <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          Relatorios SGE (e-aluno)
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {sgeCards.map((tipo) => {
             const Icon = tipo.icon;
             return (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={tipo.id}>
@@ -234,7 +292,60 @@ export function RelatoriosChamada({
                   }}
                 >
                   <CardActionArea
-                    onClick={() => setTipoRelatorio(tipo.id)}
+                    onClick={() => handleSelectTipo(tipo.id)}
+                    sx={{ height: '100%', p: 2 }}
+                  >
+                    <CardContent sx={{ textAlign: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: '50%',
+                          bgcolor: `${tipo.color}.100`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mx: 'auto',
+                          mb: 2,
+                        }}
+                      >
+                        <Icon sx={{ fontSize: 32, color: `${tipo.color}.main` }} />
+                      </Box>
+                      <Typography variant="h6" gutterBottom>
+                        {tipo.titulo}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {tipo.descricao}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {/* Luminar Reports */}
+        <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          Relatorios Luminar
+        </Typography>
+        <Grid container spacing={2}>
+          {luminarCards.map((tipo) => {
+            const Icon = tipo.icon;
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={tipo.id}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    '&:hover': {
+                      transform: 'translateY(-4px)',
+                      boxShadow: 4,
+                    },
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => handleSelectTipo(tipo.id)}
                     sx={{ height: '100%', p: 2 }}
                   >
                     <CardContent sx={{ textAlign: 'center' }}>
@@ -274,6 +385,12 @@ export function RelatoriosChamada({
   const tipoConfig = TIPOS_RELATORIO.find(t => t.id === tipoRelatorio);
   const Icon = tipoConfig?.icon || TodayIcon;
 
+  // Disabled state for Gerar button
+  const isGenerateDisabled =
+    loading ||
+    (needsTurmaOnly && !turmaId) ||
+    (needsTurmaDisciplina && (!turmaId || !disciplinaId));
+
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
       {/* Header */}
@@ -295,32 +412,45 @@ export function RelatoriosChamada({
           Filtros
         </Typography>
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
-          {/* Data Inicio */}
-          <TextField
-            label={tipoRelatorio === 'dia' ? 'Data' : 'Data Inicio'}
-            type="date"
-            value={dataInicio}
-            onChange={(e) => setDataInicio(e.target.value)}
-            size="small"
-            InputLabelProps={{ shrink: true }}
-            sx={{ minWidth: { xs: '100%', sm: 150 } }}
-          />
-
-          {/* Data Fim (para periodo, faltas, turma, consolidado, sge) */}
-          {tipoRelatorio !== 'dia' && (
+          {/* Data (for dia, consultar_dia) */}
+          {needsSingleDate && (
             <TextField
-              label="Data Fim"
+              label="Data"
               type="date"
-              value={dataFim}
-              onChange={(e) => setDataFim(e.target.value)}
+              value={dataInicio}
+              onChange={(e) => setDataInicio(e.target.value)}
               size="small"
               InputLabelProps={{ shrink: true }}
               sx={{ minWidth: { xs: '100%', sm: 150 } }}
             />
           )}
 
-          {/* Turma (apenas para relatorio por turma) */}
-          {tipoRelatorio === 'turma' && (
+          {/* Data range (for periodo, faltas, turma, consolidado) */}
+          {needsDataRange && (
+            <>
+              <TextField
+                label="Data Inicio"
+                type="date"
+                value={dataInicio}
+                onChange={(e) => setDataInicio(e.target.value)}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: { xs: '100%', sm: 150 } }}
+              />
+              <TextField
+                label="Data Fim"
+                type="date"
+                value={dataFim}
+                onChange={(e) => setDataFim(e.target.value)}
+                size="small"
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: { xs: '100%', sm: 150 } }}
+              />
+            </>
+          )}
+
+          {/* Turma (for turma, consultar_dia, mensal) */}
+          {(needsTurmaDisciplina || needsTurmaOnly) && (
             <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
               <InputLabel>Turma</InputLabel>
               <Select
@@ -331,99 +461,168 @@ export function RelatoriosChamada({
                 <MenuItem value="">
                   <em>Selecione uma turma</em>
                 </MenuItem>
-                {turmas.map((turma) => (
-                  <MenuItem key={turma.id} value={turma.id}>
-                    {turma.nome}
+                {turmas.map((t) => (
+                  <MenuItem key={t.id} value={t.id}>
+                    {t.nome}
                   </MenuItem>
                 ))}
               </Select>
             </FormControl>
           )}
 
-          <Button
-            variant="contained"
-            onClick={loadRelatorio}
-            disabled={loading || (tipoRelatorio === 'turma' && !turmaId)}
-            size="small"
-            sx={{ width: { xs: '100%', sm: 'auto' } }}
-          >
-            {loading ? <CircularProgress size={20} /> : 'Gerar Relatorio'}
-          </Button>
+          {/* Disciplina (for consultar_dia, mensal) */}
+          {needsTurmaDisciplina && (
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 200 } }}>
+              <InputLabel>Disciplina</InputLabel>
+              <Select
+                value={disciplinaId}
+                label="Disciplina"
+                onChange={(e) => setDisciplinaId(e.target.value)}
+              >
+                <MenuItem value="">
+                  <em>Selecione uma disciplina</em>
+                </MenuItem>
+                {disciplinas.map((d) => (
+                  <MenuItem key={d.id} value={d.id}>
+                    {d.nome}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Mes (for mensal) */}
+          {needsMonth && (
+            <FormControl size="small" sx={{ minWidth: { xs: '100%', sm: 150 } }}>
+              <InputLabel>Mes</InputLabel>
+              <Select
+                value={mesSelecionado}
+                label="Mes"
+                onChange={(e) => setMesSelecionado(e.target.value as number)}
+              >
+                {MESES_OPTIONS.map((m) => (
+                  <MenuItem key={m.value} value={m.value}>
+                    {m.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
+
+          {/* Generate button (only for non-self-managed) */}
+          {!isSelfManaged && (
+            <Button
+              variant="contained"
+              onClick={loadRelatorio}
+              disabled={isGenerateDisabled}
+              size="small"
+              sx={{ width: { xs: '100%', sm: 'auto' } }}
+            >
+              {loading ? <CircularProgress size={20} /> : 'Gerar Relatorio'}
+            </Button>
+          )}
         </Box>
       </Paper>
 
       {/* Conteudo do Relatorio */}
-      {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : chamadas.length === 0 ? (
+      {/* Self-managed reports render directly */}
+      {tipoRelatorio === 'consultar_dia' && turmaId && disciplinaId && (
+        <RelatorioConsultaDia
+          turmaId={turmaId}
+          disciplinaId={disciplinaId}
+          data={dataInicio}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {tipoRelatorio === 'mensal' && turmaId && disciplinaId && (
+        <RelatorioMensal
+          turmaId={turmaId}
+          disciplinaId={disciplinaId}
+          mes={mesSelecionado}
+          ano={new Date().getFullYear()}
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {/* Self-managed: show hint if filters incomplete */}
+      {isSelfManaged && (!turmaId || !disciplinaId) && (
         <Alert severity="info">
-          Nenhuma chamada encontrada para os filtros selecionados.
+          Selecione uma turma e disciplina para gerar o relatorio.
         </Alert>
-      ) : (
+      )}
+
+      {/* Non-self-managed reports */}
+      {!isSelfManaged && (
         <>
-          {tipoRelatorio === 'dia' && (
-            <RelatorioDia
-              chamadas={chamadas}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professor={professor}
-              data={dataInicio}
-            />
-          )}
+          {loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : chamadas.length === 0 ? (
+            <Alert severity="info">
+              Nenhuma chamada encontrada para os filtros selecionados.
+            </Alert>
+          ) : (
+            <>
+              {tipoRelatorio === 'dia' && (
+                <RelatorioDia
+                  chamadas={chamadas}
+                  turmas={turmas}
+                  disciplinas={disciplinas}
+                  professor={professor}
+                  data={dataInicio}
+                />
+              )}
 
-          {tipoRelatorio === 'periodo' && (
-            <RelatorioPeriodo
-              chamadas={chamadas}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professor={professor}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-            />
-          )}
+              {tipoRelatorio === 'periodo' && (
+                <RelatorioPeriodo
+                  chamadas={chamadas}
+                  turmas={turmas}
+                  disciplinas={disciplinas}
+                  professor={professor}
+                  dataInicio={dataInicio}
+                  dataFim={dataFim}
+                />
+              )}
 
-          {tipoRelatorio === 'faltas' && (
-            <RelatorioFaltas
-              chamadas={chamadas}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professor={professor}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-            />
-          )}
+              {tipoRelatorio === 'faltas' && (
+                <RelatorioFaltas
+                  chamadas={chamadas}
+                  turmas={turmas}
+                  disciplinas={disciplinas}
+                  professor={professor}
+                  dataInicio={dataInicio}
+                  dataFim={dataFim}
+                />
+              )}
 
-          {tipoRelatorio === 'turma' && (
-            <RelatorioTurma
-              chamadas={chamadas}
-              turma={turmas.find(t => t.id === turmaId) || null}
-              disciplinas={disciplinas}
-              professor={professor}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-            />
-          )}
+              {tipoRelatorio === 'turma' && (
+                <RelatorioTurma
+                  chamadas={chamadas}
+                  turma={turmas.find(t => t.id === turmaId) || null}
+                  disciplinas={disciplinas}
+                  professor={professor}
+                  dataInicio={dataInicio}
+                  dataFim={dataFim}
+                />
+              )}
 
-          {tipoRelatorio === 'consolidado' && (
-            <RelatorioConsolidado
-              chamadas={chamadas}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professor={professor}
-              dataInicio={dataInicio}
-              dataFim={dataFim}
-            />
-          )}
-
-          {tipoRelatorio === 'sge' && (
-            <RelatorioSGE
-              chamadas={chamadas}
-              turmas={turmas}
-              disciplinas={disciplinas}
-              professor={professor}
-            />
+              {tipoRelatorio === 'consolidado' && (
+                <RelatorioConsolidado
+                  chamadas={chamadas}
+                  turmas={turmas}
+                  disciplinas={disciplinas}
+                  professor={professor}
+                  dataInicio={dataInicio}
+                  dataFim={dataFim}
+                />
+              )}
+            </>
           )}
         </>
       )}

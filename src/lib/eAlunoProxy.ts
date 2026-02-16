@@ -328,6 +328,70 @@ export async function eAlunoFetchChamadaStatus(
   };
 }
 
+// ========== Chamada Detail (per-student) ==========
+
+/**
+ * Fetch chamada detail from e-aluno: returns list of students with their presence status.
+ * Reuses show_chamadas.php, parsing both student names and checked checkboxes.
+ */
+export async function eAlunoFetchChamadaDetail(
+  session: EAlunoSession,
+  params: {
+    serie: number;
+    turma: number;
+    turno: string;
+    ano: number;
+    data: string;       // YYYY-MM-DD
+    disciplina: number;
+    aula: number;
+  }
+): Promise<{ students: Array<{ id: number; nome: string; presente: boolean }> }> {
+  const url = `${BASE_URL}/show_chamadas.php?serie=${params.serie}&turma=${params.turma}&turno=${encodeURIComponent(params.turno)}&ano=${params.ano}`;
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'X-Requested-With': 'XMLHttpRequest',
+      Cookie: session.cookie,
+    },
+    body: new URLSearchParams({
+      data: toEAlunoDate(params.data),
+      disciplina: String(params.disciplina),
+      aula: String(params.aula),
+      show: '1',
+    }),
+  });
+
+  const html = await res.text();
+
+  // Parse all students from the page
+  const allStudents = parseStudentList(html);
+
+  // Parse checked checkboxes to get present student IDs
+  const checkedRegex = /<input[^>]*type=['"]checkbox['"][^>]*value=['"](\d+)['"][^>]*checked[^>]*>/gi;
+  const presentIds = new Set<number>();
+  let match;
+
+  while ((match = checkedRegex.exec(html)) !== null) {
+    presentIds.add(parseInt(match[1], 10));
+  }
+
+  // Also check reverse attribute order
+  const checkedRegex2 = /<input[^>]*checked[^>]*value=['"](\d+)['"][^>]*type=['"]checkbox['"][^>]*>/gi;
+  while ((match = checkedRegex2.exec(html)) !== null) {
+    presentIds.add(parseInt(match[1], 10));
+  }
+
+  // Merge: each student gets a presente flag
+  const students = allStudents.map(s => ({
+    ...s,
+    presente: presentIds.has(s.id),
+  }));
+
+  return { students };
+}
+
 // ========== HTML Parsing Helpers ==========
 
 /**

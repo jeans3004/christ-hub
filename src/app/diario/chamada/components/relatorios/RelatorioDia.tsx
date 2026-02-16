@@ -2,7 +2,7 @@
  * Relatorio do Dia - Lista de chamadas do dia com acesso ao detalhe.
  */
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Paper,
@@ -23,9 +23,10 @@ import {
   Cancel as AbsentIcon,
   ChevronRight,
   Delete as DeleteIcon,
+  OpenInNew as OpenInNewIcon,
 } from '@mui/icons-material';
-import { Chamada, Turma, Disciplina, Usuario } from '@/types';
-import { chamadaService } from '@/services/firestore';
+import { Chamada, Turma, Disciplina, Usuario, EAlunoConfig } from '@/types';
+import { chamadaService, eAlunoConfigService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { formatDate, formatDateFull, formatTime, printReport } from './utils';
@@ -61,6 +62,34 @@ export function RelatorioDia({
   const [deleting, setDeleting] = useState(false);
   const { addToast } = useUIStore();
   const printRef = useRef<HTMLDivElement>(null);
+  const [eAlunoConfig, setEAlunoConfig] = useState<EAlunoConfig | null>(null);
+
+  // Load eAluno config for SGE URLs
+  useEffect(() => {
+    if (professor?.id) {
+      eAlunoConfigService.getByUser(professor.id).then(setEAlunoConfig).catch(() => {});
+    }
+  }, [professor?.id]);
+
+  // Build dynamic SGE URL per chamada
+  const getSgeUrl = (chamada: Chamada) => {
+    const base = 'https://e-aluno.com.br/christ/diario/relatorio_diario.php';
+    const turmaMapping = eAlunoConfig?.turmaMap?.[chamada.turmaId];
+    const disciplinaMapping = eAlunoConfig?.disciplinaMap?.[chamada.disciplinaId];
+    if (!turmaMapping || !disciplinaMapping) return base;
+
+    const turmaObj = turmas.find(t => t.id === chamada.turmaId);
+    const params = new URLSearchParams({
+      serie: String(turmaMapping.serie),
+      turma: String(turmaMapping.turma),
+      turno: turmaMapping.turno,
+      disciplina: String(disciplinaMapping),
+      data,
+      txtSerie: turmaObj?.nome || '',
+      ano: String(new Date(data + 'T12:00:00').getFullYear()),
+    });
+    return `${base}?${params.toString()}`;
+  };
 
   // Calcular totais gerais
   const totaisGerais = chamadas.reduce(
@@ -92,6 +121,7 @@ export function RelatorioDia({
           <td style="text-align: center" class="presente">${presentes}</td>
           <td style="text-align: center" class="ausente">${ausentes}</td>
           <td style="text-align: center">${chamada.presencas.length}</td>
+          <td style="text-align: center">${chamada.sgeSyncedAt ? 'Sim' : 'Nao'}</td>
         </tr>
       `;
     }).join('');
@@ -124,6 +154,7 @@ export function RelatorioDia({
             <th style="width: 80px; text-align: center">Presentes</th>
             <th style="width: 80px; text-align: center">Ausentes</th>
             <th style="width: 80px; text-align: center">Total</th>
+            <th style="width: 80px; text-align: center">SGE</th>
           </tr>
         </thead>
         <tbody>
@@ -262,6 +293,8 @@ export function RelatorioDia({
                 <TableCell align="center" sx={{ width: 100 }}>Presentes</TableCell>
                 <TableCell align="center" sx={{ width: 100 }}>Ausentes</TableCell>
                 <TableCell align="center" sx={{ width: 80 }}>Total</TableCell>
+                <TableCell align="center" sx={{ width: 120 }}>SGE</TableCell>
+                <TableCell align="center" sx={{ width: 60 }}>Ver SGE</TableCell>
                 <TableCell sx={{ width: 50 }}></TableCell>
               </TableRow>
             </TableHead>
@@ -319,6 +352,26 @@ export function RelatorioDia({
                       <Typography variant="body2" fontWeight={500}>
                         {chamada.presencas.length}
                       </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Chip
+                        label={chamada.sgeSyncedAt ? 'Sincronizado' : 'Pendente'}
+                        size="small"
+                        color={chamada.sgeSyncedAt ? 'success' : 'default'}
+                        variant={chamada.sgeSyncedAt ? 'filled' : 'outlined'}
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton
+                        size="small"
+                        color="primary"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          window.open(getSgeUrl(chamada), '_blank');
+                        }}
+                      >
+                        <OpenInNewIcon fontSize="small" />
+                      </IconButton>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
