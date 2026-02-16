@@ -27,25 +27,39 @@ import {
   Select,
   MenuItem,
 } from '@mui/material';
-import { Search as SearchIcon, School as SchoolIcon } from '@mui/icons-material';
+import {
+  Search as SearchIcon,
+  School as SchoolIcon,
+  HourglassEmpty as PendingIcon,
+  CheckCircle as AcceptedIcon,
+} from '@mui/icons-material';
 import { classroomSectionService } from '@/services/firestore';
-import type { ClassroomStudent, CourseSection } from '@/types/classroom';
+import type { ClassroomStudent, ClassroomInvitationWithProfile, CourseSection } from '@/types/classroom';
 
 interface StudentsTableProps {
   students: ClassroomStudent[];
+  invitations?: ClassroomInvitationWithProfile[];
   isLoading: boolean;
   getCourseNameById?: (courseId: string) => string;
   isMultiCourse?: boolean;
+  sectionsVersion?: number;
 }
 
 export function StudentsTable({
   students,
+  invitations = [],
   isLoading,
   getCourseNameById,
   isMultiCourse = false,
+  sectionsVersion = 0,
 }: StudentsTableProps) {
+  // Filter invitations to only STUDENT role that aren't already in students list
+  const pendingInvitations = invitations.filter(inv =>
+    inv.role === 'STUDENT' && inv.profile && !students.some(s => s.userId === inv.userId && s.courseId === inv.courseId)
+  );
   const [search, setSearch] = useState('');
   const [filterCourse, setFilterCourse] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sectionsMap, setSectionsMap] = useState<Record<string, CourseSection[]>>({});
   const [filterSection, setFilterSection] = useState<string>('all');
 
@@ -70,14 +84,14 @@ export function StudentsTable({
     };
 
     load();
-  }, [students]);
+  }, [students, sectionsVersion]);
 
   const hasSections = Object.keys(sectionsMap).length > 0;
 
-  const getStudentSections = (student: ClassroomStudent): CourseSection[] => {
-    const sections = sectionsMap[student.courseId];
+  const getStudentSections = (courseId: string, userId: string): CourseSection[] => {
+    const sections = sectionsMap[courseId];
     if (!sections) return [];
-    return sections.filter(s => s.studentIds.includes(student.userId));
+    return sections.filter(s => s.studentIds.includes(userId));
   };
 
   // Collect all unique section names for filter
@@ -96,33 +110,74 @@ export function StudentsTable({
     );
   }
 
-  if (students.length === 0) {
+  if (students.length === 0 && pendingInvitations.length === 0) {
     return <Alert severity="info">Nenhum aluno matriculado nas turmas selecionadas.</Alert>;
   }
 
-  // Obter lista unica de turmas
-  const uniqueCourseIds = [...new Set(students.map((s) => s.courseId))];
+  // Build unified rows: enrolled students + pending invitations
+  type StudentRow = {
+    key: string;
+    courseId: string;
+    userId: string;
+    fullName: string;
+    email: string;
+    photoUrl?: string;
+    initials: string;
+    status: 'enrolled' | 'pending';
+  };
 
-  // Filtrar por turma e busca
-  let filteredStudents = students;
+  const enrolledRows: StudentRow[] = students.map(s => ({
+    key: `enrolled-${s.courseId}-${s.userId}`,
+    courseId: s.courseId,
+    userId: s.userId,
+    fullName: s.profile.name.fullName,
+    email: s.profile.emailAddress,
+    photoUrl: s.profile.photoUrl,
+    initials: s.profile.name.givenName?.charAt(0) || '?',
+    status: 'enrolled',
+  }));
+
+  const pendingRows: StudentRow[] = pendingInvitations.map(inv => ({
+    key: `pending-${inv.courseId}-${inv.userId}`,
+    courseId: inv.courseId,
+    userId: inv.userId,
+    fullName: inv.profile?.name.fullName || inv.userId,
+    email: inv.profile?.emailAddress || '',
+    photoUrl: inv.profile?.photoUrl,
+    initials: inv.profile?.name.givenName?.charAt(0) || '?',
+    status: 'pending',
+  }));
+
+  const allRows = [...enrolledRows, ...pendingRows];
+  const hasPending = pendingRows.length > 0;
+
+  // Obter lista unica de turmas
+  const uniqueCourseIds = [...new Set(allRows.map((r) => r.courseId))];
+
+  // Filtrar
+  let filteredRows = allRows;
 
   if (filterCourse !== 'all') {
-    filteredStudents = filteredStudents.filter((s) => s.courseId === filterCourse);
+    filteredRows = filteredRows.filter((r) => r.courseId === filterCourse);
+  }
+
+  if (filterStatus !== 'all') {
+    filteredRows = filteredRows.filter((r) => r.status === filterStatus);
   }
 
   if (filterSection !== 'all') {
-    filteredStudents = filteredStudents.filter((s) => {
-      const studentSections = getStudentSections(s);
-      if (filterSection === '__none__') return studentSections.length === 0;
-      return studentSections.some(sec => sec.name === filterSection);
+    filteredRows = filteredRows.filter((r) => {
+      const rowSections = getStudentSections(r.courseId, r.userId);
+      if (filterSection === '__none__') return rowSections.length === 0;
+      return rowSections.some(sec => sec.name === filterSection);
     });
   }
 
   if (search) {
-    filteredStudents = filteredStudents.filter(
-      (s) =>
-        s.profile.name.fullName.toLowerCase().includes(search.toLowerCase()) ||
-        s.profile.emailAddress.toLowerCase().includes(search.toLowerCase())
+    filteredRows = filteredRows.filter(
+      (r) =>
+        r.fullName.toLowerCase().includes(search.toLowerCase()) ||
+        r.email.toLowerCase().includes(search.toLowerCase())
     );
   }
 
@@ -145,6 +200,22 @@ export function StudentsTable({
                   {getCourseNameById(courseId)}
                 </MenuItem>
               ))}
+            </Select>
+          </FormControl>
+        )}
+
+        {/* Filtro por status */}
+        {hasPending && (
+          <FormControl size="small" sx={{ minWidth: 160 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={filterStatus}
+              label="Status"
+              onChange={(e) => setFilterStatus(e.target.value)}
+            >
+              <MenuItem value="all">Todos</MenuItem>
+              <MenuItem value="enrolled">Matriculados</MenuItem>
+              <MenuItem value="pending">Convidados</MenuItem>
             </Select>
           </FormControl>
         )}
@@ -194,18 +265,19 @@ export function StudentsTable({
               {isMultiCourse && <TableCell>Turma</TableCell>}
               <TableCell>Aluno</TableCell>
               <TableCell>Email</TableCell>
+              <TableCell width={120}>Status</TableCell>
               {hasSections && <TableCell>Secao</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredStudents.map((student, index) => {
+            {filteredRows.map((row, index) => {
               const courseName = getCourseNameById
-                ? getCourseNameById(student.courseId)
+                ? getCourseNameById(row.courseId)
                 : '';
-              const studentSections = hasSections ? getStudentSections(student) : [];
+              const studentSections = hasSections ? getStudentSections(row.courseId, row.userId) : [];
 
               return (
-                <TableRow key={`${student.courseId}-${student.userId}`} hover>
+                <TableRow key={row.key} hover sx={row.status === 'pending' ? { opacity: 0.75 } : undefined}>
                   <TableCell>{index + 1}</TableCell>
                   {isMultiCourse && (
                     <TableCell>
@@ -221,19 +293,38 @@ export function StudentsTable({
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Avatar
-                        src={student.profile.photoUrl}
-                        alt={student.profile.name.fullName}
+                        src={row.photoUrl}
+                        alt={row.fullName}
                         sx={{ width: 32, height: 32 }}
                       >
-                        {student.profile.name.givenName?.charAt(0)}
+                        {row.initials}
                       </Avatar>
-                      <Typography variant="body2">{student.profile.name.fullName}</Typography>
+                      <Typography variant="body2">{row.fullName}</Typography>
                     </Box>
                   </TableCell>
                   <TableCell>
                     <Typography variant="body2" color="text.secondary">
-                      {student.profile.emailAddress}
+                      {row.email}
                     </Typography>
+                  </TableCell>
+                  <TableCell>
+                    {row.status === 'enrolled' ? (
+                      <Chip
+                        icon={<AcceptedIcon />}
+                        label="Matriculado"
+                        size="small"
+                        color="success"
+                        variant="outlined"
+                      />
+                    ) : (
+                      <Chip
+                        icon={<PendingIcon />}
+                        label="Convidado"
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                      />
+                    )}
                   </TableCell>
                   {hasSections && (
                     <TableCell>
@@ -263,9 +354,9 @@ export function StudentsTable({
               );
             })}
 
-            {filteredStudents.length === 0 && (
+            {filteredRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={(isMultiCourse ? 4 : 3) + (hasSections ? 1 : 0)} align="center">
+                <TableCell colSpan={(isMultiCourse ? 5 : 4) + (hasSections ? 1 : 0)} align="center">
                   <Typography variant="body2" color="text.secondary">
                     Nenhum aluno encontrado para &quot;{search}&quot;
                   </Typography>
@@ -277,7 +368,8 @@ export function StudentsTable({
       </TableContainer>
 
       <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-        Total: {filteredStudents.length} de {students.length} aluno(s)
+        Total: {filteredRows.length} de {allRows.length} aluno(s)
+        {pendingRows.length > 0 && ` (${enrolledRows.length} matriculados, ${pendingRows.length} convidados)`}
       </Typography>
     </Box>
   );

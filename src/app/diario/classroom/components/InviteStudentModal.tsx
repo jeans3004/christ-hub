@@ -5,7 +5,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -54,8 +54,10 @@ interface InviteStudentModalProps {
 }
 
 interface InviteResult {
+  email: string;
   courseId: string;
   success: boolean;
+  alreadyEnrolled?: boolean;
   error?: string;
   userId?: string;
 }
@@ -69,13 +71,15 @@ export function InviteStudentModal({
   const { accessToken } = useDriveStore();
   const { addToast } = useUIStore();
 
-  const [email, setEmail] = useState('');
+  const [emails, setEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState('');
   const [selectedCourseIds, setSelectedCourseIds] = useState<string[]>([]);
   const [sectionsPerCourse, setSectionsPerCourse] = useState<Record<string, CourseSection[]>>({});
   const [selectedSectionIds, setSelectedSectionIds] = useState<Record<string, string>>({});
   const [isInviting, setIsInviting] = useState(false);
   const [results, setResults] = useState<InviteResult[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const emailInputRef = useRef<HTMLInputElement>(null);
 
   // Load sections for all courses when modal opens
   useEffect(() => {
@@ -101,7 +105,8 @@ export function InviteStudentModal({
 
   const handleClose = () => {
     if (isInviting) return;
-    setEmail('');
+    setEmails([]);
+    setEmailInput('');
     setSelectedCourseIds([]);
     setSelectedSectionIds({});
     setResults(null);
@@ -136,13 +141,68 @@ export function InviteStudentModal({
 
   const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
+  // Parse a raw string into individual emails
+  const parseEmails = useCallback((text: string): string[] => {
+    return text
+      .split(/[\s,;\n\r\t]+/)
+      .map(s => s.trim().toLowerCase())
+      .filter(s => s.length > 0 && s.includes('@'));
+  }, []);
+
+  // Add emails from input, avoiding duplicates
+  const addEmails = useCallback((raw: string) => {
+    const parsed = parseEmails(raw);
+    if (parsed.length === 0) return;
+    setEmails(prev => {
+      const set = new Set(prev);
+      for (const e of parsed) set.add(e);
+      return Array.from(set);
+    });
+    setEmailInput('');
+    setError(null);
+    setResults(null);
+  }, [parseEmails]);
+
+  const removeEmail = (emailToRemove: string) => {
+    setEmails(prev => prev.filter(e => e !== emailToRemove));
+    setResults(null);
+  };
+
+  const handleEmailKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === 'Enter' || e.key === 'Tab' || e.key === ',') {
+      e.preventDefault();
+      if (emailInput.trim()) {
+        addEmails(emailInput);
+      }
+    }
+    if (e.key === 'Backspace' && !emailInput && emails.length > 0) {
+      setEmails(prev => prev.slice(0, -1));
+    }
+  };
+
+  const handleEmailPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text');
+    addEmails(pasted);
+  };
+
   const handleInvite = async () => {
-    if (!email.trim()) {
-      setError('Digite o email do aluno');
+    // Flush any pending input
+    if (emailInput.trim()) {
+      addEmails(emailInput);
+    }
+    const allEmails = emailInput.trim()
+      ? [...new Set([...emails, ...parseEmails(emailInput)])]
+      : emails;
+
+    if (allEmails.length === 0) {
+      setError('Digite ou cole o(s) email(s) do(s) aluno(s)');
       return;
     }
-    if (!validateEmail(email.trim())) {
-      setError('Email invalido');
+    const invalid = allEmails.filter(e => !validateEmail(e));
+    if (invalid.length > 0) {
+      setError(`Email(s) invalido(s): ${invalid.join(', ')}`);
       return;
     }
     if (selectedCourseIds.length === 0) {
@@ -154,6 +214,8 @@ export function InviteStudentModal({
       return;
     }
 
+    setEmails(allEmails);
+    setEmailInput('');
     setIsInviting(true);
     setError(null);
     setResults(null);
@@ -161,13 +223,23 @@ export function InviteStudentModal({
     const service = createClassroomService(accessToken);
     const inviteResults: InviteResult[] = [];
 
-    for (const courseId of selectedCourseIds) {
-      try {
-        const invitation = await service.inviteStudent(courseId, email.trim());
-        inviteResults.push({ courseId, success: true, userId: invitation.userId });
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Erro desconhecido';
-        inviteResults.push({ courseId, success: false, error: message });
+    for (const studentEmail of allEmails) {
+      for (const courseId of selectedCourseIds) {
+        try {
+          const invitation = await service.inviteStudent(courseId, studentEmail);
+          inviteResults.push({ email: studentEmail, courseId, success: true, userId: invitation.userId });
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'Erro desconhecido';
+          const isAlreadyEnrolled = message.includes('@StudentRoleAlreadyAdded')
+            || message.includes('already has the course role');
+          inviteResults.push({
+            email: studentEmail,
+            courseId,
+            success: isAlreadyEnrolled,
+            alreadyEnrolled: isAlreadyEnrolled,
+            error: isAlreadyEnrolled ? undefined : message,
+          });
+        }
       }
     }
 
@@ -195,7 +267,6 @@ export function InviteStudentModal({
         });
 
         await classroomSectionService.saveCourseSections(result.courseId, updatedSections);
-        // Update local state too
         setSectionsPerCourse(prev => ({
           ...prev,
           [result.courseId]: updatedSections,
@@ -207,20 +278,26 @@ export function InviteStudentModal({
 
     setResults(inviteResults);
 
-    const successCount = inviteResults.filter(r => r.success).length;
-    const errorCount = inviteResults.filter(r => !r.success).length;
+    const newInvites = inviteResults.filter(r => r.success && !r.alreadyEnrolled).length;
+    const alreadyIn = inviteResults.filter(r => r.alreadyEnrolled).length;
+    const errors = inviteResults.filter(r => !r.success).length;
 
-    if (errorCount === 0) {
-      addToast(`Aluno convidado para ${successCount} turma(s)!`, 'success');
-      setEmail('');
+    if (errors === 0 && newInvites > 0) {
+      const msg = alreadyIn > 0
+        ? `${newInvites} convite(s) enviado(s), ${alreadyIn} ja na turma`
+        : `${newInvites} convite(s) enviado(s) com sucesso!`;
+      addToast(msg, 'success');
+      setEmails([]);
       setSelectedCourseIds([]);
       setSelectedSectionIds({});
       onStudentInvited();
-    } else if (successCount > 0) {
-      addToast(`${successCount} convite(s) enviado(s), ${errorCount} erro(s)`, 'warning');
+    } else if (errors === 0 && alreadyIn > 0) {
+      addToast(`${alreadyIn} aluno(s) ja matriculado(s)`, 'info');
+    } else if (newInvites > 0 || alreadyIn > 0) {
+      addToast(`${newInvites} convite(s), ${alreadyIn} ja na turma, ${errors} erro(s)`, 'warning');
       onStudentInvited();
     } else {
-      addToast('Erro ao convidar aluno', 'error');
+      addToast('Erro ao convidar aluno(s)', 'error');
     }
 
     setIsInviting(false);
@@ -229,7 +306,8 @@ export function InviteStudentModal({
   const getCourseNameById = (courseId: string) =>
     courses.find(c => c.id === courseId)?.name || courseId;
 
-  const successCount = results?.filter(r => r.success).length || 0;
+  const successCount = results?.filter(r => r.success && !r.alreadyEnrolled).length || 0;
+  const alreadyCount = results?.filter(r => r.alreadyEnrolled).length || 0;
   const errorCount = results?.filter(r => !r.success).length || 0;
   const allSelected = selectedCourseIds.length === courses.length;
 
@@ -260,17 +338,27 @@ export function InviteStudentModal({
             sx={{ mb: 2 }}
           >
             <Typography variant="body2" fontWeight={500}>
-              {errorCount === 0
-                ? `Aluno convidado para ${successCount} turma(s) com sucesso!`
-                : successCount > 0
-                  ? `${successCount} convite(s) enviado(s), ${errorCount} erro(s)`
-                  : 'Erro ao enviar convites'}
+              {successCount > 0 && `${successCount} convite(s) enviado(s)`}
+              {successCount > 0 && alreadyCount > 0 && ', '}
+              {alreadyCount > 0 && `${alreadyCount} ja na turma`}
+              {(successCount > 0 || alreadyCount > 0) && errorCount > 0 && ', '}
+              {errorCount > 0 && `${errorCount} erro(s)`}
+              {successCount === 0 && alreadyCount === 0 && errorCount === 0 && 'Nenhum resultado'}
             </Typography>
+            {alreadyCount > 0 && (
+              <Box sx={{ mt: 1 }}>
+                {results.filter(r => r.alreadyEnrolled).map((r, i) => (
+                  <Typography key={`already-${r.email}-${r.courseId}-${i}`} variant="caption" display="block" color="text.secondary">
+                    {r.email} → {getCourseNameById(r.courseId)}: ja matriculado
+                  </Typography>
+                ))}
+              </Box>
+            )}
             {errorCount > 0 && (
               <Box sx={{ mt: 1 }}>
-                {results.filter(r => !r.success).map(r => (
-                  <Typography key={r.courseId} variant="caption" display="block" color="error">
-                    {getCourseNameById(r.courseId)}: {r.error}
+                {results.filter(r => !r.success).map((r, i) => (
+                  <Typography key={`err-${r.email}-${r.courseId}-${i}`} variant="caption" display="block" color="error">
+                    {r.email} → {getCourseNameById(r.courseId)}: {r.error}
                   </Typography>
                 ))}
               </Box>
@@ -278,24 +366,67 @@ export function InviteStudentModal({
           </Alert>
         )}
 
-        {/* Email do aluno */}
-        <TextField
-          fullWidth
-          label="Email do Aluno"
-          placeholder="aluno@escola.edu.br"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            setError(null);
-            setResults(null);
+        {/* Email(s) do(s) aluno(s) — chip input */}
+        <Box
+          sx={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 0.5,
+            p: 1,
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+            mb: 1,
+            cursor: 'text',
+            minHeight: 48,
+            '&:focus-within': { borderColor: 'primary.main', borderWidth: 2, p: 'calc(8px - 1px)' },
           }}
-          disabled={isInviting}
-          InputProps={{
-            startAdornment: <EmailIcon color="action" sx={{ mr: 1 }} />,
-          }}
-          sx={{ mb: 3 }}
-          helperText="O aluno recebera um convite por email"
-        />
+          onClick={() => emailInputRef.current?.focus()}
+        >
+          <EmailIcon color="action" sx={{ mr: 0.5 }} />
+          {emails.map((e) => (
+            <Chip
+              key={e}
+              label={e}
+              size="small"
+              onDelete={isInviting ? undefined : () => removeEmail(e)}
+              color={validateEmail(e) ? 'default' : 'error'}
+              variant="outlined"
+            />
+          ))}
+          <Box
+            component="input"
+            ref={emailInputRef}
+            value={emailInput}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              setEmailInput(e.target.value);
+              setError(null);
+              setResults(null);
+            }}
+            onKeyDown={handleEmailKeyDown}
+            onPaste={handleEmailPaste}
+            onBlur={() => { if (emailInput.trim()) addEmails(emailInput); }}
+            disabled={isInviting}
+            placeholder={emails.length === 0 ? 'Cole ou digite emails separados por virgula' : ''}
+            sx={{
+              border: 'none',
+              outline: 'none',
+              flex: 1,
+              minWidth: 180,
+              fontSize: 14,
+              fontFamily: 'inherit',
+              bgcolor: 'transparent',
+              color: 'text.primary',
+              '&::placeholder': { color: 'text.secondary', opacity: 0.7 },
+              '&:disabled': { color: 'text.disabled' },
+            }}
+          />
+        </Box>
+        <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+          Cole varios emails de uma vez (separados por virgula, espaco ou quebra de linha)
+          {emails.length > 0 && ` — ${emails.length} email(s)`}
+        </Typography>
 
         <Divider sx={{ mb: 2 }} />
 
@@ -437,10 +568,14 @@ export function InviteStudentModal({
         <Button
           variant="contained"
           onClick={handleInvite}
-          disabled={isInviting || !email.trim() || selectedCourseIds.length === 0}
+          disabled={isInviting || (emails.length === 0 && !emailInput.trim()) || selectedCourseIds.length === 0}
           startIcon={isInviting ? <CircularProgress size={16} color="inherit" /> : <PersonAddIcon />}
         >
-          {isInviting ? 'Convidando...' : `Convidar para ${selectedCourseIds.length} Turma(s)`}
+          {isInviting
+            ? 'Convidando...'
+            : emails.length > 1
+              ? `Convidar ${emails.length} aluno(s) para ${selectedCourseIds.length} turma(s)`
+              : `Convidar para ${selectedCourseIds.length} turma(s)`}
         </Button>
       </DialogActions>
     </Dialog>

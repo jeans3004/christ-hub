@@ -60,6 +60,7 @@ export default function ClassroomPage() {
   const [sectionsOpen, setSectionsOpen] = useState(false);
   const [inviteTeacherOpen, setInviteTeacherOpen] = useState(false);
   const [inviteStudentOpen, setInviteStudentOpen] = useState(false);
+  const [sectionsVersion, setSectionsVersion] = useState(0);
 
   const {
     courses,
@@ -428,9 +429,11 @@ export default function ClassroomPage() {
         {activeTab === 'alunos' && hasSelectedCourses && (
           <StudentsTable
             students={students}
+            invitations={invitations}
             isLoading={isLoadingDetails}
             getCourseNameById={getCourseNameById}
             isMultiCourse={isMultiCourse}
+            sectionsVersion={sectionsVersion}
           />
         )}
 
@@ -493,7 +496,8 @@ export default function ClassroomPage() {
           onClose={() => setSectionsOpen(false)}
           courses={selectedCourses}
           students={students}
-          onSectionsUpdated={refreshSelectedCourses}
+          invitations={invitations}
+          onSectionsUpdated={() => { refreshSelectedCourses(); setSectionsVersion(v => v + 1); }}
         />
 
         {/* Modal de convite de aluno */}
