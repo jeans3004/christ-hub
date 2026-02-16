@@ -117,6 +117,15 @@ function formatNextClassNotification(
   return lines.join('\n');
 }
 
+// Feriados: datas em que NAO enviar notificacoes de aula.
+// No primeiro horario (07:45) do primeiro dia de cada bloco, envia mensagem de feriado.
+const FERIADOS: Array<{ data: string; mensagem?: string; enviarEm?: string }> = [
+  // Carnaval 2026
+  { data: '2026-02-16', mensagem: '🎭 *FERIADO - CARNAVAL*\n\nOlá *{{nome}}*!\n\nAproveite o feriado, ótimo Carnaval! 🎉\n\nAs aulas retornam na *quinta-feira (19/02)*.\n\n─────────────────\n_Centro de Educação Integral Christ Master_', enviarEm: '07:45' },
+  { data: '2026-02-17' },
+  { data: '2026-02-18' },
+];
+
 // Horarios de fim de cada tempo (quando enviar notificacao)
 const MATUTINO_END_TIMES = ['07:45', '08:30', '09:15', '10:00', '10:45', '11:30', '12:15'];
 const VESPERTINO_END_TIMES = ['13:45', '14:30', '15:15', '16:00', '16:45', '17:30', '18:15'];
@@ -244,6 +253,45 @@ async function handleNotification(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Fim de semana - sem notificacoes',
+        notifications: [],
+      });
+    }
+
+    // Verificar feriado
+    const dateStr = `${brasilTime.getFullYear()}-${String(brasilTime.getMonth() + 1).padStart(2, '0')}-${String(brasilTime.getDate()).padStart(2, '0')}`;
+    const feriado = FERIADOS.find(f => f.data === dateStr);
+
+    if (feriado) {
+      // Se tem mensagem para enviar neste horario, envia para todos os professores
+      if (feriado.mensagem && feriado.enviarEm && timeToCheck === feriado.enviarEm) {
+        console.log(`[Horarios Notification] Feriado ${dateStr} - enviando mensagem de feriado`);
+        const allUsuarios = await usuarioService.getAll();
+        const professores = allUsuarios.filter(u => u.celular && u.ativo);
+
+        const results: NotificationResult[] = [];
+        for (const professor of professores) {
+          const firstName = professor.nome?.split(' ')[0] || 'Professor';
+          const msg = feriado.mensagem.replace('{{nome}}', firstName);
+          try {
+            const result = await whatsappService.sendText(professor.celular!, msg);
+            results.push({ professorId: professor.id, professorNome: professor.nome, success: result.success, error: result.error });
+          } catch (error) {
+            results.push({ professorId: professor.id, professorNome: professor.nome, success: false, error: error instanceof Error ? error.message : 'Erro desconhecido' });
+          }
+        }
+
+        const successCount = results.filter(r => r.success).length;
+        return NextResponse.json({
+          success: true,
+          message: `Feriado - mensagem enviada: ${successCount}/${results.length} professores`,
+          notifications: results,
+        });
+      }
+
+      // Feriado sem mensagem para enviar agora - pular
+      return NextResponse.json({
+        success: true,
+        message: `Feriado (${dateStr}) - sem notificacoes de aula`,
         notifications: [],
       });
     }

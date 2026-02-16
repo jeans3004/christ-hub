@@ -43,6 +43,10 @@ import {
   Category as CategoryIcon,
   PersonAdd as PersonAddIcon,
   Search as SearchIcon,
+  SelectAll as SelectAllIcon,
+  Deselect as DeselectIcon,
+  Groups as GroupsIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material';
 import { useDriveStore } from '@/store/driveStore';
 import { useUIStore } from '@/store/uiStore';
@@ -53,6 +57,7 @@ import { AREAS_CONHECIMENTO } from '@/constants/areasConhecimento';
 import type {
   ClassroomCourse,
   ClassroomStudent,
+  ClassroomInvitationWithProfile,
   CourseSection,
 } from '@/types/classroom';
 
@@ -61,6 +66,7 @@ interface SectionManagerProps {
   onClose: () => void;
   courses: ClassroomCourse[];
   students: ClassroomStudent[];
+  invitations?: ClassroomInvitationWithProfile[];
   onSectionsUpdated: () => void;
 }
 
@@ -83,6 +89,7 @@ export function SectionManager({
   onClose,
   courses,
   students,
+  invitations = [],
   onSectionsUpdated,
 }: SectionManagerProps) {
   const { accessToken } = useDriveStore();
@@ -93,6 +100,7 @@ export function SectionManager({
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isAutoPopulating, setIsAutoPopulating] = useState(false);
+  const [isAutoPopulatingTurma, setIsAutoPopulatingTurma] = useState(false);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
   const [newSectionName, setNewSectionName] = useState('');
   const [newSectionColor, setNewSectionColor] = useState('#607D8B');
@@ -102,9 +110,24 @@ export function SectionManager({
 
   const selectedCourse = courses[selectedCourseIndex];
   const currentSections = selectedCourse ? (sectionsMap[selectedCourse.id] || []) : [];
-  const courseStudents = selectedCourse
+  const enrolledStudents = selectedCourse
     ? students.filter(s => s.courseId === selectedCourse.id)
     : [];
+
+  // Merge enrolled + invited students for unified lists
+  const courseStudents = (() => {
+    if (!selectedCourse) return [] as (ClassroomStudent & { _invited?: boolean })[];
+    const enrolledIds = new Set(enrolledStudents.map(s => s.userId));
+    const invitedAsStudents = invitations
+      .filter(inv => inv.courseId === selectedCourse.id && inv.role === 'STUDENT' && inv.profile && !enrolledIds.has(inv.userId))
+      .map(inv => ({
+        courseId: selectedCourse.id,
+        userId: inv.userId,
+        profile: inv.profile!,
+        _invited: true as const,
+      }));
+    return [...enrolledStudents, ...invitedAsStudents] as (ClassroomStudent & { _invited?: boolean })[];
+  })();
 
   // Load sections when modal opens
   useEffect(() => {
@@ -220,6 +243,179 @@ export function SectionManager({
     }
   }, [selectedCourse, courseStudents, sectionsMap, accessToken, addToast]);
 
+  // Shared: match classroom students to Luminar alunos and return turma for each
+  const matchStudentsToTurma = useCallback(async (classroomStudents: typeof courseStudents) => {
+    const allAlunos = await alunoService.getAll();
+    const activeAlunos = allAlunos.filter(a => a.ativo && a.turma);
+
+    // Build lookup maps
+    const emailToTurma = new Map<string, string>();
+    const exactNameToTurma = new Map<string, string>();
+    const partialNameToTurma = new Map<string, string>();
+    const alunosList: Array<{ normalized: string; tokens: string[]; turma: string }> = [];
+
+    for (const aluno of activeAlunos) {
+      const turma = aluno.turma!.trim();
+      const emails = [aluno.responsavelEmail, aluno.paiEmail, aluno.maeEmail].filter(Boolean);
+      for (const email of emails) {
+        emailToTurma.set(email!.toLowerCase(), turma);
+      }
+      if (aluno.nome) {
+        const normalized = normalizeName(aluno.nome);
+        exactNameToTurma.set(normalized, turma);
+        const tokens = normalized.split(/\s+/).filter(t => t.length > 1);
+        if (tokens.length >= 2) {
+          partialNameToTurma.set(`${tokens[0]} ${tokens[tokens.length - 1]}`, turma);
+        }
+        alunosList.push({ normalized, tokens, turma });
+      }
+    }
+
+    // Match each classroom student
+    const results: Array<{ userId: string; name: string; email: string; turma: string | null }> = [];
+
+    for (const cs of classroomStudents) {
+      const email = cs.profile.emailAddress?.toLowerCase() || '';
+      const name = normalizeName(cs.profile.name.fullName);
+      let turma: string | undefined;
+
+      // 1) Parent email
+      if (email) turma = emailToTurma.get(email);
+
+      // 2) Exact name
+      if (!turma) turma = exactNameToTurma.get(name);
+
+      // 3) Email local part → name
+      if (!turma && email) {
+        const localPart = email.split('@')[0];
+        const emailName = normalizeName(localPart.replace(/[._-]/g, ' '));
+        turma = exactNameToTurma.get(emailName);
+        if (!turma) {
+          const emailTokens = emailName.split(/\s+/).filter(t => t.length > 1);
+          if (emailTokens.length >= 2) {
+            const match = alunosList.find(a => emailTokens.every(et => a.tokens.includes(et)));
+            if (match) turma = match.turma;
+          }
+        }
+      }
+
+      // 4) First+last name tokens
+      if (!turma) {
+        const tokens = name.split(/\s+/).filter(t => t.length > 1);
+        if (tokens.length >= 2) {
+          turma = partialNameToTurma.get(`${tokens[0]} ${tokens[tokens.length - 1]}`);
+        }
+      }
+
+      results.push({
+        userId: cs.userId,
+        name: cs.profile.name.fullName,
+        email: cs.profile.emailAddress || '',
+        turma: turma?.trim().toUpperCase() || null,
+      });
+    }
+
+    return results;
+  }, []);
+
+  const handleAutoPopulateByTurma = useCallback(async () => {
+    if (!selectedCourse) return;
+
+    setIsAutoPopulatingTurma(true);
+    try {
+      let classroomStudents = courseStudents;
+      if (classroomStudents.length === 0 && accessToken) {
+        const service = createClassroomService(accessToken);
+        classroomStudents = await service.listStudents(selectedCourse.id);
+      }
+
+      const results = await matchStudentsToTurma(classroomStudents);
+
+      // Group by turma
+      const turmaStudents = new Map<string, string[]>();
+      let matchCount = 0;
+      for (const r of results) {
+        if (r.turma) {
+          if (!turmaStudents.has(r.turma)) turmaStudents.set(r.turma, []);
+          turmaStudents.get(r.turma)!.push(r.userId);
+          matchCount++;
+        }
+      }
+
+      // Match sections: check if ANY word in the section name matches a turma key
+      const updatedSections = (sectionsMap[selectedCourse.id] || []).map(section => {
+        const sectionWords = section.name.toUpperCase().trim().split(/\s+/);
+        // Try each word in section name against turma keys
+        for (const word of sectionWords) {
+          const ids = turmaStudents.get(word);
+          if (ids && ids.length > 0) {
+            return { ...section, studentIds: ids };
+          }
+        }
+        return section;
+      });
+
+      // Debug: log what turmas were found vs what sections exist
+      const turmasFound = [...turmaStudents.keys()].join(', ');
+      const sectionNames = (sectionsMap[selectedCourse.id] || []).map(s => s.name).join(', ');
+      console.log(`[Auto-popular Turma] Turmas encontradas: ${turmasFound}`);
+      console.log(`[Auto-popular Turma] Secoes: ${sectionNames}`);
+
+      setSectionsMap(prev => ({
+        ...prev,
+        [selectedCourse.id]: updatedSections,
+      }));
+      setHasChanges(true);
+
+      const assigned = updatedSections.reduce((sum, s) => sum + s.studentIds.length, 0);
+      addToast(
+        `${matchCount} mapeados, ${assigned} vinculados em secoes. Turmas: ${turmasFound || 'nenhuma'}`,
+        assigned > 0 ? 'success' : 'warning'
+      );
+    } catch (err) {
+      console.error('Erro ao auto-popular por turma:', err);
+      addToast('Erro ao auto-popular por turma', 'error');
+    } finally {
+      setIsAutoPopulatingTurma(false);
+    }
+  }, [selectedCourse, courseStudents, sectionsMap, accessToken, addToast, matchStudentsToTurma]);
+
+  const handleExportMapping = useCallback(async () => {
+    if (!selectedCourse) return;
+
+    setIsAutoPopulatingTurma(true);
+    try {
+      let classroomStudents = courseStudents;
+      if (classroomStudents.length === 0 && accessToken) {
+        const service = createClassroomService(accessToken);
+        classroomStudents = await service.listStudents(selectedCourse.id);
+      }
+
+      const results = await matchStudentsToTurma(classroomStudents);
+      results.sort((a, b) => (a.turma || 'ZZZ').localeCompare(b.turma || 'ZZZ') || a.name.localeCompare(b.name));
+
+      const lines = ['Nome\tEmail\tTurma'];
+      for (const r of results) {
+        lines.push(`${r.name}\t${r.email}\t${r.turma || 'SEM MATCH'}`);
+      }
+
+      const text = lines.join('\n');
+      await navigator.clipboard.writeText(text);
+
+      const matched = results.filter(r => r.turma).length;
+      const unmatched = results.filter(r => !r.turma).length;
+      addToast(
+        `Copiado! ${matched} com turma, ${unmatched} sem match. Cole em uma planilha.`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Erro ao exportar mapeamento:', err);
+      addToast('Erro ao exportar mapeamento', 'error');
+    } finally {
+      setIsAutoPopulatingTurma(false);
+    }
+  }, [selectedCourse, courseStudents, accessToken, addToast, matchStudentsToTurma]);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {
@@ -290,6 +486,35 @@ export function SectionManager({
       }
 
       sections[sectionIndex] = section;
+      return { ...prev, [selectedCourse.id]: sections };
+    });
+    setHasChanges(true);
+  };
+
+  const handleSelectAll = (sectionId: string) => {
+    if (!selectedCourse) return;
+
+    setSectionsMap(prev => {
+      const sections = [...(prev[selectedCourse.id] || [])];
+      const sectionIndex = sections.findIndex(s => s.id === sectionId);
+      if (sectionIndex === -1) return prev;
+
+      const allUserIds = courseStudents.map(s => s.userId);
+      sections[sectionIndex] = { ...sections[sectionIndex], studentIds: allUserIds };
+      return { ...prev, [selectedCourse.id]: sections };
+    });
+    setHasChanges(true);
+  };
+
+  const handleDeselectAll = (sectionId: string) => {
+    if (!selectedCourse) return;
+
+    setSectionsMap(prev => {
+      const sections = [...(prev[selectedCourse.id] || [])];
+      const sectionIndex = sections.findIndex(s => s.id === sectionId);
+      if (sectionIndex === -1) return prev;
+
+      sections[sectionIndex] = { ...sections[sectionIndex], studentIds: [] };
       return { ...prev, [selectedCourse.id]: sections };
     });
     setHasChanges(true);
@@ -415,7 +640,10 @@ export function SectionManager({
               {isFPACourse(selectedCourse.name) && (
                 <Chip label="FPA" size="small" color="warning" sx={{ height: 20 }} />
               )}
-              <span>{' — '}{courseStudents.length} aluno(s) no Classroom</span>
+              {(() => {
+                const invitedCount = courseStudents.filter(s => s._invited).length;
+                return <span>{' — '}{courseStudents.length} aluno(s){invitedCount > 0 ? ` (${invitedCount} convidado(s))` : ''}</span>;
+              })()}
             </Typography>
 
             {/* Auto-populate button for FPA courses */}
@@ -426,11 +654,38 @@ export function SectionManager({
                 startIcon={isAutoPopulating ? <CircularProgress size={18} /> : <AutoPopulateIcon />}
                 onClick={handleAutoPopulate}
                 disabled={isAutoPopulating}
-                sx={{ mb: 2 }}
+                sx={{ mb: 1 }}
                 fullWidth
               >
                 {isAutoPopulating ? 'Mapeando alunos...' : 'Auto-popular por Area do Conhecimento'}
               </Button>
+            )}
+
+            {/* Auto-populate by Turma + Export buttons */}
+            {currentSections.length > 0 && courseStudents.length > 0 && (
+              <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  startIcon={isAutoPopulatingTurma ? <CircularProgress size={18} /> : <GroupsIcon />}
+                  onClick={handleAutoPopulateByTurma}
+                  disabled={isAutoPopulatingTurma}
+                  sx={{ flex: 1 }}
+                >
+                  {isAutoPopulatingTurma ? 'Mapeando...' : 'Auto-popular por Turma'}
+                </Button>
+                <Tooltip title="Copiar mapeamento Nome/Email/Turma para a area de transferencia">
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    startIcon={<CopyIcon />}
+                    onClick={handleExportMapping}
+                    disabled={isAutoPopulatingTurma}
+                  >
+                    Exportar
+                  </Button>
+                </Tooltip>
+              </Box>
             )}
 
             {/* Existing sections */}
@@ -445,6 +700,8 @@ export function SectionManager({
               <List disablePadding sx={{ mb: 2 }}>
                 {currentSections.map((section) => {
                   const isExpanded = expandedSection === section.id;
+                  const allSelected = courseStudents.length > 0 && courseStudents.every(s => section.studentIds.includes(s.userId));
+                  const noneSelected = section.studentIds.length === 0;
 
                   return (
                     <Paper
@@ -500,39 +757,65 @@ export function SectionManager({
                       <Collapse in={isExpanded}>
                         <Divider />
                         <Box sx={{ p: 2, maxHeight: 300, overflow: 'auto' }}>
-                          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                            Alunos nesta secao:
-                          </Typography>
-
                           {courseStudents.length === 0 ? (
                             <Typography variant="body2" color="text.secondary">
                               Nenhum aluno carregado. Selecione o curso na aba Turmas primeiro.
                             </Typography>
                           ) : (
-                            <List dense disablePadding>
-                              {courseStudents.map(student => {
-                                const isInSection = section.studentIds.includes(student.userId);
-                                return (
-                                  <ListItem
-                                    key={student.userId}
-                                    disablePadding
-                                    sx={{ py: 0.25 }}
-                                  >
-                                    <Checkbox
-                                      size="small"
-                                      checked={isInSection}
-                                      onChange={() => handleToggleStudent(section.id, student.userId)}
-                                    />
-                                    <ListItemText
-                                      primary={student.profile.name.fullName}
-                                      secondary={student.profile.emailAddress}
-                                      primaryTypographyProps={{ variant: 'body2' }}
-                                      secondaryTypographyProps={{ variant: 'caption' }}
-                                    />
-                                  </ListItem>
-                                );
-                              })}
-                            </List>
+                            <>
+                              <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  startIcon={<SelectAllIcon />}
+                                  onClick={() => handleSelectAll(section.id)}
+                                  disabled={allSelected}
+                                >
+                                  Marcar Todos
+                                </Button>
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  color="inherit"
+                                  startIcon={<DeselectIcon />}
+                                  onClick={() => handleDeselectAll(section.id)}
+                                  disabled={noneSelected}
+                                >
+                                  Desmarcar Todos
+                                </Button>
+                              </Box>
+                              <List dense disablePadding>
+                                {courseStudents.map(student => {
+                                  const isInSection = section.studentIds.includes(student.userId);
+                                  return (
+                                    <ListItem
+                                      key={student.userId}
+                                      disablePadding
+                                      sx={{ py: 0.25 }}
+                                    >
+                                      <Checkbox
+                                        size="small"
+                                        checked={isInSection}
+                                        onChange={() => handleToggleStudent(section.id, student.userId)}
+                                      />
+                                      <ListItemText
+                                        primary={
+                                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                            {student.profile.name.fullName}
+                                            {student._invited && (
+                                              <Chip label="Convidado" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                            )}
+                                          </Box>
+                                        }
+                                        secondary={student.profile.emailAddress}
+                                        primaryTypographyProps={{ variant: 'body2', component: 'div' }}
+                                        secondaryTypographyProps={{ variant: 'caption' }}
+                                      />
+                                    </ListItem>
+                                  );
+                                })}
+                              </List>
+                            </>
                           )}
                         </Box>
                       </Collapse>
@@ -604,9 +887,14 @@ export function SectionManager({
                               disablePadding
                             >
                               <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography variant="body2" noWrap>
-                                  {student.profile.name.fullName}
-                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                  <Typography variant="body2" noWrap>
+                                    {student.profile.name.fullName}
+                                  </Typography>
+                                  {student._invited && (
+                                    <Chip label="Convidado" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: '0.65rem' }} />
+                                  )}
+                                </Box>
                                 <Typography variant="caption" color="text.secondary" noWrap>
                                   {student.profile.emailAddress}
                                 </Typography>
