@@ -92,6 +92,7 @@ export default function ChamadaPage() {
   const [eAlunoConfig, setEAlunoConfig] = useState<EAlunoConfig | null>(null);
   const [eAlunoConfigOpen, setEAlunoConfigOpen] = useState(false);
   const [syncingSGE, setSyncingSGE] = useState(false);
+  const [syncingIds, setSyncingIds] = useState<Set<string>>(new Set());
   const [autoSyncSGE, setAutoSyncSGE] = useState(false);
   const [syncResult, setSyncResult] = useState<{ luminar: boolean; sge: boolean; sgeMessage: string } | null>(null);
 
@@ -269,7 +270,7 @@ export default function ChamadaPage() {
         // Need to discover mappings - fetch e-aluno data and auto-match
 
         // Login and fetch page data
-        const loginRes = await fetch('/api/ealuno/login', {
+        const loginRes = await fetch('/api/sge/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -319,7 +320,7 @@ export default function ChamadaPage() {
         if (!discMap) {
           const tm = updatedConfig?.turmaMap?.[serieId] || turmaMap;
           if (tm) {
-            const dataRes = await fetch('/api/ealuno/data', {
+            const dataRes = await fetch('/api/sge/data', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -385,7 +386,7 @@ export default function ChamadaPage() {
     disciplinaId_eAluno: number
   ): Promise<{ success: boolean; message: string }> => {
     // Fetch e-aluno students to match
-    const dataRes = await fetch('/api/ealuno/data', {
+    const dataRes = await fetch('/api/sge/data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -458,7 +459,7 @@ export default function ChamadaPage() {
     }
 
     // Submit to e-aluno
-    const res = await fetch('/api/ealuno/chamada', {
+    const res = await fetch('/api/sge/chamada', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -632,6 +633,7 @@ export default function ChamadaPage() {
                 totalAusentes={totalAusentes}
                 saving={saving}
                 syncingSGE={syncingSGE}
+                syncingIds={syncingIds}
                 onPresencaChange={handlePresencaChange}
                 onObservacaoChange={handleObservacaoChange}
                 onMarcarTodos={handleMarcarTodos}
@@ -714,28 +716,47 @@ export default function ChamadaPage() {
         onConfirm={async (quantidade, tempoInicial) => {
           const luminarOk = await handleSaveChamada(quantidade, tempoInicial);
           setShowSaveModal(false);
-          if (autoSyncSGE) {
+          if (autoSyncSGE && luminarOk) {
+            // Fire-and-forget SGE sync - don't block UI
             setSyncingSGE(true);
-            const sgeResult = await handleEnviarSGE();
-            setSyncingSGE(false);
-            setSyncResult({ luminar: !!luminarOk, sge: sgeResult.success, sgeMessage: sgeResult.message });
-
-            // Mark sgeSyncedAt on the chamada(s) we just saved
-            if (sgeResult.success && serieId && disciplinaId) {
+            const syncPromise = (async () => {
               try {
+                // Get chamada IDs to track syncing state
                 const savedChamadas = await chamadaService.getByTurmaData(
                   serieId,
                   new Date(dataChamada + 'T12:00:00')
                 );
-                for (const c of savedChamadas) {
-                  if (c.disciplinaId === disciplinaId && !c.sgeSyncedAt) {
-                    await chamadaService.update(c.id, { sgeSyncedAt: new Date() });
+                const chamadaIds = savedChamadas
+                  .filter(c => c.disciplinaId === disciplinaId)
+                  .map(c => c.id);
+
+                setSyncingIds(new Set(chamadaIds));
+
+                const sgeResult = await handleEnviarSGE();
+                setSyncingSGE(false);
+                setSyncingIds(new Set());
+                setSyncResult({ luminar: true, sge: sgeResult.success, sgeMessage: sgeResult.message });
+
+                // Mark sgeSyncedAt/sgeSyncError on the chamadas
+                if (serieId && disciplinaId) {
+                  for (const c of savedChamadas) {
+                    if (c.disciplinaId === disciplinaId) {
+                      if (sgeResult.success) {
+                        await chamadaService.update(c.id, { sgeSyncedAt: new Date(), sgeSyncError: undefined });
+                      } else {
+                        await chamadaService.update(c.id, { sgeSyncError: sgeResult.message });
+                      }
+                    }
                   }
                 }
               } catch (e) {
-                console.error('Erro ao marcar sgeSyncedAt:', e);
+                console.error('[SGE] Fire-and-forget sync failed:', e);
+                setSyncingSGE(false);
+                setSyncingIds(new Set());
               }
-            }
+            })();
+            // Don't await - fire and forget
+            syncPromise.catch(() => {});
           }
         }}
       />
