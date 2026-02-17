@@ -32,7 +32,7 @@ interface EAlunoConfigModalProps {
   onConfigSaved?: (config: EAlunoConfig) => void;
 }
 
-export function EAlunoConfigModal({ open, onClose, onConfigSaved }: EAlunoConfigModalProps) {
+export function SgeConfigModal({ open, onClose, onConfigSaved }: EAlunoConfigModalProps) {
   const { usuario } = useAuth();
   const { addToast } = useUIStore();
 
@@ -84,7 +84,7 @@ export function EAlunoConfigModal({ open, onClose, onConfigSaved }: EAlunoConfig
     setTestResult(null);
 
     try {
-      const res = await fetch('/api/ealuno/login', {
+      const res = await fetch('/api/sge/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -162,7 +162,7 @@ export function EAlunoConfigModal({ open, onClose, onConfigSaved }: EAlunoConfig
       <DialogTitle>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Sync color="primary" />
-          Configurar e-aluno (SGE)
+          Configurar SGE
         </Box>
       </DialogTitle>
 

@@ -9,7 +9,7 @@ export { ObservacaoPopover } from './ObservacaoPopover';
 export { EspelhoChamada } from './EspelhoChamada';
 export { RelatoriosChamada } from './RelatoriosChamada';
 export { SalvarChamadaModal } from './SalvarChamadaModal';
-export { EAlunoConfigModal } from './EAlunoConfigModal';
+export { SgeConfigModal } from './EAlunoConfigModal';
 export { SyncResultModal } from './SyncResultModal';
 
 export { AlunosDisciplinaTab } from './AlunosDisciplinaTab';

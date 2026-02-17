@@ -16,7 +16,7 @@ import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, EAlunoConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, SgeConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal } from './components';
 import { eAlunoConfigService } from '@/services/firestore/eAlunoConfigService';
 import { Atestado, Atraso, EAlunoConfig } from '@/types';
 import { useDossieModal } from '@/app/diario/dossie/hooks/useDossieModal';
@@ -663,6 +663,8 @@ export default function ChamadaPage() {
                     (d.parentId && profDisciplinas.includes(d.parentId));
                 })
               : todasDisciplinas}
+            eAlunoConfig={eAlunoConfig}
+            onConfigureSGE={() => setEAlunoConfigOpen(true)}
           />
         </Paper>
       )}
@@ -738,8 +740,8 @@ export default function ChamadaPage() {
         }}
       />
 
-      {/* E-Aluno Config Modal */}
-      <EAlunoConfigModal
+      {/* SGE Config Modal */}
+      <SgeConfigModal
         open={eAlunoConfigOpen}
         onClose={() => setEAlunoConfigOpen(false)}
         onConfigSaved={(config) => setEAlunoConfig(config)}
