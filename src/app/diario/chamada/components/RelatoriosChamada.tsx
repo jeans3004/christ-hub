@@ -32,6 +32,11 @@ import {
   CalendarMonth as CalendarMonthIcon,
   Lock as LockIcon,
   CheckCircle as CheckCircleIcon,
+  CloudUpload as CloudUploadIcon,
+  DeleteForever as DeleteForeverIcon,
+  Visibility as VisibilityIcon,
+  ListAlt as ListAltIcon,
+  Summarize as SummarizeIcon,
 } from '@mui/icons-material';
 import { Chamada, Turma, Disciplina, Usuario, EAlunoConfig } from '@/types';
 import { chamadaService } from '@/services/firestore';
@@ -44,8 +49,11 @@ import { RelatorioTurma } from './relatorios/RelatorioTurma';
 import { RelatorioConsolidado } from './relatorios/RelatorioConsolidado';
 import { RelatorioConsultaDia } from './relatorios/RelatorioConsultaDia';
 import { RelatorioMensal } from './relatorios/RelatorioMensal';
+import { RelatorioSyncAll } from './relatorios/RelatorioSyncAll';
+import { RelatorioDeleteAll } from './relatorios/RelatorioDeleteAll';
+import { RelatorioSgeProxy } from './relatorios/RelatorioSgeProxy';
 
-type TipoRelatorio = 'dia' | 'consultar_dia' | 'mensal' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | null;
+type TipoRelatorio = 'dia' | 'consultar_dia' | 'mensal' | 'sync_all' | 'delete_all' | 'sge_chamadas_dia' | 'sge_detalhamento' | 'sge_mensal' | 'periodo' | 'faltas' | 'turma' | 'consolidado' | null;
 
 interface RelatoriosChamadaProps {
   professor: Usuario | null;
@@ -79,6 +87,46 @@ const TIPOS_RELATORIO = [
     icon: CalendarMonthIcon,
     color: 'info',
     grupo: 'sge',
+  },
+  {
+    id: 'sync_all' as TipoRelatorio,
+    titulo: 'Sincronizar Tudo',
+    descricao: 'Enviar todas as chamadas pendentes ao SGE de uma vez',
+    icon: CloudUploadIcon,
+    color: 'warning',
+    grupo: 'sge',
+  },
+  {
+    id: 'delete_all' as TipoRelatorio,
+    titulo: 'Excluir Tudo do SGE',
+    descricao: 'Remover todas as chamadas enviadas do SGE',
+    icon: DeleteForeverIcon,
+    color: 'error',
+    grupo: 'sge',
+  },
+  {
+    id: 'sge_chamadas_dia' as TipoRelatorio,
+    titulo: 'Chamada(s) do Dia',
+    descricao: 'Visualizar chamada do dia direto do SGE',
+    icon: VisibilityIcon,
+    color: 'primary',
+    grupo: 'sge_direto',
+  },
+  {
+    id: 'sge_detalhamento' as TipoRelatorio,
+    titulo: 'Detalhamento da Chamada',
+    descricao: 'Detalhamento por aluno direto do SGE',
+    icon: ListAltIcon,
+    color: 'secondary',
+    grupo: 'sge_direto',
+  },
+  {
+    id: 'sge_mensal' as TipoRelatorio,
+    titulo: 'Detalhamento do Mes',
+    descricao: 'Relatorio mensal direto do SGE',
+    icon: SummarizeIcon,
+    color: 'info',
+    grupo: 'sge_direto',
   },
   {
     id: 'periodo' as TipoRelatorio,
@@ -181,7 +229,8 @@ export function RelatoriosChamada({
   // Needs turma only
   const needsTurmaOnly = tipoRelatorio === 'turma';
   // Self-managed relatorios (load data internally)
-  const isSelfManaged = tipoRelatorio === 'consultar_dia' || tipoRelatorio === 'mensal';
+  const isSgeProxy = tipoRelatorio === 'sge_chamadas_dia' || tipoRelatorio === 'sge_detalhamento' || tipoRelatorio === 'sge_mensal';
+  const isSelfManaged = tipoRelatorio === 'consultar_dia' || tipoRelatorio === 'mensal' || tipoRelatorio === 'sync_all' || tipoRelatorio === 'delete_all' || isSgeProxy;
 
   // Handle card selection - reset data to today for 'dia'
   const handleSelectTipo = (tipo: TipoRelatorio) => {
@@ -270,6 +319,7 @@ export function RelatoriosChamada({
   // Tela de selecao de tipo de relatorio
   if (!tipoRelatorio) {
     const sgeCards = TIPOS_RELATORIO.filter(t => t.grupo === 'sge');
+    const sgeDiretoCards = TIPOS_RELATORIO.filter(t => t.grupo === 'sge_direto');
     const luminarCards = TIPOS_RELATORIO.filter(t => t.grupo === 'luminar');
 
     return (
@@ -322,6 +372,63 @@ export function RelatoriosChamada({
         </Typography>
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {sgeCards.map((tipo) => {
+            const CardIcon = isSGEConnected ? tipo.icon : LockIcon;
+            return (
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={tipo.id}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    transition: 'transform 0.2s, box-shadow 0.2s',
+                    ...(!isSGEConnected
+                      ? { opacity: 0.5 }
+                      : {
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: 4,
+                          },
+                        }),
+                  }}
+                >
+                  <CardActionArea
+                    onClick={() => isSGEConnected ? handleSelectTipo(tipo.id) : onConfigureSGE()}
+                    sx={{ height: '100%', p: 2 }}
+                  >
+                    <CardContent sx={{ textAlign: 'center' }}>
+                      <Box
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: '50%',
+                          bgcolor: isSGEConnected ? `${tipo.color}.100` : 'action.disabledBackground',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          mx: 'auto',
+                          mb: 2,
+                        }}
+                      >
+                        <CardIcon sx={{ fontSize: 32, color: isSGEConnected ? `${tipo.color}.main` : 'action.disabled' }} />
+                      </Box>
+                      <Typography variant="h6" gutterBottom>
+                        {tipo.titulo}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {tipo.descricao}
+                      </Typography>
+                    </CardContent>
+                  </CardActionArea>
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+
+        {/* SGE Direct Reports (HTML from e-aluno) */}
+        <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
+          Relatorios SGE (direto do e-aluno)
+        </Typography>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          {sgeDiretoCards.map((tipo) => {
             const CardIcon = isSGEConnected ? tipo.icon : LockIcon;
             return (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={tipo.id}>
@@ -454,8 +561,8 @@ export function RelatoriosChamada({
         </Box>
       </Box>
 
-      {/* Filtros */}
-      <Paper sx={{ p: 2, mb: 3 }}>
+      {/* Filtros (hidden for sync_all which is fully self-managed) */}
+      {tipoRelatorio !== 'sync_all' && tipoRelatorio !== 'delete_all' && !isSgeProxy && <Paper sx={{ p: 2, mb: 3 }}>
         <Typography variant="subtitle2" color="text.secondary" gutterBottom>
           Filtros
         </Typography>
@@ -570,7 +677,7 @@ export function RelatoriosChamada({
             </Button>
           )}
         </Box>
-      </Paper>
+      </Paper>}
 
       {/* Conteudo do Relatorio */}
       {/* Self-managed reports render directly */}
@@ -597,8 +704,51 @@ export function RelatoriosChamada({
         />
       )}
 
+      {tipoRelatorio === 'sync_all' && (
+        <RelatorioSyncAll
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {tipoRelatorio === 'delete_all' && (
+        <RelatorioDeleteAll
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {tipoRelatorio === 'sge_chamadas_dia' && (
+        <RelatorioSgeProxy
+          tipo="chamadas_dia"
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {tipoRelatorio === 'sge_detalhamento' && (
+        <RelatorioSgeProxy
+          tipo="detalhamento"
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
+      {tipoRelatorio === 'sge_mensal' && (
+        <RelatorioSgeProxy
+          tipo="mensal"
+          turmas={turmas}
+          disciplinas={disciplinas}
+          professor={professor}
+        />
+      )}
+
       {/* Self-managed: show hint if filters incomplete */}
-      {isSelfManaged && (!turmaId || !disciplinaId) && (
+      {isSelfManaged && !isSgeProxy && tipoRelatorio !== 'sync_all' && tipoRelatorio !== 'delete_all' && (!turmaId || !disciplinaId) && (
         <Alert severity="info">
           Selecione uma turma e disciplina para gerar o relatorio.
         </Alert>

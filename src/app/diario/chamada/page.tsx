@@ -754,7 +754,7 @@ export default function ChamadaPage() {
                   for (const c of savedChamadas) {
                     if (c.disciplinaId === disciplinaId) {
                       if (sgeResult.success) {
-                        await chamadaService.update(c.id, { sgeSyncedAt: new Date(), sgeSyncError: undefined });
+                        await chamadaService.update(c.id, { sgeSyncedAt: new Date() });
                       } else {
                         await chamadaService.update(c.id, { sgeSyncError: sgeResult.message });
                       }
