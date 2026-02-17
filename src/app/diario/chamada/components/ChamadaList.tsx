@@ -39,6 +39,10 @@ interface ChamadaListProps {
   totalAusentes: number;
   saving: boolean;
   syncingSGE?: boolean;
+  syncingIds?: Set<string>; // IDs de chamadas sendo sincronizadas com SGE
+  sgeSyncedAt?: Date; // timestamp da ultima sincronizacao SGE
+  sgeSyncError?: string; // mensagem de erro da sincronizacao SGE
+  chamadaId?: string; // ID da chamada atual (para verificar syncingIds)
   onPresencaChange: (alunoId: string) => void;
   onObservacaoChange: (alunoId: string, observacao: string) => void;
   onMarcarTodos: (presente: boolean) => void;
@@ -62,6 +66,10 @@ export function ChamadaList({
   totalAusentes,
   saving,
   syncingSGE = false,
+  syncingIds,
+  sgeSyncedAt,
+  sgeSyncError,
+  chamadaId,
   onPresencaChange,
   onObservacaoChange,
   onMarcarTodos,
@@ -133,6 +141,18 @@ export function ChamadaList({
               '& .MuiChip-icon': { color: 'error.main' },
             }}
           />
+          {/* SGE sync status chips */}
+          {chamadaId && syncingIds?.has(chamadaId) && (
+            <Chip label="SGE ⟳" color="warning" size="small" sx={{ ml: 1 }} />
+          )}
+          {sgeSyncedAt && !sgeSyncError && !(chamadaId && syncingIds?.has(chamadaId)) && (
+            <Chip label="SGE ✓" color="success" size="small" sx={{ ml: 1 }} />
+          )}
+          {sgeSyncError && !(chamadaId && syncingIds?.has(chamadaId)) && (
+            <Tooltip title={sgeSyncError}>
+              <Chip label="SGE ✗" color="error" size="small" sx={{ ml: 1 }} />
+            </Tooltip>
+          )}
         </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
