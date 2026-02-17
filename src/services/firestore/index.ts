@@ -30,6 +30,7 @@ export type { Sorteio } from './sorteioService';
 export { atrasoService } from './atrasoService';
 export { atestadoService } from './atestadoService';
 export { eAlunoConfigService } from './eAlunoConfigService';
+export { conteudoAulaService } from './conteudoService';
 
 // Re-export base utilities for advanced usage
 export { getDocument, getDocuments, createDocument, updateDocument, deleteDocument } from './base';
