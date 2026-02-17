@@ -164,7 +164,7 @@ export function RelatorioSGE({ chamadas, turmas, disciplinas, professor }: Relat
     let dm = config.disciplinaMap?.[chamada.disciplinaId];
 
     if (!tm) {
-      const loginRes = await fetch('/api/ealuno/login', {
+      const loginRes = await fetch('/api/sge/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: config.credentials.user, password: config.credentials.password }),
@@ -191,7 +191,7 @@ export function RelatorioSGE({ chamadas, turmas, disciplinas, professor }: Relat
     }
 
     if (!dm && tm) {
-      const dataRes = await fetch('/api/ealuno/data', {
+      const dataRes = await fetch('/api/sge/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -269,7 +269,7 @@ export function RelatorioSGE({ chamadas, turmas, disciplinas, professor }: Relat
         return;
       }
 
-      const res = await fetch('/api/ealuno/check', {
+      const res = await fetch('/api/sge/check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -344,7 +344,7 @@ export function RelatorioSGE({ chamadas, turmas, disciplinas, professor }: Relat
     let eAlunoStudents = eAlunoStudentsCache.get(cacheKey);
 
     if (!eAlunoStudents) {
-      const res = await fetch('/api/ealuno/data', {
+      const res = await fetch('/api/sge/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -460,7 +460,7 @@ export function RelatorioSGE({ chamadas, turmas, disciplinas, professor }: Relat
           continue;
         }
 
-        const res = await fetch('/api/ealuno/chamada', {
+        const res = await fetch('/api/sge/chamada', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
