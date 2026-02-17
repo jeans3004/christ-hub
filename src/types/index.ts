@@ -195,6 +195,8 @@ export interface Chamada {
   presencas: PresencaAluno[];
   conteudo?: string;
   sgeSyncedAt?: Date;
+  sgeSyncError?: string;
+  sgeSequenciaMap?: Record<string, string>; // alunoId → sequencia no e-aluno
   createdAt: Date;
   updatedAt: Date;
 }
@@ -400,6 +402,11 @@ export interface Ocorrencia {
   anexos?: OcorrenciaAnexoRef[];
   createdAt: Date;
   updatedAt: Date;
+  // SGE sync
+  sgeId?: number;
+  sgeSyncedAt?: Date;
+  sgeSyncError?: string;
+  sgeStatus?: 'aberta' | 'aprovada' | 'cancelada';
 }
 
 // Referencia de anexo (armazenado no Firestore)
@@ -413,6 +420,24 @@ export interface OcorrenciaAnexoRef {
   thumbnailLink?: string;
   uploadedAt: Date;
   uploadedBy: string;
+}
+
+// Conteudo de Aula
+export interface ConteudoAula {
+  id: string;
+  turmaId: string;
+  disciplinaId: string;
+  professorId: string;
+  data: Date;
+  tempo: number;
+  conteudo: string;
+  ano: number;
+  // SGE sync
+  sgeId?: string;
+  sgeSyncedAt?: Date;
+  sgeSyncError?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Relatório do Professor sobre o Aluno
@@ -764,3 +789,6 @@ export interface EAlunoPageData {
   options: EAlunoSerieOption[];
   ano: number;
 }
+
+/** @alias for EAlunoConfig - new name for SGE integration */
+export type SgeConfig = EAlunoConfig;
