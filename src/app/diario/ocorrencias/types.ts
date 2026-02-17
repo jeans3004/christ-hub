@@ -2,6 +2,7 @@
  * Tipos e constantes para o modulo de ocorrencias.
  */
 
+import React from 'react';
 import { Ocorrencia } from '@/types';
 
 export interface TabPanelProps {
@@ -14,7 +15,8 @@ export interface OcorrenciaColumn {
   id: string;
   label: string;
   minWidth: number;
-  format?: (value: Date) => string;
+  align?: 'left' | 'center' | 'right';
+  format?: (value: any, row: Ocorrencia) => React.ReactNode;
 }
 
 // Colunas base para pendentes
@@ -27,7 +29,18 @@ export const COLUMNS_PENDENTES: OcorrenciaColumn[] = [
     id: 'data',
     label: 'Data',
     minWidth: 100,
-    format: (value: Date) => new Date(value).toLocaleDateString('pt-BR'),
+    format: (value: any) => new Date(value).toLocaleDateString('pt-BR'),
+  },
+  {
+    id: 'sgeSyncedAt',
+    label: 'SGE',
+    minWidth: 60,
+    align: 'center',
+    format: (_value: any, row: Ocorrencia) => {
+      if (row.sgeSyncError) return 'SGE ✗';
+      if (row.sgeSyncedAt) return 'SGE ✓';
+      return '—';
+    },
   },
 ];
 
@@ -39,7 +52,7 @@ export const COLUMNS_APROVADAS: OcorrenciaColumn[] = [
     id: 'aprovadaEm',
     label: 'Data Aprovação',
     minWidth: 100,
-    format: (value: Date) => value ? new Date(value).toLocaleDateString('pt-BR') : '-',
+    format: (value: any) => value ? new Date(value).toLocaleDateString('pt-BR') : '-',
   },
 ];
 

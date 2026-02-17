@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { useUIStore } from '@/store/uiStore';
-import { Ocorrencia } from '@/types';
+import { Ocorrencia, EAlunoConfig } from '@/types';
 import { MOCK_PENDENTES, MOCK_APROVADAS, MOCK_CANCELADAS } from '../types';
 
 interface ConfirmDialogState {
@@ -28,6 +28,7 @@ interface UseOcorrenciasDataReturn {
   handleSaveEdit: () => void;
   closeEditModal: () => void;
   closeConfirmDialog: () => void;
+  syncOcorrenciaToSge: (ocorrencia: Ocorrencia, eAlunoConfig: EAlunoConfig) => void;
 }
 
 export function useOcorrenciasData(): UseOcorrenciasDataReturn {
@@ -109,6 +110,43 @@ export function useOcorrenciasData(): UseOcorrenciasDataReturn {
     setConfirmDialog(prev => ({ ...prev, open: false }));
   }, []);
 
+  // Fire-and-forget SGE sync for an ocorrencia
+  const syncOcorrenciaToSge = useCallback((ocorrencia: Ocorrencia, config: EAlunoConfig) => {
+    if (!config?.credentials?.user || !config?.credentials?.password) return;
+
+    const eAlunoId = config.alunoMap?.[ocorrencia.alunoId];
+    if (!eAlunoId) {
+      console.warn('[SGE] Aluno nao mapeado no SGE:', ocorrencia.alunoNome);
+      return;
+    }
+
+    fetch('/api/sge/ocorrencia', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user: config.credentials.user,
+        password: config.credentials.password,
+        encrypted: true,
+        action: 'create',
+        alunoSgeId: eAlunoId,
+        motivo: ocorrencia.motivo,
+        ano: new Date(ocorrencia.data).getFullYear(),
+        codigo: ocorrencia.sgeId || 0,
+      }),
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (json.success) {
+          addToast('Ocorrencia sincronizada com SGE', 'success');
+        } else {
+          console.error('[SGE] Ocorrencia sync failed:', json.error);
+        }
+      })
+      .catch((err) => {
+        console.error('[SGE] Ocorrencia sync error:', err);
+      });
+  }, [addToast]);
+
   return {
     pendentes,
     aprovadas,
@@ -123,5 +161,6 @@ export function useOcorrenciasData(): UseOcorrenciasDataReturn {
     handleSaveEdit,
     closeEditModal,
     closeConfirmDialog,
+    syncOcorrenciaToSge,
   };
 }
