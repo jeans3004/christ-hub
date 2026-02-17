@@ -11,6 +11,7 @@ export { RelatoriosChamada } from './RelatoriosChamada';
 export { SalvarChamadaModal } from './SalvarChamadaModal';
 export { SgeConfigModal } from './EAlunoConfigModal';
 export { SyncResultModal } from './SyncResultModal';
+export { ConteudoAulaSection } from './ConteudoAulaSection';
 
 export { AlunosDisciplinaTab } from './AlunosDisciplinaTab';
 export { PreparatorioTab } from './PreparatorioTab';

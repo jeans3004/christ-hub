@@ -16,7 +16,7 @@ import { chamadaService } from '@/services/firestore';
 import { atestadoService } from '@/services/firestore/atestadoService';
 import { atrasoService } from '@/services/firestore/atrasoService';
 import { useChamadaData } from './hooks';
-import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, SgeConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal } from './components';
+import { ChamadaFilters, ChamadaList, ConteudoModal, RelatoriosChamada, TrilhasView, TrilhasConfig, SalvarChamadaModal, SgeConfigModal, AlunosDisciplinaTab, PreparatorioTab, SyncResultModal, ConteudoAulaSection } from './components';
 import { eAlunoConfigService } from '@/services/firestore/eAlunoConfigService';
 import { Atestado, Atraso, EAlunoConfig } from '@/types';
 import { useDossieModal } from '@/app/diario/dossie/hooks/useDossieModal';
@@ -646,6 +646,18 @@ export default function ChamadaPage() {
                   try { localStorage.setItem('chamada-auto-sync-sge', String(v)); } catch {}
                 }}
                 onViewDossie={dossieModal.openModal}
+              />
+            )}
+
+            {/* Conteudo de Aula Section */}
+            {serieId && disciplinaId && usuario?.id && (
+              <ConteudoAulaSection
+                turmaId={serieId}
+                disciplinaId={disciplinaId}
+                professorId={usuario.id}
+                data={dataChamada}
+                ano={ano}
+                eAlunoConfig={eAlunoConfig}
               />
             )}
           </Box>
