@@ -7,6 +7,7 @@ import {
   where,
   orderBy,
 } from './base';
+import type { QueryConstraint } from './base';
 import type { ConteudoAula } from '@/types';
 
 const COLLECTION = 'conteudos';
@@ -33,7 +34,7 @@ export const conteudoAulaService = {
     startDate?: Date,
     endDate?: Date
   ): Promise<ConteudoAula[]> {
-    const constraints = [
+    const constraints: QueryConstraint[] = [
       where('professorId', '==', professorId),
       where('ano', '==', ano),
     ];

@@ -30,6 +30,7 @@ export {
   atrasoService,
   atestadoService,
   eAlunoConfigService,
+  conteudoAulaService,
   extractVariables,
   replaceVariables,
   getDocument,
