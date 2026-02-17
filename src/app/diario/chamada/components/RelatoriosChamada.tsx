@@ -30,8 +30,10 @@ import {
   Assessment as ConsolidadoIcon,
   Search as SearchIcon,
   CalendarMonth as CalendarMonthIcon,
+  Lock as LockIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { Chamada, Turma, Disciplina, Usuario } from '@/types';
+import { Chamada, Turma, Disciplina, Usuario, EAlunoConfig } from '@/types';
 import { chamadaService } from '@/services/firestore';
 import { useUIStore } from '@/store/uiStore';
 
@@ -49,6 +51,8 @@ interface RelatoriosChamadaProps {
   professor: Usuario | null;
   turmas: Turma[];
   disciplinas: Disciplina[];
+  eAlunoConfig: EAlunoConfig | null;
+  onConfigureSGE: () => void;
 }
 
 const TIPOS_RELATORIO = [
@@ -129,6 +133,8 @@ export function RelatoriosChamada({
   professor,
   turmas,
   disciplinas,
+  eAlunoConfig,
+  onConfigureSGE,
 }: RelatoriosChamadaProps) {
   const { addToast } = useUIStore();
 
@@ -258,6 +264,9 @@ export function RelatoriosChamada({
     setChamadas([]);
   };
 
+  // SGE connection status
+  const isSGEConnected = !!(eAlunoConfig?.credentials?.user && eAlunoConfig?.credentials?.password);
+
   // Tela de selecao de tipo de relatorio
   if (!tipoRelatorio) {
     const sgeCards = TIPOS_RELATORIO.filter(t => t.grupo === 'sge');
@@ -272,27 +281,66 @@ export function RelatoriosChamada({
           Selecione o tipo de relatorio que deseja gerar
         </Typography>
 
+        {/* SGE Connection Status Banner */}
+        {isSGEConnected ? (
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              mb: 2,
+              px: 2,
+              py: 1,
+              borderRadius: 1,
+              bgcolor: 'success.50',
+              border: '1px solid',
+              borderColor: 'success.200',
+            }}
+          >
+            <CheckCircleIcon sx={{ fontSize: 20, color: 'success.main' }} />
+            <Typography variant="body2" fontWeight={500} color="success.main">
+              SGE Conectado
+            </Typography>
+          </Box>
+        ) : (
+          <Alert
+            severity="info"
+            sx={{ mb: 2 }}
+            action={
+              <Button color="inherit" size="small" onClick={onConfigureSGE}>
+                Conectar ao SGE
+              </Button>
+            }
+          >
+            Conecte-se ao SGE (e-aluno) para acessar os relatorios de integracao.
+          </Alert>
+        )}
+
         {/* SGE Reports */}
         <Typography variant="overline" color="text.secondary" sx={{ mb: 1, display: 'block' }}>
           Relatorios SGE (e-aluno)
         </Typography>
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {sgeCards.map((tipo) => {
-            const Icon = tipo.icon;
+            const CardIcon = isSGEConnected ? tipo.icon : LockIcon;
             return (
               <Grid size={{ xs: 12, sm: 6, md: 4 }} key={tipo.id}>
                 <Card
                   sx={{
                     height: '100%',
                     transition: 'transform 0.2s, box-shadow 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: 4,
-                    },
+                    ...(!isSGEConnected
+                      ? { opacity: 0.5 }
+                      : {
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: 4,
+                          },
+                        }),
                   }}
                 >
                   <CardActionArea
-                    onClick={() => handleSelectTipo(tipo.id)}
+                    onClick={() => isSGEConnected ? handleSelectTipo(tipo.id) : onConfigureSGE()}
                     sx={{ height: '100%', p: 2 }}
                   >
                     <CardContent sx={{ textAlign: 'center' }}>
@@ -301,7 +349,7 @@ export function RelatoriosChamada({
                           width: 64,
                           height: 64,
                           borderRadius: '50%',
-                          bgcolor: `${tipo.color}.100`,
+                          bgcolor: isSGEConnected ? `${tipo.color}.100` : 'action.disabledBackground',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -309,7 +357,7 @@ export function RelatoriosChamada({
                           mb: 2,
                         }}
                       >
-                        <Icon sx={{ fontSize: 32, color: `${tipo.color}.main` }} />
+                        <CardIcon sx={{ fontSize: 32, color: isSGEConnected ? `${tipo.color}.main` : 'action.disabled' }} />
                       </Box>
                       <Typography variant="h6" gutterBottom>
                         {tipo.titulo}

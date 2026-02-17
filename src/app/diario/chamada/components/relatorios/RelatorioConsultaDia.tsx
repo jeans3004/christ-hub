@@ -1,9 +1,10 @@
 /**
  * Relatorio Consultar Dia - Espelha "Detalhamento da chamada" do SGE.
- * Mostra presenca por aluno com comparacao SGE e edicao inline.
+ * Tabela consolidada: uma linha por aluno, colunas por tempo, status combinado "P,F".
+ * Verifica SGE buscando todos os tempos (inclusive extras nao registrados no Luminar).
  */
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   Box,
   Paper,
@@ -20,6 +21,7 @@ import {
   Checkbox,
   Alert,
   CircularProgress,
+  Tooltip,
 } from '@mui/material';
 import {
   OpenInNew as OpenInNewIcon,
@@ -40,10 +42,10 @@ interface RelatorioConsultaDiaProps {
   professor: Usuario | null;
 }
 
-interface SgeStudentStatus {
-  alunoId: string;
-  status: 'ok' | 'divergente' | 'nao_encontrado';
-  sgePresenteLabel?: string;
+/** Combined SGE status per student */
+interface SgeCombinedStatus {
+  label: string; // "P,F" or "N/M" (nao mapeado)
+  perAula: Array<{ aula: number; presente: boolean }>;
 }
 
 export function RelatorioConsultaDia({
@@ -58,7 +60,8 @@ export function RelatorioConsultaDia({
   const [chamadas, setChamadas] = useState<Chamada[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
-  const [sgeStatus, setSgeStatus] = useState<Record<string, SgeStudentStatus>>({});
+  const [sgeStatus, setSgeStatus] = useState<Record<string, SgeCombinedStatus>>({});
+  const [sgeChecked, setSgeChecked] = useState(false);
   const [checkingSge, setCheckingSge] = useState(false);
   const [editedPresencas, setEditedPresencas] = useState<Record<string, Record<string, boolean>>>({});
   const [saving, setSaving] = useState(false);
@@ -66,6 +69,17 @@ export function RelatorioConsultaDia({
 
   const turma = turmas.find(t => t.id === turmaId);
   const disciplina = disciplinas.find(d => d.id === disciplinaId);
+
+  // Consolidated student list (unique, sorted by name)
+  const allStudents = useMemo(() => {
+    const map = new Map<string, { id: string; nome: string }>();
+    for (const c of chamadas) {
+      for (const p of c.presencas) {
+        if (!map.has(p.alunoId)) map.set(p.alunoId, { id: p.alunoId, nome: p.alunoNome });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+  }, [chamadas]);
 
   // Load eAluno config for SGE URLs
   useEffect(() => {
@@ -87,6 +101,7 @@ export function RelatorioConsultaDia({
       setChamadas(filtered.sort((a, b) => a.tempo - b.tempo));
       setLoaded(true);
       setSgeStatus({});
+      setSgeChecked(false);
       setEditedPresencas({});
     } catch (error) {
       console.error('Erro ao carregar chamadas:', error);
@@ -96,7 +111,7 @@ export function RelatorioConsultaDia({
     }
   }, [turmaId, disciplinaId, data, addToast]);
 
-  // Check SGE status per student
+  // Check SGE status - fetches all aulas (Luminar tempos + extras) and builds combined status
   const handleVerificarSge = useCallback(async () => {
     if (!professor?.id || chamadas.length === 0) return;
 
@@ -116,61 +131,79 @@ export function RelatorioConsultaDia({
         return;
       }
 
-      const newStatus: Record<string, SgeStudentStatus> = {};
+      // Check Luminar tempos + 2 extra aulas to detect SGE-only entries
+      const luminarTempos = chamadas.map(c => c.tempo);
+      const maxTempo = Math.max(...luminarTempos, 0);
+      const aulasToCheck: number[] = [];
+      for (let a = 1; a <= Math.min(maxTempo + 2, 7); a++) {
+        aulasToCheck.push(a);
+      }
 
-      for (const chamada of chamadas) {
-        const res = await fetch('/api/ealuno/chamada-detail', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            user: config.credentials.user,
-            password: config.credentials.password,
-            encrypted: true,
-            serie: turmaMapping.serie,
-            turma: turmaMapping.turma,
-            turno: turmaMapping.turno,
-            disciplina: disciplinaMapping,
-            ano: new Date(data + 'T12:00:00').getFullYear(),
-            data,
-            aula: chamada.tempo,
-          }),
-        });
+      // Fetch SGE data for each aula sequentially
+      const sgeByAula: Record<number, Array<{ id: number; nome: string; presente: boolean }>> = {};
 
-        if (!res.ok) continue;
-        const json = await res.json();
-        if (!json.success) continue;
+      for (const aula of aulasToCheck) {
+        try {
+          const res = await fetch('/api/sge/chamada-detail', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user: config.credentials.user,
+              password: config.credentials.password,
+              encrypted: true,
+              serie: turmaMapping.serie,
+              turma: turmaMapping.turma,
+              turno: turmaMapping.turno,
+              disciplina: disciplinaMapping,
+              ano: new Date(data + 'T12:00:00').getFullYear(),
+              data,
+              aula,
+            }),
+          });
 
-        const sgeStudents: Array<{ id: number; nome: string; presente: boolean }> = json.data.students;
-
-        for (const presenca of chamada.presencas) {
-          const eAlunoId = config.alunoMap?.[presenca.alunoId];
-          if (!eAlunoId) {
-            newStatus[`${chamada.id}:${presenca.alunoId}`] = {
-              alunoId: presenca.alunoId,
-              status: 'nao_encontrado',
-            };
-            continue;
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (json.success && json.data?.students?.length > 0) {
+            sgeByAula[aula] = json.data.students;
           }
-
-          const sgeStudent = sgeStudents.find(s => s.id === eAlunoId);
-          if (!sgeStudent) {
-            newStatus[`${chamada.id}:${presenca.alunoId}`] = {
-              alunoId: presenca.alunoId,
-              status: 'nao_encontrado',
-            };
-            continue;
-          }
-
-          const match = presenca.presente === sgeStudent.presente;
-          newStatus[`${chamada.id}:${presenca.alunoId}`] = {
-            alunoId: presenca.alunoId,
-            status: match ? 'ok' : 'divergente',
-            sgePresenteLabel: sgeStudent.presente ? 'P' : 'F',
-          };
+        } catch {
+          // Skip failed aulas
         }
       }
 
+      // Build combined status per student
+      const sgeAulas = Object.keys(sgeByAula).map(Number).sort((a, b) => a - b);
+      const newStatus: Record<string, SgeCombinedStatus> = {};
+
+      // Collect all Luminar student IDs
+      const studentIds = new Set<string>();
+      for (const c of chamadas) {
+        for (const p of c.presencas) studentIds.add(p.alunoId);
+      }
+
+      for (const alunoId of studentIds) {
+        const eAlunoId = config.alunoMap?.[alunoId];
+        if (!eAlunoId) {
+          newStatus[alunoId] = { label: 'N/M', perAula: [] };
+          continue;
+        }
+
+        const perAula: Array<{ aula: number; presente: boolean }> = [];
+        for (const aula of sgeAulas) {
+          const sgeStudent = sgeByAula[aula]?.find(s => s.id === eAlunoId);
+          if (sgeStudent) {
+            perAula.push({ aula, presente: sgeStudent.presente });
+          }
+        }
+
+        newStatus[alunoId] = {
+          label: perAula.length > 0 ? perAula.map(a => a.presente ? 'P' : 'F').join(',') : '-',
+          perAula,
+        };
+      }
+
       setSgeStatus(newStatus);
+      setSgeChecked(true);
       addToast('Verificacao SGE concluida', 'success');
     } catch (error) {
       console.error('Erro ao verificar SGE:', error);
@@ -243,8 +276,16 @@ export function RelatorioConsultaDia({
     }
   }, [turmaId, disciplinaId, data, loadChamadas]);
 
-  // Build SGE external URL with dynamic params
-  const getSgeUrl = (chamada: Chamada) => {
+  // Auto-verify SGE when chamadas load and config is available
+  useEffect(() => {
+    if (chamadas.length > 0 && eAlunoConfig?.credentials?.user && !sgeChecked && !checkingSge) {
+      handleVerificarSge();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chamadas.length, eAlunoConfig?.credentials?.user]);
+
+  // Build SGE external URL
+  const getSgeUrl = () => {
     const base = 'https://e-aluno.com.br/christ/diario/relatorio_detalhamento_chamada.php';
     const turmaMapping = eAlunoConfig?.turmaMap?.[turmaId];
     const disciplinaMapping = eAlunoConfig?.disciplinaMap?.[disciplinaId];
@@ -256,11 +297,19 @@ export function RelatorioConsultaDia({
       turno: turmaMapping.turno,
       disciplina: String(disciplinaMapping),
       data,
-      aula: String(chamada.tempo),
       txtSerie: turma?.nome || '',
       ano: String(new Date(data + 'T12:00:00').getFullYear()),
     });
     return `${base}?${params.toString()}`;
+  };
+
+  // Get combined Luminar status label for a student ("P,F")
+  const getLuminarLabel = (alunoId: string): string => {
+    return chamadas.map(c => {
+      const p = c.presencas.find(p => p.alunoId === alunoId);
+      if (!p) return '-';
+      return getPresenca(c.id, alunoId, p.presente) ? 'P' : 'F';
+    }).join(',');
   };
 
   if (loading) {
@@ -281,10 +330,22 @@ export function RelatorioConsultaDia({
 
   return (
     <Box>
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-        <Typography variant="h6">
-          {turma?.nome} - {disciplina?.nome} - {formatDateFull(data)}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6">
+            {turma?.nome} - {disciplina?.nome} - {formatDateFull(data)}
+          </Typography>
+          <Tooltip title="Abrir no SGE">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => window.open(getSgeUrl(), '_blank')}
+            >
+              <OpenInNewIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </Box>
         <Box sx={{ display: 'flex', gap: 1 }}>
           <Button
             variant="outlined"
@@ -309,97 +370,138 @@ export function RelatorioConsultaDia({
         </Box>
       </Box>
 
-      {chamadas.map((chamada) => (
-        <Paper key={chamada.id} sx={{ mb: 2, overflow: 'hidden' }}>
-          <Box sx={{ p: 1.5, bgcolor: 'grey.100', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="subtitle2">
-              {chamada.tempo}o Tempo
-              {chamada.conteudo && (
-                <Typography component="span" variant="body2" color="text.secondary" sx={{ ml: 1 }}>
-                  — {chamada.conteudo}
-                </Typography>
-              )}
+      {/* Conteudos summary */}
+      {chamadas.some(c => c.conteudo) && (
+        <Paper sx={{ p: 1.5, mb: 2, bgcolor: 'grey.50' }}>
+          {chamadas.filter(c => c.conteudo).map(c => (
+            <Typography key={c.id} variant="body2" color="text.secondary">
+              <strong>{c.tempo}o Tempo:</strong> {c.conteudo}
             </Typography>
-            <IconButton
-              size="small"
-              color="primary"
-              onClick={() => window.open(getSgeUrl(chamada), '_blank')}
-            >
-              <OpenInNewIcon fontSize="small" />
-            </IconButton>
-          </Box>
-          <TableContainer>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell sx={{ width: 40 }} align="center">#</TableCell>
-                  <TableCell>Aluno</TableCell>
-                  <TableCell align="center" sx={{ width: 80 }}>Status</TableCell>
-                  {Object.keys(sgeStatus).length > 0 && (
-                    <TableCell align="center" sx={{ width: 120 }}>Status SGE</TableCell>
-                  )}
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {chamada.presencas.map((presenca, idx) => {
-                  const key = `${chamada.id}:${presenca.alunoId}`;
-                  const sge = sgeStatus[key];
-                  const presente = getPresenca(chamada.id, presenca.alunoId, presenca.presente);
-                  const isEdited = editedPresencas[chamada.id]?.[presenca.alunoId] !== undefined;
-
-                  return (
-                    <TableRow key={presenca.alunoId} sx={isEdited ? { bgcolor: 'warning.50' } : undefined}>
-                      <TableCell align="center">
-                        <Typography variant="body2" color="text.secondary">{idx + 1}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{presenca.alunoNome}</Typography>
-                      </TableCell>
-                      <TableCell align="center">
-                        <Checkbox
-                          checked={presente}
-                          onChange={() => handleTogglePresenca(chamada.id, presenca.alunoId, presente)}
-                          size="small"
-                          color={presente ? 'success' : 'error'}
-                        />
-                        <Typography variant="caption" color={presente ? 'success.main' : 'error.main'}>
-                          {presente ? 'P' : 'F'}
-                        </Typography>
-                      </TableCell>
-                      {Object.keys(sgeStatus).length > 0 && (
-                        <TableCell align="center">
-                          {sge ? (
-                            <Chip
-                              label={
-                                sge.status === 'ok'
-                                  ? 'OK'
-                                  : sge.status === 'divergente'
-                                    ? `Divergente (SGE: ${sge.sgePresenteLabel})`
-                                    : 'Nao encontrado'
-                              }
-                              size="small"
-                              color={
-                                sge.status === 'ok'
-                                  ? 'success'
-                                  : sge.status === 'divergente'
-                                    ? 'error'
-                                    : 'default'
-                              }
-                              variant={sge.status === 'nao_encontrado' ? 'outlined' : 'filled'}
-                            />
-                          ) : (
-                            <Chip label="—" size="small" variant="outlined" />
-                          )}
-                        </TableCell>
-                      )}
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          ))}
         </Paper>
-      ))}
+      )}
+
+      {/* Consolidated Table */}
+      <Paper sx={{ overflow: 'hidden' }}>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ width: 40 }} align="center">#</TableCell>
+                <TableCell>Aluno</TableCell>
+                {chamadas.map(c => (
+                  <TableCell key={c.id} align="center" sx={{ width: 60, px: 0.5 }}>
+                    {c.tempo}o
+                  </TableCell>
+                ))}
+                <TableCell align="center" sx={{ width: 80 }}>Luminar</TableCell>
+                <TableCell align="center" sx={{ width: 120 }}>SGE</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {allStudents.map((student, idx) => {
+                const luminarLabel = getLuminarLabel(student.id);
+                const sge = sgeStatus[student.id];
+                const hasSge = sge && sge.label !== 'N/M' && sge.label !== '-';
+                const isDivergent = hasSge && luminarLabel !== sge.label;
+                const hasAnyEdit = chamadas.some(c => editedPresencas[c.id]?.[student.id] !== undefined);
+
+                return (
+                  <TableRow key={student.id} sx={hasAnyEdit ? { bgcolor: 'warning.50' } : undefined}>
+                    <TableCell align="center">
+                      <Typography variant="body2" color="text.secondary">{idx + 1}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">{student.nome}</Typography>
+                    </TableCell>
+                    {chamadas.map(c => {
+                      const p = c.presencas.find(p => p.alunoId === student.id);
+                      if (!p) return <TableCell key={c.id} align="center" sx={{ px: 0.5 }}>—</TableCell>;
+                      const presente = getPresenca(c.id, student.id, p.presente);
+                      return (
+                        <TableCell key={c.id} align="center" sx={{ px: 0.5 }}>
+                          <Checkbox
+                            checked={presente}
+                            onChange={() => handleTogglePresenca(c.id, student.id, presente)}
+                            size="small"
+                            color={presente ? 'success' : 'error'}
+                            sx={{ p: 0.5 }}
+                          />
+                        </TableCell>
+                      );
+                    })}
+                    <TableCell align="center">
+                      <Typography
+                        variant="body2"
+                        fontWeight={500}
+                        color={luminarLabel.includes('F') ? 'error.main' : 'success.main'}
+                      >
+                        {luminarLabel}
+                      </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      {checkingSge ? (
+                        <CircularProgress size={16} />
+                      ) : sge ? (
+                        <Chip
+                          label={sge.label}
+                          size="small"
+                          color={
+                            sge.label === 'N/M' ? 'default' :
+                            isDivergent ? 'error' : 'success'
+                          }
+                          variant={sge.label === 'N/M' ? 'outlined' : 'filled'}
+                        />
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">—</Typography>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
+
+      {/* Divergence summary */}
+      {sgeChecked && (() => {
+        const divergentes = allStudents.filter(s => {
+          const sge = sgeStatus[s.id];
+          if (!sge || sge.label === 'N/M' || sge.label === '-') return false;
+          return getLuminarLabel(s.id) !== sge.label;
+        });
+        const naoMapeados = allStudents.filter(s => sgeStatus[s.id]?.label === 'N/M');
+        const sgeExtra = allStudents.some(s => {
+          const sge = sgeStatus[s.id];
+          return sge && sge.perAula.length > chamadas.length;
+        });
+
+        return (
+          <Box sx={{ mt: 2, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {divergentes.length > 0 && (
+              <Alert severity="warning" sx={{ flex: 1 }}>
+                {divergentes.length} aluno(s) com divergencia entre Luminar e SGE.
+              </Alert>
+            )}
+            {naoMapeados.length > 0 && (
+              <Alert severity="info" sx={{ flex: 1 }}>
+                {naoMapeados.length} aluno(s) sem mapeamento no SGE (N/M).
+              </Alert>
+            )}
+            {sgeExtra && (
+              <Alert severity="info" sx={{ flex: 1 }}>
+                SGE possui mais aulas registradas que o Luminar neste dia.
+              </Alert>
+            )}
+            {divergentes.length === 0 && naoMapeados.length === 0 && !sgeExtra && (
+              <Alert severity="success" sx={{ flex: 1 }}>
+                Luminar e SGE estao sincronizados.
+              </Alert>
+            )}
+          </Box>
+        );
+      })()}
     </Box>
   );
 }
