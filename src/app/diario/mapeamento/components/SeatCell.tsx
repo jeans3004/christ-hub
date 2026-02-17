@@ -15,6 +15,7 @@ interface SeatCellProps {
   onCelulaClick: () => void;
   onDrop: (alunoId: string) => void;
   onTouchDrop?: (targetRow: number, targetCol: number, alunoId: string) => void;
+  onAlunoClick?: (aluno: { id: string; nome: string; fotoUrl?: string; iniciais: string }) => void;
   row: number;
   col: number;
   size?: number;
@@ -27,6 +28,7 @@ export function SeatCell({
   onCelulaClick,
   onDrop,
   onTouchDrop,
+  onAlunoClick,
   row,
   col,
   size = 64,
@@ -141,39 +143,54 @@ export function SeatCell({
 
     // Tipo mesa
     if (celula.aluno) {
-      const avatarSize = Math.max(28, size * 0.45);
+      const avatarSize = Math.max(36, size * 0.68);
+      const firstName = celula.aluno.nome.split(' ')[0];
+      const aluno = celula.aluno;
       return (
         <Tooltip title={celula.aluno.nome} arrow enterDelay={300}>
-          <Box sx={{ textAlign: 'center' }}>
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: 0.25,
+            width: size - 4,
+          }}>
             <Avatar
+              onClick={(e) => {
+                if (onAlunoClick && modoEdicao === 'visualizar') {
+                  e.stopPropagation();
+                  onAlunoClick(aluno);
+                }
+              }}
               src={celula.aluno.fotoUrl}
               sx={{
                 width: avatarSize,
                 height: avatarSize,
-                mx: 'auto',
                 bgcolor: 'primary.main',
-                fontSize: Math.max(10, avatarSize * 0.4),
-                fontWeight: 600,
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                fontSize: Math.max(14, avatarSize * 0.35),
+                fontWeight: 700,
+                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                border: '2px solid',
+                borderColor: isDark ? 'primary.light' : 'primary.main',
+                cursor: modoEdicao === 'visualizar' ? 'pointer' : undefined,
+                '&:hover': modoEdicao === 'visualizar' ? { transform: 'scale(1.08)', transition: 'transform 0.15s' } : {},
+                '& img': { objectFit: 'cover' },
               }}
             >
               {celula.aluno.iniciais}
             </Avatar>
-            <Typography
-              variant="caption"
-              sx={{
-                display: 'block',
-                mt: 0.25,
-                maxWidth: size - 8,
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                fontSize: Math.max(8, size * 0.13),
-                fontWeight: 500,
-                lineHeight: 1.2,
-              }}
-            >
-              {celula.aluno.nome.split(' ')[0]}
+            <Typography sx={{
+              fontSize: Math.max(8, size * 0.13),
+              fontWeight: 600,
+              lineHeight: 1,
+              maxWidth: size - 6,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+              textAlign: 'center',
+              color: 'text.primary',
+            }}>
+              {firstName}
             </Typography>
           </Box>
         </Tooltip>

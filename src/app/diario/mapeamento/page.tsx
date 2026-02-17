@@ -16,6 +16,8 @@ import {
   Paper,
   IconButton,
   Chip,
+  Dialog,
+  Avatar,
 } from '@mui/material';
 import {
   Shuffle,
@@ -61,6 +63,7 @@ export default function MapeamentoPage() {
   } = useMapeamentoData();
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' | 'info' });
+  const [fotoModal, setFotoModal] = useState<{ nome: string; fotoUrl?: string; iniciais: string } | null>(null);
   const loading = loadingAlunos || loadingMapeamento;
   const isVisualizando = !!professorIdVisualizando;
   const autoRedirectDoneRef = useRef(false);
@@ -443,6 +446,7 @@ export default function MapeamentoPage() {
                     onCelulaClick={isVisualizando ? () => {} : handleCelulaClick}
                     onDrop={isVisualizando ? () => {} : handleDrop}
                     onLayoutChange={isVisualizando ? () => {} : atualizarLayout}
+                    onAlunoClick={(aluno) => setFotoModal(aluno)}
                     showLayoutControls={mostrarControlesLayout && !isVisualizando}
                   />
                 </Box>
@@ -474,6 +478,60 @@ export default function MapeamentoPage() {
             {snackbar.message}
           </Alert>
         </Snackbar>
+
+        {/* Modal de foto do aluno */}
+        <Dialog
+          open={!!fotoModal}
+          onClose={() => setFotoModal(null)}
+          maxWidth="sm"
+          PaperProps={{
+            sx: { bgcolor: 'transparent', boxShadow: 'none', overflow: 'visible' },
+            onClick: () => setFotoModal(null),
+          }}
+          slotProps={{ backdrop: { sx: { bgcolor: 'rgba(0,0,0,0.85)' } } }}
+        >
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer' }}>
+            {fotoModal?.fotoUrl ? (
+              <Box
+                component="img"
+                src={fotoModal.fotoUrl.replace(/sz=w\d+/, 'sz=w800')}
+                alt={fotoModal.nome}
+                sx={{
+                  maxWidth: { xs: '85vw', sm: 420 },
+                  maxHeight: '70vh',
+                  objectFit: 'contain',
+                  borderRadius: 2,
+                  border: '4px solid white',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                }}
+              />
+            ) : (
+              <Avatar
+                sx={{
+                  width: 220,
+                  height: 220,
+                  fontSize: '4.5rem',
+                  fontWeight: 700,
+                  bgcolor: 'primary.main',
+                  border: '4px solid white',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+                }}
+              >
+                {fotoModal?.iniciais}
+              </Avatar>
+            )}
+            <Typography sx={{
+              color: 'white',
+              fontWeight: 600,
+              fontSize: '1.2rem',
+              textShadow: '0 2px 8px rgba(0,0,0,0.6)',
+              textAlign: 'center',
+              px: 2,
+            }}>
+              {fotoModal?.nome}
+            </Typography>
+          </Box>
+        </Dialog>
       </Box>
     </MainLayout>
   );

@@ -16,6 +16,7 @@ interface ClassroomGridProps {
   onCelulaClick: (row: number, col: number) => void;
   onDrop: (row: number, col: number, alunoId: string) => void;
   onLayoutChange: (layout: LayoutSala) => void;
+  onAlunoClick?: (aluno: { id: string; nome: string; fotoUrl?: string; iniciais: string }) => void;
   showLayoutControls?: boolean;
   compact?: boolean;
 }
@@ -28,6 +29,7 @@ export function ClassroomGrid({
   onCelulaClick,
   onDrop,
   onLayoutChange,
+  onAlunoClick,
   showLayoutControls = true,
   compact = false,
 }: ClassroomGridProps) {
@@ -60,8 +62,8 @@ export function ClassroomGrid({
   };
 
   // Calcular tamanho das celulas baseado no layout
-  const cellSize = compact ? 52 : Math.max(52, Math.min(72, 400 / layout.columns));
-  const gap = compact ? 4 : 6;
+  const cellSize = compact ? 56 : Math.max(64, Math.min(96, 560 / layout.columns));
+  const gap = compact ? 4 : 8;
 
   // Estatisticas
   const totalMesas = celulas.filter(c => c.tipo === 'mesa').length;
@@ -226,6 +228,7 @@ export function ClassroomGrid({
                     onCelulaClick={() => onCelulaClick(rowIndex, colIndex)}
                     onDrop={(alunoId) => onDrop(rowIndex, colIndex, alunoId)}
                     onTouchDrop={(targetRow, targetCol, alunoId) => onDrop(targetRow, targetCol, alunoId)}
+                    onAlunoClick={onAlunoClick}
                     row={rowIndex}
                     col={colIndex}
                     size={cellSize}
